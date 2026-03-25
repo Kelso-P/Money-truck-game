@@ -35,47 +35,54 @@
         .balance { color: var(--accent-gold); font-weight: bold; font-size: 1.1em; }
         .day-night-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
 
-       #game-stage {
-        width: 100%;
-        height: 250px;
-        position: relative;
-        background-color: #050505;
-        /* We set the size to contain so the road fills the height correctly */
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        
-        /* This is the magic: it cycles the images in your specific order */
-        animation: roadSequence 12s infinite;
-        
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        border-bottom: 2px solid #222;
-    }
+      #game-stage {
+    width: 100%;
+    height: 350px;
+    position: relative;
+    background-color: #050505;
+    
+    /* We "layer" the images in the order they should appear */
+    background-image: 
+        url('images/road_pillars.png'),
+        url('images/road_default.png'),
+        url('images/road_pillars&_trees.png'),
+        url('images/road_default.png');
 
-    #truck {
-        width: 180px;
-        /* The truck stays centered while the road "changes" behind it */
-        filter: drop-shadow(0 15px 20px rgba(0,0,0,0.8));
-        animation: truckBounce 0.6s ease-in-out infinite alternate;
-        z-index: 10;
-    }
+    /* We set each image to be 100% of the container width and align them side-by-side */
+    background-size: 100% 100%;
+    background-repeat: repeat-x;
+    
+    /* This animation handles the sliding */
+    animation: scrollHighway 15s linear infinite;
+    
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-bottom: 2px solid #222;
+}
 
-    /* THE SEQUENCE ANIMATION */
-    /* We divide the 12s duration into 4 parts (25% each) */
-    @keyframes roadSequence {
-        0%, 24% { background-image: url('images/road_pillars.jpg'); }
-        25%, 49% { background-image: url('images/road_default.png'); }
-        50%, 74% { background-image: url('images/road_pillars&_trees.png'); }
-        75%, 100% { background-image: url('images/road_default.png'); }
+@keyframes scrollHighway {
+    0% { 
+        /* Start with the first image visible */
+        background-position: 0% 0, 100% 0, 200% 0, 300% 0; 
     }
-
-    @keyframes truckBounce {
-        from { transform: translateY(0); }
-        to { transform: translateY(5px); }
+    100% { 
+        /* Slide everything to the left by 400% (the width of all 4 images combined) */
+        background-position: -400% 0, -300% 0, -200% 0, -100% 0; 
     }
+}
 
+#truck {
+    width: 180px;
+    filter: drop-shadow(0 15px 20px rgba(0,0,0,0.8));
+    animation: truckBounce 0.6s ease-in-out infinite alternate;
+    z-index: 10;
+}
+
+@keyframes truckBounce {
+    from { transform: translateY(0); }
+    to { transform: translateY(3px); }
+}
         /* --- UPGRADES SECTION --- */
         .upgrades-container {
             padding: 20px;
