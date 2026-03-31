@@ -52,23 +52,31 @@
     top: 0;
     left: 0;
     height: 100%;
-    width: 500%; /* 5 tiles x 100% width each */
+    width: 500%; 
     animation: scrollHighway 12s linear infinite;
+    /* This ensures no gaps between tiles if the crop was slightly short */
+    gap: -1px; 
 }
 
 .tile {
-    width: 20%; /* Each tile is 1/5th of the 500% width */
+    flex: 1; /* Ensures each tile takes exactly 20% of the 500% width */
     height: 100%;
-    background-size: cover;
-    background-position: center;
+    /* 'contain' ensures the whole road shows, 'cover' might crop the top/bottom */
+    background-size: 100% 100%; 
+    
+    /* ADJUST THIS: If the road is too high or low, change the second % (Y-axis) 
+       Example: 52% might move it down slightly to align with the next tile */
+    background-position: center 50%; 
     background-repeat: no-repeat;
+    
+    /* This helps hide slight color/edge mismatches from the crop */
+    outline: 1px solid #050505; 
 }
 
 @keyframes scrollHighway {
     0% { transform: translateX(0); }
-    100% { transform: translateX(-80%); } /* Moves past 4 tiles to the 5th (the copy) */
+    100% { transform: translateX(-80%); } 
 }
-
 #truck {
     position: relative;
     width: 200px;
@@ -151,7 +159,7 @@
         <div class="tile" style="background-image: url('images/road_pillars.png');"></div>
     </div>
     
-    <img id="truck" src="images/tier1_pickup.png" alt="Truck">
+    <img id="truck" src="images/tier1_pickup(1).png" alt="Truck">
 </div>
     <div class="upgrades-container">
         <div class="upgrade-card">
