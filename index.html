@@ -73,6 +73,9 @@
     outline: 1px solid #050505; 
 }
 
+.tile:nth-child(2){
+ background-position: center 52%;
+
 @keyframes scrollHighway {
     0% { transform: translateX(0); }
     100% { transform: translateX(-80%); } 
@@ -81,7 +84,7 @@
     position: relative;
     width: 200px;
     z-index: 10;
-    margin-top: 50px; /* Adjust to sit the truck on the road lines */
+    margin-top: 60px; /* Adjust to sit the truck on the road lines */
     filter: drop-shadow(0 15px 20px rgba(0,0,0,0.8));
     animation: truckBounce 0.5s ease-in-out infinite alternate;
 }
