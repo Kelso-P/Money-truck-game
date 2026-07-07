@@ -148,55 +148,48 @@
         <a href="#" class="nav-item">👥<br>Friends</a>
         <a href="#" class="nav-item">📋<br>Tasks</a>
     </div>
+    
     <script>
-      const tg = window.Telegram.WebApp;
-const NGROK_URL = " https://merlin-superindifferent-karma.ngrok-free.dev"; // e.g., https://a1b2.ngrok-free.app
-
-// Setup UI
-        tg.expand();
-        document.getElementById('username').innerText = tg.initDataUnsafe.user?.username || "Guest Driver";
-
-        function upgrade(statName) {
-            const userId = tg.initDataUnsafe.user?.id || 12345;
-            
-            fetch(`${NGROK_URL}/upgrade`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: userId, stat: statName })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.status === "success") {
-                    tg.showConfirm(data.message);
-                    // In a real version, we would refresh the levels here
-                }
-            })
-            .catch(err => tg.showAlert("Engine Error: Check Connection"));
-        }
-    </script>
-
-    <script>
-    // Initialize the Telegram Web App object
+    // 1. Initialize Telegram WebApp once right at the start
     const tg = window.Telegram.WebApp;
-
-    // Tell Telegram the app is ready and fully expanded
+    
+    // Tell Telegram the app is fully ready and expanded
     tg.ready();
     tg.expand();
 
-    // Check if we are actually running inside Telegram
-    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-        const user = tg.initDataUnsafe.user;
-        
-        // Grab the container displaying the username
-        const usernameElement = document.getElementById('username'); 
-        
-        if (usernameElement) {
-            // Use their username (e.g., @Khaled), or fall back to First Name if they don't have one
-            usernameElement.innerText = user.username ? `@${user.username}` : user.first_name;
+    // 2. Fix the space in the NGROK URL
+    const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev"; 
+
+    // 3. Handle Username display safely with fallback options
+    const usernameElement = document.getElementById('username');
+    if (usernameElement) {
+        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            const user = tg.initDataUnsafe.user;
+            // Prioritize username, fall back to first name, then global fallback
+            usernameElement.innerText = user.username ? `@${user.username}` : (user.first_name || "Driver");
+        } else {
+            usernameElement.innerText = "Guest Driver";
+            console.log("Running outside of Telegram. Defaulting to Guest Driver.");
         }
-    } else {
-        // If testing on a standard desktop browser outside Telegram, keep it as Guest
-        console.log("Running outside of Telegram. Defaulting to Guest Driver.");
+    }
+
+    // 4. Upgrade Function
+    function upgrade(statName) {
+        const userId = tg.initDataUnsafe.user?.id || 12345;
+        
+        fetch(`${NGROK_URL}/upgrade`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId, stat: statName })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === "success") {
+                tg.showConfirm(data.message);
+                // In a real version, we would refresh the levels here
+            }
+        })
+        .catch(err => tg.showAlert("Engine Error: Check Connection"));
     }
 </script>
 </body>
