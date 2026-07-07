@@ -174,5 +174,30 @@ const NGROK_URL = " https://merlin-superindifferent-karma.ngrok-free.dev"; // e.
             .catch(err => tg.showAlert("Engine Error: Check Connection"));
         }
     </script>
+
+    <script>
+    // Initialize the Telegram Web App object
+    const tg = window.Telegram.WebApp;
+
+    // Tell Telegram the app is ready and fully expanded
+    tg.ready();
+    tg.expand();
+
+    // Check if we are actually running inside Telegram
+    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+        const user = tg.initDataUnsafe.user;
+        
+        // Grab the container displaying the username
+        const usernameElement = document.getElementById('username'); 
+        
+        if (usernameElement) {
+            // Use their username (e.g., @Khaled), or fall back to First Name if they don't have one
+            usernameElement.innerText = user.username ? `@${user.username}` : user.first_name;
+        }
+    } else {
+        // If testing on a standard desktop browser outside Telegram, keep it as Guest
+        console.log("Running outside of Telegram. Defaulting to Guest Driver.");
+    }
+</script>
 </body>
 </html>
