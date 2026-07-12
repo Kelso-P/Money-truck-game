@@ -282,10 +282,11 @@
     const timerHud = document.getElementById('hud-timer');
     const fuelFill = document.getElementById('fuel-bar-fill');
     const balanceTextElement = document.getElementById('balance-display');
-        // Force the initial load value to show 70 MTC immediately
-        if (balanceTextElement) {
-            balanceTextElement.innerText = `${balance} MTC`;
-        }
+    
+    // Force the initial load value to show 70 MTC immediately
+    if (balanceTextElement) {
+        balanceTextElement.innerText = `${balance} MTC`;
+    }
 
     // UI Level Selectors
     const fuelLvlTxt = document.getElementById('fuel-lvl');
@@ -303,7 +304,7 @@
         }
     }
 
-   let taskStartTime = 0; // Tracks Unix timestamp of task runtime
+    let taskStartTime = 0; // Tracks Unix timestamp of task runtime
 
     // --- VISUAL VIEWPORT LOOP HANDLER ---
     function updateGameLoopView() {
@@ -357,7 +358,7 @@
             currentTaskTimeLeft = totalTaskTime - totalSecondsElapsed;
 
             // Fuel depletion follows the true elapsed timer progression
-            let fuelBurnRate = 0.5 / fuelLevel; 
+            let fuelBurnRate = 0.5 / (fuelLevel || 1); 
             fuelPercentage = 100 - (totalSecondsElapsed * fuelBurnRate);
 
             if (fuelPercentage <= 0) {
@@ -366,10 +367,10 @@
                 updateGameLoopView();
                 tg.showAlert("Out of Fuel! Upgrade your Fuel Tank component to keep rolling.");
             }
-            fuelFill.style.width = `${fuelPercentage}%`;
+            if (fuelFill) fuelFill.style.width = `${fuelPercentage}%`;
 
             // Random breakdown probability tick
-            let breakdownChance = 0.01 / engineLevel;
+            let breakdownChance = 0.01 / (engineLevel || 1);
             if (Math.random() < breakdownChance) {
                 triggerEngineBreakdown();
                 return;
@@ -381,14 +382,25 @@
                 balance += 20; 
                 if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
                 tg.showAlert("Task Finished! Your delivery run earned you 20 MTC.");
+                taskStartTime = 0; // Reset task state for next run
                 updateGameLoopView();
             }
             
             let minutes = Math.floor(currentTaskTimeLeft / 60);
             let seconds = currentTaskTimeLeft % 60;
-            timerHud.innerText = `Est: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            if (timerHud) {
+                timerHud.innerText = `Est: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            }
 
         }, 1000);
+    }
+
+    // 🟩 ADDED MISSING FUNCTION: Handles sudden engine failures
+    function triggerEngineBreakdown() {
+        isDriving = false;
+        if (breakdownEl) breakdownEl.style.display = 'flex';
+        updateGameLoopView();
+        tg.showAlert("Mechanical Breakdown! Your engine has stalled out.");
     }
 
     // --- INITIALIZATION LOAD DATA SYNC ---
@@ -411,7 +423,7 @@
 
                 if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
                 if (fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel;
-                if (speedLvlTxt) speedLvlTxt.innerText = speedLevel;
+                if (speedLvlTxt) speedLvlTxt.innerText = speedsLevel;
                 if (engineLvlTxt) engineLvlTxt.innerText = engineLevel;
 
                 // If a task was already running in the background, calculate position immediately
@@ -428,7 +440,8 @@
 
                 updateGameLoopView();
             }
-        });
+        })
+        .catch(err => console.error("Sync error:", err));
     }
 
     // --- UPGRADE BUTTON PIPELINE HANDLER ---
@@ -449,17 +462,21 @@
                 if (statName === 'speed') { speedsLevel++; if(speedLvlTxt) speedLvlTxt.innerText = speedsLevel; }
                 if (statName === 'engine') { engineLevel++; if(engineLvlTxt) engineLvlTxt.innerText = engineLevel; }
 
-                balance -= 20;
+                // Sync frontend variable precisely with backend data return
+                balance = data.new_balance;
                 if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
 
                 updateGameLoopView();
             } else {
-                // If the status isn't "success", it drops down here and displays the exact backend custom warning message string
+                // Displays the exact custom "insufficient funds" warning message from backend
                 tg.showAlert(data.message);
             }
         })
         .catch(err => tg.showAlert("Engine Error: Check Connection"));
     }
+
+    // 🟩 EXECUTING SYSTEM INITIATION ON LOAD
+    loadUserData();
 </script>
 </body>
 </html>
