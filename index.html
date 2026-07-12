@@ -35,29 +35,115 @@
         .balance { color: var(--accent-gold); font-weight: bold; font-size: 1.1em; }
         .day-night-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
 
-    #game-stage {
-        width: 100%;
-        height: 350px;
-        position: relative;
-        background-color: #000;
-        overflow: hidden;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        border-bottom: 2px solid #222;
-    }
+   #game-stage {
+    width: 100%;
+    height: 350px;
+    position: relative;
+    background-color: #050505;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-bottom: 2px solid #1a1a1a;
+}
 
-    #road-video {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        /* Ensures the video stretches or crops cleanly to fill the stage */
-        object-fit: cover; 
-        /* Keeps the focus on the middle section where the action is */
-        object-position: center; 
-    }
+#road-video, #stagnant-truck {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    z-index: 1;
+}
+
+/* HUD Overlay Styling */
+#hud-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 15px;
+    box-sizing: border-box;
+    pointer-events: none; /* Allows clicking through to game components if needed */
+}
+
+.hud-top {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+
+#hud-speed, #hud-timer {
+    background: rgba(5, 5, 5, 0.75);
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 14px;
+    letter-spacing: 1px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Uniform Decreasing Fuel Bar */
+.fuel-bar-container {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: auto;
+}
+
+#fuel-bar-fill {
+    height: 100%;
+    background: #ff3333; /* Crimson/Red alert color */
+    width: 100%;
+    transition: width 0.5s linear;
+}
+
+/* Breakdown Action Overlay */
+#breakdown-screen {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: rgba(5, 5, 5, 0.85);
+    z-index: 15;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: #fff;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+#breakdown-screen p {
+    font-size: 16px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+    font-weight: bold;
+}
+
+#breakdown-screen button {
+    background: #fff;
+    color: #050505;
+    border: none;
+    padding: 12px 30px;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(255,255,255,0.2);
+}
         /* --- UPGRADES SECTION --- */
         .upgrades-container {
             padding: 20px;
@@ -119,10 +205,27 @@
     </div>
 
     <div id="game-stage">
-    <video id="road-video" autoplay loop muted playsinline>
+    <video id="road-video" autoplay loop muted playsinline style="display: none;">
         <source src="videos/Pickuptruck-loopvideo1.mp4" type="video/mp4">
-        Your browser does not support the video tag.
     </video>
+
+    <img id="stagnant-truck" src="images/stagnant_truck.png" alt="Truck Engine Off">
+
+    <div id="hud-overlay">
+        <div class="hud-top">
+            <span id="hud-speed">0 m/s</span>
+            <span id="hud-timer">Est: 30:00</span>
+        </div>
+        
+        <div class="fuel-bar-container">
+            <div id="fuel-bar-fill" style="width: 100%;"></div>
+        </div>
+    </div>
+
+    <div id="breakdown-screen" style="display: none;">
+        <p>Oops! Engine died out.<br>Let's fix it to get this baby going!</p>
+        <button onclick="fixEngine()">Pay 5 MTC</button>
+    </div>
 </div>
     <div class="upgrades-container">
         <div class="upgrade-card">
