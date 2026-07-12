@@ -303,52 +303,35 @@
         }
     }
 
-    // --- NEW INITIALIZATION FUNCTION ---
-    function loadUserData() {
-        const userId = tg.initDataUnsafe.user?.id || 12345;
+   let taskStartTime = 0; // Tracks Unix timestamp of task runtime
 
-        fetch(`${NGROK_URL}/get_profile`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.status === "success") {
-                // Synchronize frontend state variables with real database values
-                balance = data.balance;
-                fuelLevel = data.fuel_lvl;
-                speedsLevel = data.speed_lvl;
-                engineLevel = data.engine_lvl;
-
-                // Instantly update the visual header and text level cards
-                if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
-                if (fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel;
-                if (speedLvlTxt) speedLvlTxt.innerText = speedsLevel;
-                if (engineLvlTxt) engineLvlTxt.innerText = engineLevel;
-
-                // Re-evaluate if the truck should be stagnant or moving based on loaded levels
-                updateGameLoopView();
-            }
-        })
-        .catch(err => console.error("Error connecting to game profile sync:", err));
-    }
-
-    // Call this function at the very bottom of your script so it triggers immediately when page loads
-    loadUserData();
-
-    // --- 5. VISUAL VIEWPORT LOOP HANDLER ---
+    // --- VISUAL VIEWPORT LOOP HANDLER ---
     function updateGameLoopView() {
-        // Condition: Drive ONLY if all three tracking levels are > 0 AND no active engine breakdown screen
         if (speedsLevel > 0 && fuelLevel > 0 && engineLevel > 0 && breakdownEl.style.display === 'none') {
             if (!isDriving) {
                 isDriving = true;
                 stagnantEl.style.display = 'none';
                 videoEl.style.display = 'block';
                 videoEl.play().catch(e => console.log("Autoplay context blocked"));
+                
+                // If this is the absolute first time starting the task, save the timestamp to backend
+                if (taskStartTime === 0) {
+                    const userId = tg.initDataUnsafe.user?.id || 12345;
+                    fetch(`${NGROK_URL}/start_task`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: userId })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if(data.status === "success") {
+                            taskStartTime = data.task_start_time;
+                        }
+                    });
+                }
+                
                 startCoreTimers();
             }
-            // Dynamic scale readout calculation (e.g., Level 1 = 30 m/s)
             speedHud.innerText = `${20 + (speedsLevel * 10)} m/s`;
         } else {
             isDriving = false;
@@ -360,16 +343,23 @@
         }
     }
 
-    // --- 6. CORE GAME CONTROLLER METERS ---
+    // --- CORE GAME CONTROLLER METERS ---
     function startCoreTimers() {
         clearInterval(gameInterval);
         
         gameInterval = setInterval(() => {
-            if (!isDriving) return;
+            if (!isDriving || taskStartTime === 0) return;
 
-            // A. Uniform Fuel Depletion (Higher levels deplete fuel slower)
+            // 1. Calculate real elapsed time passing by comparing current time with start timestamp
+            let nowInSeconds = Math.floor(Date.now() / 1000);
+            let totalSecondsElapsed = nowInSeconds - Math.floor(taskStartTime);
+            
+            currentTaskTimeLeft = totalTaskTime - totalSecondsElapsed;
+
+            // Fuel depletion follows the true elapsed timer progression
             let fuelBurnRate = 0.5 / fuelLevel; 
-            fuelPercentage -= fuelBurnRate;
+            fuelPercentage = 100 - (totalSecondsElapsed * fuelBurnRate);
+
             if (fuelPercentage <= 0) {
                 fuelPercentage = 0;
                 isDriving = false;
@@ -378,24 +368,22 @@
             }
             fuelFill.style.width = `${fuelPercentage}%`;
 
-            // B. Random Engine Failure Framework (Higher levels drop probability drastically)
+            // Random breakdown probability tick
             let breakdownChance = 0.01 / engineLevel;
             if (Math.random() < breakdownChance) {
                 triggerEngineBreakdown();
                 return;
             }
 
-            // C. Task Countdown Timer Calculation
-            currentTaskTimeLeft--;
             if (currentTaskTimeLeft <= 0) {
                 currentTaskTimeLeft = 0;
                 isDriving = false;
-                balance += 20; // Task reward payout
+                balance += 20; 
+                if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
                 tg.showAlert("Task Finished! Your delivery run earned you 20 MTC.");
                 updateGameLoopView();
             }
             
-            // Format time counter output into standard MM:SS
             let minutes = Math.floor(currentTaskTimeLeft / 60);
             let seconds = currentTaskTimeLeft % 60;
             timerHud.innerText = `Est: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
@@ -403,27 +391,47 @@
         }, 1000);
     }
 
-    function triggerEngineBreakdown() {
-        isDriving = false;
-        breakdownEl.style.display = 'flex';
-        updateGameLoopView();
-    }
+    // --- INITIALIZATION LOAD DATA SYNC ---
+    function loadUserData() {
+        const userId = tg.initDataUnsafe.user?.id || 12345;
 
-    // --- 7. REPAIR ENGINE HANDLER ---
-    function fixEngine() {
-        if (balance >= 5) {
-            balance -= 5;
-            if (balanceTextElement) {
-                balanceTextElement.innerText = `${balance} MTC`;
+        fetch(`${NGROK_URL}/get_profile`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "success") {
+                balance = data.balance;
+                fuelLevel = data.fuel_lvl;
+                speedsLevel = data.speed_lvl;
+                engineLevel = data.engine_lvl;
+                taskStartTime = data.task_start_time;
+
+                if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
+                if (fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel;
+                if (speedLvlTxt) speedLvlTxt.innerText = speedLevel;
+                if (engineLvlTxt) engineLvlTxt.innerText = engineLevel;
+
+                // If a task was already running in the background, calculate position immediately
+                if (taskStartTime > 0) {
+                    let nowInSeconds = Math.floor(Date.now() / 1000);
+                    let secondsPassed = nowInSeconds - Math.floor(taskStartTime);
+                    currentTaskTimeLeft = totalTaskTime - secondsPassed;
+                    
+                    if (currentTaskTimeLeft <= 0) {
+                        currentTaskTimeLeft = 0;
+                        taskStartTime = 0; // reset
+                    }
+                }
+
+                updateGameLoopView();
             }
-            breakdownEl.style.display = 'none';
-            updateGameLoopView();
-        } else {
-            tg.showAlert("Insufficient MTC funds to clear the mechanical breakdown!");
-        }
+        });
     }
 
-    // --- 8. UPGRADE DATA TRANSMISSION PIPELINE ---
+    // --- UPGRADE BUTTON PIPELINE HANDLER ---
     function upgrade(statName) {
         const userId = tg.initDataUnsafe.user?.id || 12345;
         
@@ -437,28 +445,18 @@
             if(data.status === "success") {
                 tg.showConfirm(data.message);
                 
-                // Increment levels inside local UI variables upon successful backend return
-                if (statName === 'fuel') {
-                    fuelLevel++;
-                    if(fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel;
-                }
-                if (statName === 'speed') {
-                    speedsLevel++;
-                    if(speedLvlTxt) speedLvlTxt.innerText = speedsLevel;
-                }
-                if (statName === 'engine') {
-                    engineLevel++;
-                    if(engineLvlTxt) engineLvlTxt.innerText = engineLevel;
-                }
+                if (statName === 'fuel') { fuelLevel++; if(fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel; }
+                if (statName === 'speed') { speedsLevel++; if(speedLvlTxt) speedLvlTxt.innerText = speedsLevel; }
+                if (statName === 'engine') { engineLevel++; if(engineLvlTxt) engineLvlTxt.innerText = engineLevel; }
 
-                // Deduct cost locally and update the string structure layout
                 balance -= 20;
-                if (balanceTextElement) {
-                    balanceTextElement.innerText = `${balance} MTC`;
-                }
-                
+                if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
+
                 updateGameLoopView();
-                            }
+            } else {
+                // If the status isn't "success", it drops down here and displays the exact backend custom warning message string
+                tg.showAlert(data.message);
+            }
         })
         .catch(err => tg.showAlert("Engine Error: Check Connection"));
     }
