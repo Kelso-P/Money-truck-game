@@ -302,7 +302,7 @@
 
     // --- VISUAL VIEWPORT LOOP HANDLER ---
     function updateGameLoopView() {
-        // Truck can ONLY move if levels exist AND no breakdown/refuel popups are active
+        // Core Guard: Only drive if user has purchased the initial tier upgrades (All > 0)
         if (speedsLevel > 0 && fuelLevel > 0 && engineLevel > 0 && !isFuelOut && !isEngineDead) {
             if (!isDriving) {
                 isDriving = true;
@@ -311,6 +311,7 @@
                 videoEl.style.display = 'block';
                 videoEl.play().catch(e => console.log("Autoplay blocked"));
                 
+                // Track task startup time on backend
                 if (taskStartTime === 0) {
                     const userId = tg.initDataUnsafe.user?.id || 12345;
                     fetch(`${NGROK_URL}/start_task`, {
@@ -325,13 +326,15 @@
             }
             speedHud.innerText = `${20 + (speedsLevel * 10)} m/s`;
         } else {
-            // FORCE HALT STATE IMMEDIATELY
+            // Force halt state cleanly without glitching loops
             isDriving = false;
-            videoEl.style.display = 'none';
-            stagnantEl.style.display = 'block';
-            videoEl.pause();
+            if (videoEl) {
+                videoEl.style.display = 'none';
+                videoEl.pause();
+            }
+            if (stagnantEl) stagnantEl.style.display = 'block';
             clearInterval(gameInterval);
-            speedHud.innerText = `0 m/s`;
+            if (speedHud) speedHud.innerText = `0 m/s`;
         }
     }
 
@@ -340,13 +343,14 @@
         clearInterval(gameInterval);
         
         gameInterval = setInterval(() => {
-            if (!isDriving || taskStartTime === 0 || isFuelOut || isEngineDead) return;
+            // Safety: Halt tracking if conditions aren't perfectly met
+            if (!isDriving || taskStartTime === 0 || isFuelOut || isEngineDead || fuelLevel === 0) return;
 
             let nowInSeconds = Math.floor(Date.now() / 1000);
             let totalSecondsElapsed = nowInSeconds - Math.floor(taskStartTime);
             currentTaskTimeLeft = totalTaskTime - totalSecondsElapsed;
 
-            // Fuel Calculation
+            // Fuel Depletion Scale Check
             let fuelBurnRate = 0.5 / fuelLevel; 
             fuelPercentage = 100 - (totalSecondsElapsed * fuelBurnRate);
 
@@ -358,13 +362,14 @@
             }
             if (fuelFill) fuelFill.style.width = `${fuelPercentage}%`;
 
-            // Engine Breakdown Tick
+            // Random Breakdown Engine Tick
             let breakdownChance = 0.01 / engineLevel;
             if (Math.random() < breakdownChance) {
                 triggerEngineBreakdown();
                 return;
             }
 
+            // Task Completed Target Execution
             if (currentTaskTimeLeft <= 0) {
                 currentTaskTimeLeft = 0;
                 isDriving = false;
@@ -393,7 +398,7 @@
     // --- TEMPORARY BREAKDOWN INITIATORS ---
     function triggerFuelOutage() {
         isFuelOut = true;
-        updateGameLoopView(); // Instantly stops truck visuals
+        updateGameLoopView();
         
         tg.showPopup({
             title: "Out of Fuel!",
@@ -406,7 +411,7 @@
 
     function triggerEngineBreakdown() {
         isEngineDead = true;
-        updateGameLoopView(); // Instantly stops truck visuals
+        updateGameLoopView();
         
         tg.showPopup({
             title: "Engine Failure!",
@@ -432,30 +437,33 @@
                 balance = data.new_balance;
                 if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
                 
-                // Clear the roadblock states
                 if (type === 'fuel') {
                     isFuelOut = false;
                     fuelPercentage = 100;
                     if (fuelFill) fuelFill.style.width = `100%`;
                     
-                    // Reset the background task timer tracking forward from right now
+                    // Reset timestamp forward from right now so tracking normalizes
                     fetch(`${NGROK_URL}/start_task`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ user_id: userId })
                     })
                     .then(res => res.json())
-                    .then(d => { if(d.status === "success") taskStartTime = d.task_start_time; });
+                    .then(d => { 
+                        if(d.status === "success") {
+                            taskStartTime = d.task_start_time;
+                            updateGameLoopView();
+                        } 
+                    });
                 }
                 if (type === 'engine') {
                     isEngineDead = false;
+                    updateGameLoopView();
                 }
                 
                 tg.showAlert("System restored! Keep driving.");
-                updateGameLoopView();
             } else {
-                tg.showAlert(data.message); // Throws the exact context check message
-                // Keep the prompt up if they failed to pay
+                tg.showAlert(data.message);
                 if (type === 'fuel') triggerFuelOutage();
                 if (type === 'engine') triggerEngineBreakdown();
             }
@@ -485,7 +493,8 @@
                 if (speedLvlTxt) speedLvlTxt.innerText = speedsLevel;
                 if (engineLvlTxt) engineLvlTxt.innerText = engineLevel;
 
-                if (taskStartTime > 0) {
+                // Sync running background time offsets
+                if (taskStartTime > 0 && fuelLevel > 0) {
                     let nowInSeconds = Math.floor(Date.now() / 1000);
                     let secondsPassed = nowInSeconds - Math.floor(taskStartTime);
                     currentTaskTimeLeft = totalTaskTime - secondsPassed;
@@ -523,7 +532,7 @@
 
                 updateGameLoopView();
             } else {
-                tg.showAlert(data.message); // Triggers progression lock or custom funds notification
+                tg.showAlert(data.message);
             }
         })
         .catch(err => tg.showAlert("Engine Connection Error"));
