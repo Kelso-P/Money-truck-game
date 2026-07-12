@@ -303,6 +303,40 @@
         }
     }
 
+    // --- NEW INITIALIZATION FUNCTION ---
+    function loadUserData() {
+        const userId = tg.initDataUnsafe.user?.id || 12345;
+
+        fetch(`${NGROK_URL}/get_profile`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "success") {
+                // Synchronize frontend state variables with real database values
+                balance = data.balance;
+                fuelLevel = data.fuel_lvl;
+                speedsLevel = data.speed_lvl;
+                engineLevel = data.engine_lvl;
+
+                // Instantly update the visual header and text level cards
+                if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
+                if (fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel;
+                if (speedLvlTxt) speedLvlTxt.innerText = speedsLevel;
+                if (engineLvlTxt) engineLvlTxt.innerText = engineLevel;
+
+                // Re-evaluate if the truck should be stagnant or moving based on loaded levels
+                updateGameLoopView();
+            }
+        })
+        .catch(err => console.error("Error connecting to game profile sync:", err));
+    }
+
+    // Call this function at the very bottom of your script so it triggers immediately when page loads
+    loadUserData();
+
     // --- 5. VISUAL VIEWPORT LOOP HANDLER ---
     function updateGameLoopView() {
         // Condition: Drive ONLY if all three tracking levels are > 0 AND no active engine breakdown screen
