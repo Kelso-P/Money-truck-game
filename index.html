@@ -228,6 +228,14 @@
     </div>
 </div>
 
+    <div id="game-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; font-family: sans-serif;">
+    <div style="background: #1e1e24; border: 2px solid #f39c12; border-radius: 12px; padding: 25px; width: 85%; max-width: 320px; text-align: center; color: #fff; box-shadow: 0px 4px 15px rgba(0,0,0,0.5);">
+        <h3 id="modal-title" style="margin-top: 0; color: #f39c12; font-size: 1.3rem;">Alert</h3>
+        <p id="modal-message" style="font-size: 0.95rem; line-height: 1.4; color: #ddd; margin: 15px 0 20px 0;"></p>
+        <button id="modal-action-btn" style="background: #f39c12; border: none; color: #000; font-weight: bold; padding: 12px 24px; font-size: 1rem; border-radius: 6px; cursor: pointer; width: 100%;">Pay 5 MTC</button>
+    </div>
+</div>
+
 <div class="upgrades-container">
     <div class="upgrade-card">
         <span>Fuel Tank</span>
@@ -267,13 +275,19 @@
     let fuelLevel = 0;
     let engineLevel = 0;
 
-    let totalTaskTime = 1800; 
-    let currentTaskTimeLeft = 1800;
+    let totalTaskTime = 600; // Modified down to 10 minutes (600 seconds) for faster testing
+    let currentTaskTimeLeft = 600;
     let fuelPercentage = 100;
     
     let isDriving = false;
     let isFuelOut = false;
     let isEngineDead = false;
+    let isFirstRunDone = 0; // Managed tutorial track parameter
+
+    // Maintenance Event Counters to enforce exactly 1 hiccup limit during onboarding tutorial run
+    let tutorialFuelOutagesOccurred = 0;
+    let tutorialEngineFailuresOccurred = 0;
+
     let gameInterval = null;
     let taskStartTime = 0;
 
@@ -291,6 +305,11 @@
     const speedLvlTxt = document.getElementById('speed-lvl');
     const engineLvlTxt = document.getElementById('engine-lvl');
 
+    // UI Upgrade Price Buttons to display progressive price variations dynamically
+    const fuelBtn = document.getElementById('fuel-upgrade-btn');
+    const speedBtn = document.getElementById('speed-upgrade-btn');
+    const engineBtn = document.getElementById('engine-upgrade-btn');
+
     if (usernameElement) {
         if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
             const user = tg.initDataUnsafe.user;
@@ -300,18 +319,55 @@
         }
     }
 
+    // Dynamic Level Cost Card UI Calculator
+    function updateUpgradePriceLabels() {
+        const getCost = (stat, currentLvl) => {
+            let nextLvl = currentLvl + 1;
+            if (nextLvl === 1) return 20;
+            if (nextLvl === 2) {
+                let costs = {'fuel': 30, 'speed': 50, 'engine': 40};
+                return costs[stat];
+            }
+            let base = {'fuel': 30, 'speed': 50, 'engine': 40};
+            return base[stat] + ((nextLvl - 2) * 20);
+        };
+
+        if (fuelBtn) fuelBtn.innerText = `Upgrade (${getCost('fuel', fuelLevel)} MTC)`;
+        if (speedBtn) speedBtn.innerText = `Upgrade (${getCost('speed', speedsLevel)} MTC)`;
+        if (engineBtn) engineBtn.innerText = `Upgrade (${getCost('engine', engineLevel)} MTC)`;
+    }
+
+    // Custom Local App Modal Injector instead of intrusive Global Telegram alerts
+    function openAppModal(title, message, btnText, actionCallback) {
+        const modalEl = document.getElementById('game-modal');
+        const titleEl = document.getElementById('modal-title');
+        const msgEl = document.getElementById('modal-message');
+        const actionBtn = document.getElementById('modal-action-btn');
+
+        if (!modalEl) return;
+        titleEl.innerText = title;
+        msgEl.innerText = message;
+        actionBtn.innerText = btnText;
+        modalEl.style.display = 'flex';
+
+        actionBtn.onclick = function() {
+            modalEl.style.display = 'none';
+            actionCallback();
+        };
+    }
+
     // --- VISUAL VIEWPORT LOOP HANDLER ---
     function updateGameLoopView() {
-        // Core Guard: Only drive if user has purchased the initial tier upgrades (All > 0)
         if (speedsLevel > 0 && fuelLevel > 0 && engineLevel > 0 && !isFuelOut && !isEngineDead) {
             if (!isDriving) {
                 isDriving = true;
-                stagnantEl.style.display = 'none';
-                if(breakdownEl) breakdownEl.style.display = 'none';
-                videoEl.style.display = 'block';
-                videoEl.play().catch(e => console.log("Autoplay blocked"));
+                if (stagnantEl) stagnantEl.style.display = 'none';
+                if (breakdownEl) breakdownEl.style.display = 'none';
+                if (videoEl) {
+                    videoEl.style.display = 'block';
+                    videoEl.play().catch(e => console.log("Autoplay blocked"));
+                }
                 
-                // Track task startup time on backend
                 if (taskStartTime === 0) {
                     const userId = tg.initDataUnsafe.user?.id || 12345;
                     fetch(`${NGROK_URL}/start_task`, {
@@ -324,9 +380,8 @@
                 }
                 startCoreTimers();
             }
-            speedHud.innerText = `${20 + (speedsLevel * 10)} m/s`;
+            if (speedHud) speedHud.innerText = `${20 + (speedsLevel * 10)} m/s`;
         } else {
-            // Force halt state cleanly without glitching loops
             isDriving = false;
             if (videoEl) {
                 videoEl.style.display = 'none';
@@ -343,16 +398,20 @@
         clearInterval(gameInterval);
         
         gameInterval = setInterval(() => {
-            // Safety: Halt tracking if conditions aren't perfectly met
-            if (!isDriving || taskStartTime === 0 || isFuelOut || isEngineDead || fuelLevel === 0) return;
+            if (!isDriving || taskStartTime === 0 || isFuelOut || isEngineDead) return;
 
             let nowInSeconds = Math.floor(Date.now() / 1000);
             let totalSecondsElapsed = nowInSeconds - Math.floor(taskStartTime);
             currentTaskTimeLeft = totalTaskTime - totalSecondsElapsed;
 
-            // Fuel Depletion Scale Check
+            // Fuel Calculation Logic
             let fuelBurnRate = 0.5 / fuelLevel; 
             fuelPercentage = 100 - (totalSecondsElapsed * fuelBurnRate);
+
+            // Tutorial Filter Rule: Allow exactly 1 outage max during mission 1
+            if (isFirstRunDone === 0 && tutorialFuelOutagesOccurred >= 1) {
+                fuelPercentage = 40; // Force-stabilize fuel tank for successful onboarding run
+            }
 
             if (fuelPercentage <= 0) {
                 fuelPercentage = 0;
@@ -362,30 +421,42 @@
             }
             if (fuelFill) fuelFill.style.width = `${fuelPercentage}%`;
 
-            // Random Breakdown Engine Tick
+            // Random Engine Breakdown Tick
             let breakdownChance = 0.01 / engineLevel;
+            // Tutorial Filter Rule: Prevent more breakdowns if they already solved one on run 1
+            if (isFirstRunDone === 0 && tutorialEngineFailuresOccurred >= 1) {
+                breakdownChance = 0;
+            }
+
             if (Math.random() < breakdownChance) {
                 triggerEngineBreakdown();
                 return;
             }
 
-            // Task Completed Target Execution
+            // Task Completed Execution
             if (currentTaskTimeLeft <= 0) {
                 currentTaskTimeLeft = 0;
                 isDriving = false;
-                balance += 20; 
-                if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
+                clearInterval(gameInterval);
                 
                 const userId = tg.initDataUnsafe.user?.id || 12345;
-                fetch(`${NGROK_URL}/reset_task`, {
+                fetch(`${NGROK_URL}/complete_task`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ user_id: userId })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if(data.status === "success") {
+                        balance = data.new_balance;
+                        if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
+                        isFirstRunDone = 1;
+                        taskStartTime = 0;
+                        tg.showAlert("Task Finished! Your delivery run earned you 50 MTC.");
+                        updateGameLoopView();
+                    }
                 });
-
-                taskStartTime = 0;
-                tg.showAlert("Task Finished! Your delivery run earned you 20 MTC.");
-                updateGameLoopView();
+                return;
             }
             
             let minutes = Math.floor(currentTaskTimeLeft / 60);
@@ -395,31 +466,31 @@
         }, 1000);
     }
 
-    // --- TEMPORARY BREAKDOWN INITIATORS ---
+    // --- IN-APP REPAIR AND REFUEL ROADBLOCK INITIATORS ---
     function triggerFuelOutage() {
         isFuelOut = true;
-        updateGameLoopView();
+        updateGameLoopView(); // Halts truck rendering track instantly
+        tutorialFuelOutagesOccurred++;
         
-        tg.showPopup({
-            title: "Out of Fuel!",
-            message: "You're out of fuel. Buy some to continue the journey.",
-            buttons: [{ id: "fix_fuel", type: "default", text: "Pay 5 MTC" }]
-        }, (buttonId) => {
-            if (buttonId === "fix_fuel") processQuickFix('fuel');
-        });
+        openAppModal(
+            "Out of Fuel!", 
+            "You're out of fuel. Buy some to continue the journey.", 
+            "Pay 5 MTC", 
+            () => processQuickFix('fuel')
+        );
     }
 
     function triggerEngineBreakdown() {
         isEngineDead = true;
-        updateGameLoopView();
+        updateGameLoopView(); // Halts truck rendering track instantly
+        tutorialEngineFailuresOccurred++;
         
-        tg.showPopup({
-            title: "Engine Failure!",
-            message: "Oops! Looks like the engine died, let's fix it.",
-            buttons: [{ id: "fix_engine", type: "default", text: "Pay 5 MTC" }]
-        }, (buttonId) => {
-            if (buttonId === "fix_engine") processQuickFix('engine');
-        });
+        openAppModal(
+            "Engine Failure!", 
+            "Oops! Looks like the engine died, let's fix it.", 
+            "Pay 5 MTC", 
+            () => processQuickFix('engine')
+        );
     }
 
     // --- QUICK FIX DEDUCTION PIPELINE ---
@@ -442,25 +513,14 @@
                     fuelPercentage = 100;
                     if (fuelFill) fuelFill.style.width = `100%`;
                     
-                    // Reset timestamp forward from right now so tracking normalizes
-                    fetch(`${NGROK_URL}/start_task`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ user_id: userId })
-                    })
-                    .then(res => res.json())
-                    .then(d => { 
-                        if(d.status === "success") {
-                            taskStartTime = d.task_start_time;
-                            updateGameLoopView();
-                        } 
-                    });
+                    // FIXED: Do NOT reset the start_task timestamp here. 
+                    // Let the original clock continue pushing forward seamlessly.
+                    updateGameLoopView();
                 }
                 if (type === 'engine') {
                     isEngineDead = false;
                     updateGameLoopView();
                 }
-                
                 tg.showAlert("System restored! Keep driving.");
             } else {
                 tg.showAlert(data.message);
@@ -470,7 +530,7 @@
         });
     }
 
-    // --- INITIALIZATION LOAD DATA SYNC ---
+    // --- INITIALIZATION DATA LOADING HANDLER ---
     function loadUserData() {
         const userId = tg.initDataUnsafe.user?.id || 12345;
 
@@ -487,13 +547,15 @@
                 speedsLevel = data.speed_lvl;
                 engineLevel = data.engine_lvl;
                 taskStartTime = data.task_start_time;
+                isFirstRunDone = data.is_first_run_done;
 
                 if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
                 if (fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel;
                 if (speedLvlTxt) speedLvlTxt.innerText = speedsLevel;
                 if (engineLvlTxt) engineLvlTxt.innerText = engineLevel;
 
-                // Sync running background time offsets
+                updateUpgradePriceLabels();
+
                 if (taskStartTime > 0 && fuelLevel > 0) {
                     let nowInSeconds = Math.floor(Date.now() / 1000);
                     let secondsPassed = nowInSeconds - Math.floor(taskStartTime);
@@ -530,9 +592,10 @@
                 balance = data.new_balance;
                 if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
 
+                updateUpgradePriceLabels();
                 updateGameLoopView();
             } else {
-                tg.showAlert(data.message);
+                tg.showAlert(data.message); // Displays the custom reserve limit block alert text cleanly
             }
         })
         .catch(err => tg.showAlert("Engine Connection Error"));
