@@ -281,6 +281,11 @@
     const speedHud = document.getElementById('hud-speed');
     const timerHud = document.getElementById('hud-timer');
     const fuelFill = document.getElementById('fuel-bar-fill');
+    const balanceTextElement = document.getElementById('balance-display');
+        // Force the initial load value to show 70 MTC immediately
+        if (balanceTextElement) {
+            balanceTextElement.innerText = `${balance} MTC`;
+        }
 
     // UI Level Selectors
     const fuelLvlTxt = document.getElementById('fuel-lvl');
@@ -374,7 +379,9 @@
     function fixEngine() {
         if (balance >= 5) {
             balance -= 5;
-            // Note: If you have a separate balance element text container, update it here
+            if (balanceTextElement) {
+                balanceTextElement.innerText = `${balance} MTC`;
+            }
             breakdownEl.style.display = 'none';
             updateGameLoopView();
         } else {
@@ -410,12 +417,14 @@
                     if(engineLvlTxt) engineLvlTxt.innerText = engineLevel;
                 }
 
-                // Deduct upgrade cost locally to mirror database values
+                // Deduct cost locally and update the string structure layout
                 balance -= 20;
-
-                // Re-evaluate game loop view states
+                if (balanceTextElement) {
+                    balanceTextElement.innerText = `${balance} MTC`;
+                }
+                
                 updateGameLoopView();
-            }
+                            }
         })
         .catch(err => tg.showAlert("Engine Error: Check Connection"));
     }
