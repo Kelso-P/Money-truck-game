@@ -204,12 +204,12 @@
         </div>
     </div>
 
-    <div id="game-stage">
+   <div id="game-stage">
     <video id="road-video" autoplay loop muted playsinline style="display: none;">
         <source src="videos/Pickuptruck-loopvideo1.mp4" type="video/mp4">
     </video>
 
-    <img id="stagnant-truck" src="images/stagnant_pickuptruck.png" alt="Truck Engine Off">
+    <img id="stagnant-truck" src="images/stagnant_pickuptruck.jpg" alt="Truck Engine Off">
 
     <div id="hud-overlay">
         <div class="hud-top">
@@ -227,48 +227,70 @@
         <button onclick="fixEngine()">Pay 5 MTC</button>
     </div>
 </div>
-    <div class="upgrades-container">
-        <div class="upgrade-card">
-            <span>Fuel Tank</span>
-            <strong>LVL <span id="fuel-lvl">1</span></strong>
-            <button class="buy-btn" onclick="upgrade('fuel')">20 MTC</button>
-        </div>
-        <div class="upgrade-card">
-            <span>Speed</span>
-            <strong>LVL <span id="speed-lvl">1</span></strong>
-            <button class="buy-btn" onclick="upgrade('speed')">20 MTC</button>
-        </div>
-        <div class="upgrade-card">
-            <span>Engine</span>
-            <strong>LVL <span id="engine-lvl">1</span></strong>
-            <button class="buy-btn" onclick="upgrade('engine')">20 MTC</button>
-        </div>
-    </div>
 
-    <div class="footer-nav">
-        <a href="#" class="nav-item">👛<br>Wallet</a>
-        <a href="#" class="nav-item active">🛒<br>Store</a>
-        <a href="#" class="nav-item">👥<br>Friends</a>
-        <a href="#" class="nav-item">📋<br>Tasks</a>
+<div class="upgrades-container">
+    <div class="upgrade-card">
+        <span>Fuel Tank</span>
+        <strong>LVL <span id="fuel-lvl">0</span></strong>
+        <button class="buy-btn" onclick="upgrade('fuel')">20 MTC</button>
     </div>
-    
-    <script>
-    // 1. Initialize Telegram WebApp once right at the start
+    <div class="upgrade-card">
+        <span>Speed</span>
+        <strong>LVL <span id="speed-lvl">0</span></strong>
+        <button class="buy-btn" onclick="upgrade('speed')">20 MTC</button>
+    </div>
+    <div class="upgrade-card">
+        <span>Engine</span>
+        <strong>LVL <span id="engine-lvl">0</span></strong>
+        <button class="buy-btn" onclick="upgrade('engine')">20 MTC</button>
+    </div>
+</div>
+
+<div class="footer-nav">
+    <a href="#" class="nav-item">👛<br>Wallet</a>
+    <a href="#" class="nav-item active">🛒<br>Store</a>
+    <a href="#" class="nav-item">👥<br>Friends</a>
+    <a href="#" class="nav-item">📋<br>Tasks</a>
+</div>
+
+<script>
+    // --- 1. INITIALIZE TELEGRAM WEB APP ---
     const tg = window.Telegram.WebApp;
-    
-    // Tell Telegram the app is fully ready and expanded
     tg.ready();
     tg.expand();
 
-    // 2. Fix the space in the NGROK URL
     const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev"; 
 
-    // 3. Handle Username display safely with fallback options
+    // --- 2. GAME ENGINE STATE VARIABLES ---
+    let balance = 70; // Set initial budget to 70 MTC for upgrades + buffer
+    let speedsLevel = 0;
+    let fuelLevel = 0;
+    let engineLevel = 0;
+
+    let totalTaskTime = 1800; // 30 minutes in seconds
+    let currentTaskTimeLeft = 1800;
+    let fuelPercentage = 100;
+    let isDriving = false;
+    let gameInterval = null;
+
+    // --- 3. DOM ELEMENT CACHING ---
     const usernameElement = document.getElementById('username');
+    const videoEl = document.getElementById('road-video');
+    const stagnantEl = document.getElementById('stagnant-truck');
+    const breakdownEl = document.getElementById('breakdown-screen');
+    const speedHud = document.getElementById('hud-speed');
+    const timerHud = document.getElementById('hud-timer');
+    const fuelFill = document.getElementById('fuel-bar-fill');
+
+    // UI Level Selectors
+    const fuelLvlTxt = document.getElementById('fuel-lvl');
+    const speedLvlTxt = document.getElementById('speed-lvl');
+    const engineLvlTxt = document.getElementById('engine-lvl');
+
+    // --- 4. HANDLE TELEGRAM USERNAME PARSING ---
     if (usernameElement) {
         if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
             const user = tg.initDataUnsafe.user;
-            // Prioritize username, fall back to first name, then global fallback
             usernameElement.innerText = user.username ? `@${user.username}` : (user.first_name || "Driver");
         } else {
             usernameElement.innerText = "Guest Driver";
@@ -276,7 +298,91 @@
         }
     }
 
-    // 4. Upgrade Function
+    // --- 5. VISUAL VIEWPORT LOOP HANDLER ---
+    function updateGameLoopView() {
+        // Condition: Drive ONLY if all three tracking levels are > 0 AND no active engine breakdown screen
+        if (speedsLevel > 0 && fuelLevel > 0 && engineLevel > 0 && breakdownEl.style.display === 'none') {
+            if (!isDriving) {
+                isDriving = true;
+                stagnantEl.style.display = 'none';
+                videoEl.style.display = 'block';
+                videoEl.play().catch(e => console.log("Autoplay context blocked"));
+                startCoreTimers();
+            }
+            // Dynamic scale readout calculation (e.g., Level 1 = 30 m/s)
+            speedHud.innerText = `${20 + (speedsLevel * 10)} m/s`;
+        } else {
+            isDriving = false;
+            videoEl.style.display = 'none';
+            stagnantEl.style.display = 'block';
+            videoEl.pause();
+            clearInterval(gameInterval);
+            speedHud.innerText = `0 m/s`;
+        }
+    }
+
+    // --- 6. CORE GAME CONTROLLER METERS ---
+    function startCoreTimers() {
+        clearInterval(gameInterval);
+        
+        gameInterval = setInterval(() => {
+            if (!isDriving) return;
+
+            // A. Uniform Fuel Depletion (Higher levels deplete fuel slower)
+            let fuelBurnRate = 0.5 / fuelLevel; 
+            fuelPercentage -= fuelBurnRate;
+            if (fuelPercentage <= 0) {
+                fuelPercentage = 0;
+                isDriving = false;
+                updateGameLoopView();
+                tg.showAlert("Out of Fuel! Upgrade your Fuel Tank component to keep rolling.");
+            }
+            fuelFill.style.width = `${fuelPercentage}%`;
+
+            // B. Random Engine Failure Framework (Higher levels drop probability drastically)
+            let breakdownChance = 0.01 / engineLevel;
+            if (Math.random() < breakdownChance) {
+                triggerEngineBreakdown();
+                return;
+            }
+
+            // C. Task Countdown Timer Calculation
+            currentTaskTimeLeft--;
+            if (currentTaskTimeLeft <= 0) {
+                currentTaskTimeLeft = 0;
+                isDriving = false;
+                balance += 20; // Task reward payout
+                tg.showAlert("Task Finished! Your delivery run earned you 20 MTC.");
+                updateGameLoopView();
+            }
+            
+            // Format time counter output into standard MM:SS
+            let minutes = Math.floor(currentTaskTimeLeft / 60);
+            let seconds = currentTaskTimeLeft % 60;
+            timerHud.innerText = `Est: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+
+        }, 1000);
+    }
+
+    function triggerEngineBreakdown() {
+        isDriving = false;
+        breakdownEl.style.display = 'flex';
+        updateGameLoopView();
+    }
+
+    // --- 7. REPAIR ENGINE HANDLER ---
+    function fixEngine() {
+        if (balance >= 5) {
+            balance -= 5;
+            // Note: If you have a separate balance element text container, update it here
+            breakdownEl.style.display = 'none';
+            updateGameLoopView();
+        } else {
+            tg.showAlert("Insufficient MTC funds to clear the mechanical breakdown!");
+        }
+    }
+
+    // --- 8. UPGRADE DATA TRANSMISSION PIPELINE ---
     function upgrade(statName) {
         const userId = tg.initDataUnsafe.user?.id || 12345;
         
@@ -289,7 +395,26 @@
         .then(data => {
             if(data.status === "success") {
                 tg.showConfirm(data.message);
-                // In a real version, we would refresh the levels here
+                
+                // Increment levels inside local UI variables upon successful backend return
+                if (statName === 'fuel') {
+                    fuelLevel++;
+                    if(fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel;
+                }
+                if (statName === 'speed') {
+                    speedsLevel++;
+                    if(speedLvlTxt) speedLvlTxt.innerText = speedsLevel;
+                }
+                if (statName === 'engine') {
+                    engineLevel++;
+                    if(engineLvlTxt) engineLvlTxt.innerText = engineLevel;
+                }
+
+                // Deduct upgrade cost locally to mirror database values
+                balance -= 20;
+
+                // Re-evaluate game loop view states
+                updateGameLoopView();
             }
         })
         .catch(err => tg.showAlert("Engine Error: Check Connection"));
