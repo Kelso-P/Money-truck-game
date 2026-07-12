@@ -262,16 +262,20 @@
     const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev"; 
 
     // --- 2. GAME ENGINE STATE VARIABLES ---
-    let balance = 70; // Set initial budget to 70 MTC for upgrades + buffer
+    let balance = 70;
     let speedsLevel = 0;
     let fuelLevel = 0;
     let engineLevel = 0;
 
-    let totalTaskTime = 1800; // 30 minutes in seconds
+    let totalTaskTime = 1800; 
     let currentTaskTimeLeft = 1800;
     let fuelPercentage = 100;
+    
     let isDriving = false;
+    let isFuelOut = false;
+    let isEngineDead = false;
     let gameInterval = null;
+    let taskStartTime = 0;
 
     // --- 3. DOM ELEMENT CACHING ---
     const usernameElement = document.getElementById('username');
@@ -282,40 +286,31 @@
     const timerHud = document.getElementById('hud-timer');
     const fuelFill = document.getElementById('fuel-bar-fill');
     const balanceTextElement = document.getElementById('balance-display');
-    
-    // Force the initial load value to show 70 MTC immediately
-    if (balanceTextElement) {
-        balanceTextElement.innerText = `${balance} MTC`;
-    }
 
-    // UI Level Selectors
     const fuelLvlTxt = document.getElementById('fuel-lvl');
     const speedLvlTxt = document.getElementById('speed-lvl');
     const engineLvlTxt = document.getElementById('engine-lvl');
 
-    // --- 4. HANDLE TELEGRAM USERNAME PARSING ---
     if (usernameElement) {
         if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
             const user = tg.initDataUnsafe.user;
             usernameElement.innerText = user.username ? `@${user.username}` : (user.first_name || "Driver");
         } else {
             usernameElement.innerText = "Guest Driver";
-            console.log("Running outside of Telegram. Defaulting to Guest Driver.");
         }
     }
 
-    let taskStartTime = 0; // Tracks Unix timestamp of task runtime
-
     // --- VISUAL VIEWPORT LOOP HANDLER ---
     function updateGameLoopView() {
-        if (speedsLevel > 0 && fuelLevel > 0 && engineLevel > 0 && breakdownEl.style.display === 'none') {
+        // Truck can ONLY move if levels exist AND no breakdown/refuel popups are active
+        if (speedsLevel > 0 && fuelLevel > 0 && engineLevel > 0 && !isFuelOut && !isEngineDead) {
             if (!isDriving) {
                 isDriving = true;
                 stagnantEl.style.display = 'none';
+                if(breakdownEl) breakdownEl.style.display = 'none';
                 videoEl.style.display = 'block';
-                videoEl.play().catch(e => console.log("Autoplay context blocked"));
+                videoEl.play().catch(e => console.log("Autoplay blocked"));
                 
-                // If this is the absolute first time starting the task, save the timestamp to backend
                 if (taskStartTime === 0) {
                     const userId = tg.initDataUnsafe.user?.id || 12345;
                     fetch(`${NGROK_URL}/start_task`, {
@@ -324,17 +319,13 @@
                         body: JSON.stringify({ user_id: userId })
                     })
                     .then(res => res.json())
-                    .then(data => {
-                        if(data.status === "success") {
-                            taskStartTime = data.task_start_time;
-                        }
-                    });
+                    .then(data => { if(data.status === "success") taskStartTime = data.task_start_time; });
                 }
-                
                 startCoreTimers();
             }
             speedHud.innerText = `${20 + (speedsLevel * 10)} m/s`;
         } else {
+            // FORCE HALT STATE IMMEDIATELY
             isDriving = false;
             videoEl.style.display = 'none';
             stagnantEl.style.display = 'block';
@@ -349,28 +340,26 @@
         clearInterval(gameInterval);
         
         gameInterval = setInterval(() => {
-            if (!isDriving || taskStartTime === 0) return;
+            if (!isDriving || taskStartTime === 0 || isFuelOut || isEngineDead) return;
 
-            // 1. Calculate real elapsed time passing by comparing current time with start timestamp
             let nowInSeconds = Math.floor(Date.now() / 1000);
             let totalSecondsElapsed = nowInSeconds - Math.floor(taskStartTime);
-            
             currentTaskTimeLeft = totalTaskTime - totalSecondsElapsed;
 
-            // Fuel depletion follows the true elapsed timer progression
-            let fuelBurnRate = 0.5 / (fuelLevel || 1); 
+            // Fuel Calculation
+            let fuelBurnRate = 0.5 / fuelLevel; 
             fuelPercentage = 100 - (totalSecondsElapsed * fuelBurnRate);
 
             if (fuelPercentage <= 0) {
                 fuelPercentage = 0;
-                isDriving = false;
-                updateGameLoopView();
-                tg.showAlert("Out of Fuel! Upgrade your Fuel Tank component to keep rolling.");
+                if (fuelFill) fuelFill.style.width = `0%`;
+                triggerFuelOutage();
+                return;
             }
             if (fuelFill) fuelFill.style.width = `${fuelPercentage}%`;
 
-            // Random breakdown probability tick
-            let breakdownChance = 0.01 / (engineLevel || 1);
+            // Engine Breakdown Tick
+            let breakdownChance = 0.01 / engineLevel;
             if (Math.random() < breakdownChance) {
                 triggerEngineBreakdown();
                 return;
@@ -381,26 +370,96 @@
                 isDriving = false;
                 balance += 20; 
                 if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
+                
+                const userId = tg.initDataUnsafe.user?.id || 12345;
+                fetch(`${NGROK_URL}/reset_task`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId })
+                });
+
+                taskStartTime = 0;
                 tg.showAlert("Task Finished! Your delivery run earned you 20 MTC.");
-                taskStartTime = 0; // Reset task state for next run
                 updateGameLoopView();
             }
             
             let minutes = Math.floor(currentTaskTimeLeft / 60);
             let seconds = currentTaskTimeLeft % 60;
-            if (timerHud) {
-                timerHud.innerText = `Est: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-            }
+            if (timerHud) timerHud.innerText = `Est: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
 
         }, 1000);
     }
 
-    // 🟩 ADDED MISSING FUNCTION: Handles sudden engine failures
+    // --- TEMPORARY BREAKDOWN INITIATORS ---
+    function triggerFuelOutage() {
+        isFuelOut = true;
+        updateGameLoopView(); // Instantly stops truck visuals
+        
+        tg.showPopup({
+            title: "Out of Fuel!",
+            message: "You're out of fuel. Buy some to continue the journey.",
+            buttons: [{ id: "fix_fuel", type: "default", text: "Pay 5 MTC" }]
+        }, (buttonId) => {
+            if (buttonId === "fix_fuel") processQuickFix('fuel');
+        });
+    }
+
     function triggerEngineBreakdown() {
-        isDriving = false;
-        if (breakdownEl) breakdownEl.style.display = 'flex';
-        updateGameLoopView();
-        tg.showAlert("Mechanical Breakdown! Your engine has stalled out.");
+        isEngineDead = true;
+        updateGameLoopView(); // Instantly stops truck visuals
+        
+        tg.showPopup({
+            title: "Engine Failure!",
+            message: "Oops! Looks like the engine died, let's fix it.",
+            buttons: [{ id: "fix_engine", type: "default", text: "Pay 5 MTC" }]
+        }, (buttonId) => {
+            if (buttonId === "fix_engine") processQuickFix('engine');
+        });
+    }
+
+    // --- QUICK FIX DEDUCTION PIPELINE ---
+    function processQuickFix(type) {
+        const userId = tg.initDataUnsafe.user?.id || 12345;
+        
+        fetch(`${NGROK_URL}/deduct_fix`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "success") {
+                balance = data.new_balance;
+                if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
+                
+                // Clear the roadblock states
+                if (type === 'fuel') {
+                    isFuelOut = false;
+                    fuelPercentage = 100;
+                    if (fuelFill) fuelFill.style.width = `100%`;
+                    
+                    // Reset the background task timer tracking forward from right now
+                    fetch(`${NGROK_URL}/start_task`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: userId })
+                    })
+                    .then(res => res.json())
+                    .then(d => { if(d.status === "success") taskStartTime = d.task_start_time; });
+                }
+                if (type === 'engine') {
+                    isEngineDead = false;
+                }
+                
+                tg.showAlert("System restored! Keep driving.");
+                updateGameLoopView();
+            } else {
+                tg.showAlert(data.message); // Throws the exact context check message
+                // Keep the prompt up if they failed to pay
+                if (type === 'fuel') triggerFuelOutage();
+                if (type === 'engine') triggerEngineBreakdown();
+            }
+        });
     }
 
     // --- INITIALIZATION LOAD DATA SYNC ---
@@ -426,7 +485,6 @@
                 if (speedLvlTxt) speedLvlTxt.innerText = speedsLevel;
                 if (engineLvlTxt) engineLvlTxt.innerText = engineLevel;
 
-                // If a task was already running in the background, calculate position immediately
                 if (taskStartTime > 0) {
                     let nowInSeconds = Math.floor(Date.now() / 1000);
                     let secondsPassed = nowInSeconds - Math.floor(taskStartTime);
@@ -434,14 +492,12 @@
                     
                     if (currentTaskTimeLeft <= 0) {
                         currentTaskTimeLeft = 0;
-                        taskStartTime = 0; // reset
+                        taskStartTime = 0;
                     }
                 }
-
                 updateGameLoopView();
             }
-        })
-        .catch(err => console.error("Sync error:", err));
+        });
     }
 
     // --- UPGRADE BUTTON PIPELINE HANDLER ---
@@ -456,26 +512,23 @@
         .then(res => res.json())
         .then(data => {
             if(data.status === "success") {
-                tg.showConfirm(data.message);
+                tg.showAlert(data.message);
                 
                 if (statName === 'fuel') { fuelLevel++; if(fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel; }
                 if (statName === 'speed') { speedsLevel++; if(speedLvlTxt) speedLvlTxt.innerText = speedsLevel; }
                 if (statName === 'engine') { engineLevel++; if(engineLvlTxt) engineLvlTxt.innerText = engineLevel; }
 
-                // Sync frontend variable precisely with backend data return
                 balance = data.new_balance;
                 if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
 
                 updateGameLoopView();
             } else {
-                // Displays the exact custom "insufficient funds" warning message from backend
-                tg.showAlert(data.message);
+                tg.showAlert(data.message); // Triggers progression lock or custom funds notification
             }
         })
-        .catch(err => tg.showAlert("Engine Error: Check Connection"));
+        .catch(err => tg.showAlert("Engine Connection Error"));
     }
 
-    // 🟩 EXECUTING SYSTEM INITIATION ON LOAD
     loadUserData();
 </script>
 </body>
