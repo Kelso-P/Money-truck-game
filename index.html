@@ -204,427 +204,408 @@
         </div>
     </div>
 
-   <div id="game-stage">
-    <video id="road-video" autoplay loop muted playsinline style="display: none;">
-        <source src="videos/Pickuptruck-loopvideo1.mp4" type="video/mp4">
-    </video>
+   <div id="game-stage" style="position: relative;">
+        <video id="road-video" autoplay loop muted playsinline style="display: none;">
+            <source src="videos/Pickuptruck-loopvideo1.mp4" type="video/mp4">
+        </video>
 
-    <img id="stagnant-truck" src="images/stagnant_pickuptruck.jpg" alt="Truck Engine Off">
+        <img id="stagnant-truck" src="images/stagnant_pickuptruck.jpg" alt="Truck Engine Off">
 
-       <div id="job-board-overlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 500; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; box-sizing: border-box;">
-    <h2 style="color: #fff; font-size: 1.4rem; margin-bottom: 15px;">There's another job, let's hit the road!</h2>
-    <button id="start-job-btn" onclick="acceptNewJobContract()" style="background: #2ecc71; color: #fff; font-weight: bold; padding: 14px 35px; border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">Start Job</button>
-</div>
-
-    <div id="hud-overlay">
-        <div class="hud-top">
-            <span id="hud-speed">0 m/s</span>
-            <span id="hud-timer">Est: 30:00</span>
+        <div id="job-board-overlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 500; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; box-sizing: border-box;">
+            <h2 style="color: #fff; font-size: 1.4rem; margin-bottom: 15px;">There's another job, let's hit the road!</h2>
+            <button id="start-job-btn" onclick="acceptNewJobContract()" style="background: #2ecc71; color: #fff; font-weight: bold; padding: 14px 35px; border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">Start Job</button>
         </div>
-        
-        <div class="fuel-bar-container">
-            <div id="fuel-bar-fill" style="width: 100%;"></div>
+
+        <div id="hud-overlay">
+            <div class="hud-top">
+                <span id="hud-speed">0 m/s</span>
+                <span id="hud-timer">Est: 10:00</span>
+            </div>
+            
+            <div class="fuel-bar-container">
+                <div id="fuel-bar-fill" style="width: 100%;"></div>
+            </div>
         </div>
     </div>
-
-    <div id="breakdown-screen" style="display: none;">
-        <p>Oops! Engine died out.<br>Let's fix it to get this baby going!</p>
-        <button onclick="fixEngine()">Pay 5 MTC</button>
-    </div>
-</div>
 
     <div id="game-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; font-family: sans-serif;">
-    <div style="background: #1e1e24; border: 2px solid #f39c12; border-radius: 12px; padding: 25px; width: 85%; max-width: 320px; text-align: center; color: #fff; box-shadow: 0px 4px 15px rgba(0,0,0,0.5);">
-        <h3 id="modal-title" style="margin-top: 0; color: #f39c12; font-size: 1.3rem;">Alert</h3>
-        <p id="modal-message" style="font-size: 0.95rem; line-height: 1.4; color: #ddd; margin: 15px 0 20px 0;"></p>
-        <button id="modal-action-btn" style="background: #f39c12; border: none; color: #000; font-weight: bold; padding: 12px 24px; font-size: 1rem; border-radius: 6px; cursor: pointer; width: 100%;">Pay 5 MTC</button>
+        <div style="background: #1e1e24; border: 2px solid #f39c12; border-radius: 12px; padding: 25px; width: 85%; max-width: 320px; text-align: center; color: #fff; box-shadow: 0px 4px 15px rgba(0,0,0,0.5);">
+            <h3 id="modal-title" style="margin-top: 0; color: #f39c12; font-size: 1.3rem;">Alert</h3>
+            <p id="modal-message" style="font-size: 0.95rem; line-height: 1.4; color: #ddd; margin: 15px 0 20px 0;"></p>
+            <button id="modal-action-btn" style="background: #f39c12; border: none; color: #000; font-weight: bold; padding: 12px 24px; font-size: 1rem; border-radius: 6px; cursor: pointer; width: 100%;">Pay 5 MTC</button>
+        </div>
     </div>
-</div>
 
-<div class="upgrades-container">
-    <div class="upgrade-card">
-        <span>Fuel Tank</span>
-        <strong>LVL <span id="fuel-lvl">0</span></strong>
-        <button id="fuel-upgrade-btn" onclick="upgrade('fuel')">Upgrade (20 MTC)</button>
+    <div class="upgrades-container">
+        <div class="upgrade-card">
+            <span>Fuel Tank</span>
+            <strong>LVL <span id="fuel-lvl">0</span></strong>
+            <button id="fuel-upgrade-btn" onclick="upgrade('fuel')">Upgrade (20 MTC)</button>
+        </div>
+        <div class="upgrade-card">
+            <span>Speed</span>
+            <strong>LVL <span id="speed-lvl">0</span></strong>
+            <button id="speed-upgrade-btn" onclick="upgrade('speed')">Upgrade (20 MTC)</button>
+        </div>
+        <div class="upgrade-card">
+            <span>Engine</span>
+            <strong>LVL <span id="engine-lvl">0</span></strong>
+            <button id="engine-upgrade-btn" onclick="upgrade('engine')">Upgrade (20 MTC)</button>
+        </div>
     </div>
-    <div class="upgrade-card">
-        <span>Speed</span>
-        <strong>LVL <span id="speed-lvl">0</span></strong>
-        <button id="speed-upgrade-btn" onclick="upgrade('speed')">Upgrade (20 MTC)</button>
+
+    <div class="footer-nav">
+        <a href="#" class="nav-item">👛<br>Wallet</a>
+        <a href="#" class="nav-item active">🛒<br>Store</a>
+        <a href="#" class="nav-item">👥<br>Friends</a>
+        <a href="#" class="nav-item">📋<br>Tasks</a>
     </div>
-    <div class="upgrade-card">
-        <span>Engine</span>
-        <strong>LVL <span id="engine-lvl">0</span></strong>
-       <button id="engine-upgrade-btn" onclick="upgrade('engine')">Upgrade (20 MTC)</button>
-    </div>
-</div>
 
-<div class="footer-nav">
-    <a href="#" class="nav-item">👛<br>Wallet</a>
-    <a href="#" class="nav-item active">🛒<br>Store</a>
-    <a href="#" class="nav-item">👥<br>Friends</a>
-    <a href="#" class="nav-item">📋<br>Tasks</a>
-</div>
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
 
-<script>
-    const tg = window.Telegram.WebApp;
-    tg.ready();
-    tg.expand();
+        const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev"; 
 
-    const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev"; 
+        // --- STATE MANAGEMENT ---
+        let balance = 70;
+        let speedsLevel = 0;
+        let fuelLevel = 0;
+        let engineLevel = 0;
 
-    // --- STATE MANAGEMENT ---
-    let balance = 70;
-    let speedsLevel = 0;
-    let fuelLevel = 0;
-    let engineLevel = 0;
+        let totalTaskDuration = 600; // 10 Minutes default
+        let currentTaskTimeLeft = 600;
+        let fuelPercentage = 100;
+        
+        let isDriving = false;
+        let isFuelOut = false;
+        let isEngineDead = false;
+        let isFirstRunDone = 0;
+        let jobWaitingApproval = false;
 
-    // Pure Integer Countdown System (Fixes the real-time warp gap!)
-    let currentTaskTimeLeft = 600; // 10 Minutes = 600 seconds sharp
-    let totalTaskDuration = 600; 
-    let fuelPercentage = 100;
-    
-    let isDriving = false;
-    let isFuelOut = false;
-    let isEngineDead = false;
-    let isFirstRunDone = 0;
-    let jobWaitingApproval = false;
+        let secondsWorkedThisJob = 0;
 
-    let secondsWorkedThisJob = 0; // Tracks active driving time to deduct fuel fairly
+        let tutorialFuelOutagesOccurred = 0;
+        let tutorialEngineFailuresOccurred = 0;
 
-    let tutorialFuelOutagesOccurred = 0;
-    let tutorialEngineFailuresOccurred = 0;
+        let gameInterval = null;
+        let taskStartTime = 0;
 
-    let gameInterval = null;
-    let taskStartTime = 0; // Backend bookmark anchor
+        // --- CACHED DOM NODES ---
+        const usernameElement = document.getElementById('username');
+        const videoEl = document.getElementById('road-video');
+        const stagnantEl = document.getElementById('stagnant-truck');
+        const speedHud = document.getElementById('hud-speed');
+        const timerHud = document.getElementById('hud-timer');
+        const fuelFill = document.getElementById('fuel-bar-fill');
+        const balanceTextElement = document.getElementById('balance-display');
+        const jobBoardOverlay = document.getElementById('job-board-overlay');
 
-    // --- CACHED DOM NODES ---
-    const usernameElement = document.getElementById('username');
-    const videoEl = document.getElementById('road-video');
-    const stagnantEl = document.getElementById('stagnant-truck');
-    const breakdownEl = document.getElementById('breakdown-screen');
-    const speedHud = document.getElementById('hud-speed');
-    const timerHud = document.getElementById('hud-timer');
-    const fuelFill = document.getElementById('fuel-bar-fill');
-    const balanceTextElement = document.getElementById('balance-display');
-    const jobBoardOverlay = document.getElementById('job-board-overlay');
+        const fuelLvlTxt = document.getElementById('fuel-lvl');
+        const speedLvlTxt = document.getElementById('speed-lvl');
+        const engineLvlTxt = document.getElementById('engine-lvl');
 
-    const fuelLvlTxt = document.getElementById('fuel-lvl');
-    const speedLvlTxt = document.getElementById('speed-lvl');
-    const engineLvlTxt = document.getElementById('engine-lvl');
+        const fuelBtn = document.getElementById('fuel-upgrade-btn');
+        const speedBtn = document.getElementById('speed-upgrade-btn');
+        const engineBtn = document.getElementById('engine-upgrade-btn');
 
-    const fuelBtn = document.getElementById('fuel-upgrade-btn');
-    const speedBtn = document.getElementById('speed-upgrade-btn');
-    const engineBtn = document.getElementById('engine-upgrade-btn');
+        if (usernameElement && tg.initDataUnsafe?.user) {
+            const user = tg.initDataUnsafe.user;
+            usernameElement.innerText = user.username ? `@${user.username}` : (user.first_name || "Driver");
+        }
 
-    if (usernameElement && tg.initDataUnsafe?.user) {
-        const user = tg.initDataUnsafe.user;
-        usernameElement.innerText = user.username ? `@${user.username}` : (user.first_name || "Driver");
-    }
+        function syncPriceButtonLabels(fCost, sCost, eCost) {
+            if (fuelBtn) fuelBtn.innerText = `Upgrade (${fCost} MTC)`;
+            if (speedBtn) speedBtn.innerText = `Upgrade (${sCost} MTC)`;
+            if (engineBtn) engineBtn.innerText = `Upgrade (${eCost} MTC)`;
+        }
 
-    // Explicitly update button label displays in the DOM
-    function syncPriceButtonLabels(fCost, sCost, eCost) {
-        if (fuelBtn) fuelBtn.innerText = `Upgrade (${fCost} MTC)`;
-        if (speedBtn) speedBtn.innerText = `Upgrade (${sCost} MTC)`;
-        if (engineBtn) engineBtn.innerText = `Upgrade (${eCost} MTC)`;
-    }
+        function openAppModal(title, message, btnText, actionCallback) {
+            const modalEl = document.getElementById('game-modal');
+            const titleEl = document.getElementById('modal-title');
+            const msgEl = document.getElementById('modal-message');
+            const actionBtn = document.getElementById('modal-action-btn');
 
-    function openAppModal(title, message, btnText, actionCallback) {
-        const modalEl = document.getElementById('game-modal');
-        const titleEl = document.getElementById('modal-title');
-        const msgEl = document.getElementById('modal-message');
-        const actionBtn = document.getElementById('modal-action-btn');
+            if (!modalEl) return;
+            titleEl.innerText = title;
+            msgEl.innerText = message;
+            actionBtn.innerText = btnText;
+            modalEl.style.display = 'flex';
 
-        if (!modalEl) return;
-        titleEl.innerText = title;
-        msgEl.innerText = message;
-        actionBtn.innerText = btnText;
-        modalEl.style.display = 'flex';
+            actionBtn.onclick = function() {
+                modalEl.style.display = 'none';
+                actionCallback();
+            };
+        }
 
-        actionBtn.onclick = function() {
-            modalEl.style.display = 'none';
-            actionCallback();
-        };
-    }
-
-    // --- VISUAL ROUTINE CONTROL ---
-    function updateGameLoopView() {
-        if (speedsLevel > 0 && fuelLevel > 0 && engineLevel > 0 && !isFuelOut && !isEngineDead && !jobWaitingApproval) {
-            if (!isDriving) {
-                isDriving = true;
-                if (stagnantEl) stagnantEl.style.display = 'none';
-                if (breakdownEl) breakdownEl.style.display = 'none';
-                if (jobBoardOverlay) jobBoardOverlay.style.display = 'none';
-                if (videoEl) {
-                    videoEl.style.display = 'block';
-                    videoEl.play().catch(e => console.log("Autoplay context pending"));
+        // --- VISUAL ROUTINE CONTROL ---
+        function updateGameLoopView() {
+            if (speedsLevel > 0 && fuelLevel > 0 && engineLevel > 0 && !isFuelOut && !isEngineDead && !jobWaitingApproval) {
+                if (!isDriving) {
+                    isDriving = true;
+                    if (stagnantEl) stagnantEl.style.display = 'none';
+                    if (jobBoardOverlay) jobBoardOverlay.style.display = 'none';
+                    if (videoEl) {
+                        videoEl.style.display = 'block';
+                        videoEl.play().catch(e => console.log("Autoplay pending"));
+                    }
+                    
+                    if (taskStartTime === 0) {
+                        const userId = tg.initDataUnsafe.user?.id || 12345;
+                        fetch(`${NGROK_URL}/start_task`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ user_id: userId })
+                        })
+                        .then(res => res.json())
+                        .then(data => { 
+                            if(data.status === "success") {
+                                taskStartTime = data.task_start_time;
+                            } 
+                        });
+                    }
+                    startCoreTimers();
                 }
-                
-                // Keep backend tracked for crash recovery, but use our pure variable clock for ticks
-                if (taskStartTime === 0) {
+                if (speedHud) speedHud.innerText = `${20 + (speedsLevel * 10)} m/s`;
+            } else {
+                isDriving = false;
+                if (videoEl) {
+                    videoEl.style.display = 'none';
+                    videoEl.pause();
+                }
+                if (stagnantEl) stagnantEl.style.display = 'block';
+                if (jobWaitingApproval && jobBoardOverlay) {
+                    jobBoardOverlay.style.display = 'flex';
+                }
+                clearInterval(gameInterval);
+                if (speedHud) speedHud.innerText = `0 m/s`;
+            }
+        }
+
+        // --- CLOCK TICK LOOP (FIXED DECREMENT SYSTEM) ---
+        function startCoreTimers() {
+            clearInterval(gameInterval);
+            
+            gameInterval = setInterval(() => {
+                if (!isDriving || isFuelOut || isEngineDead || jobWaitingApproval) {
+                    clearInterval(gameInterval);
+                    return;
+                }
+
+                currentTaskTimeLeft--;
+                secondsWorkedThisJob++;
+
+                let fuelBurnRate = 0.5 / fuelLevel; 
+                fuelPercentage = 100 - (secondsWorkedThisJob * fuelBurnRate);
+
+                if (isFirstRunDone === 0 && tutorialFuelOutagesOccurred >= 1) {
+                    fuelPercentage = 40; 
+                }
+
+                if (fuelPercentage <= 0) {
+                    fuelPercentage = 0;
+                    if (fuelFill) fuelFill.style.width = `0%`;
+                    triggerFuelOutage();
+                    return;
+                }
+                if (fuelFill) fuelFill.style.width = `${fuelPercentage}%`;
+
+                // FIXED: Decreased base breakdown rate significantly (0.008 -> 0.003)
+                let breakdownChance = 0.003 / engineLevel;
+                if (isFirstRunDone === 0 && tutorialEngineFailuresOccurred >= 1) {
+                    breakdownChance = 0;
+                }
+
+                if (Math.random() < breakdownChance) {
+                    triggerEngineBreakdown();
+                    return;
+                }
+
+                if (currentTaskTimeLeft <= 0) {
+                    currentTaskTimeLeft = 0;
+                    isDriving = false;
+                    jobWaitingApproval = true; 
+                    clearInterval(gameInterval);
+                    
                     const userId = tg.initDataUnsafe.user?.id || 12345;
-                    fetch(`${NGROK_URL}/start_task`, {
+                    fetch(`${NGROK_URL}/complete_task`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ user_id: userId })
                     })
                     .then(res => res.json())
-                    .then(data => { 
+                    .then(data => {
                         if(data.status === "success") {
-                            taskStartTime = data.task_start_time;
-                        } 
+                            balance = data.new_balance;
+                            if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
+                            isFirstRunDone = 1;
+                            taskStartTime = 0;
+                            secondsWorkedThisJob = 0;
+                            
+                            totalTaskDuration = 1200; 
+                            currentTaskTimeLeft = 1200;
+                            
+                            tg.showAlert("Task Finished! Your delivery run earned you 50 MTC.");
+                            updateGameLoopView(); 
+                        }
                     });
+                    return;
                 }
-                startCoreTimers();
-            }
-            if (speedHud) speedHud.innerText = `${20 + (speedsLevel * 10)} m/s`;
-        } else {
-            isDriving = false;
-            if (videoEl) {
-                videoEl.style.display = 'none';
-                videoEl.pause();
-            }
-            if (stagnantEl) stagnantEl.style.display = 'block';
-            if (jobWaitingApproval && jobBoardOverlay) {
-                jobBoardOverlay.style.display = 'flex';
-            }
-            clearInterval(gameInterval);
-            if (speedHud) speedHud.innerText = `0 m/s`;
+                
+                let minutes = Math.floor(currentTaskTimeLeft / 60);
+                let seconds = currentTaskTimeLeft % 60;
+                if (timerHud) timerHud.innerText = `Est: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+
+            }, 1000);
         }
-    }
 
-    // --- CLOCK TICK LOOP (FIXED DECREMENT SYSTEM) ---
-    function startCoreTimers() {
-        clearInterval(gameInterval);
-        
-        gameInterval = setInterval(() => {
-            // Hard stop if driving state is interrupted (frozen on screen, freezes timer!)
-            if (!isDriving || isFuelOut || isEngineDead || jobWaitingApproval) {
-                clearInterval(gameInterval);
-                return;
-            }
+        function acceptNewJobContract() {
+            jobWaitingApproval = false;
+            if (jobBoardOverlay) jobBoardOverlay.style.display = 'none';
+            updateGameLoopView();
+        }
 
-            // Decrement exact integer time
-            currentTaskTimeLeft--;
-            secondsWorkedThisJob++;
-
-            // Fuel depletion scales off active drive time, not real system clocks
-            let fuelBurnRate = 0.5 / fuelLevel; 
-            fuelPercentage = 100 - (secondsWorkedThisJob * fuelBurnRate);
-
-            // Tutorial safety filter (No permanent lockouts on first run)
-            if (isFirstRunDone === 0 && tutorialFuelOutagesOccurred >= 1) {
-                fuelPercentage = 40; 
-            }
-
-            if (fuelPercentage <= 0) {
-                fuelPercentage = 0;
-                if (fuelFill) fuelFill.style.width = `0%`;
-                triggerFuelOutage();
-                return;
-            }
-            if (fuelFill) fuelFill.style.width = `${fuelPercentage}%`;
-
-            // Random Breakdown Checks
-            let breakdownChance = 0.008 / engineLevel;
-            if (isFirstRunDone === 0 && tutorialEngineFailuresOccurred >= 1) {
-                breakdownChance = 0;
-            }
-
-            if (Math.random() < breakdownChance) {
-                triggerEngineBreakdown();
-                return;
-            }
-
-            // Task Completed Target Reached
-            if (currentTaskTimeLeft <= 0) {
-                currentTaskTimeLeft = 0;
-                isDriving = false;
-                jobWaitingApproval = true; 
-                clearInterval(gameInterval);
-                
-                const userId = tg.initDataUnsafe.user?.id || 12345;
-                fetch(`${NGROK_URL}/complete_task`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: userId })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if(data.status === "success") {
-                        balance = data.new_balance;
-                        if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
-                        isFirstRunDone = 1;
-                        taskStartTime = 0;
-                        secondsWorkedThisJob = 0;
-                        
-                        // Prep contract parameters for mission 2
-                        totalTaskDuration = 1200; // 20 mins
-                        currentTaskTimeLeft = 1200;
-                        
-                        tg.showAlert("Task Finished! Your delivery run earned you 50 MTC.");
-                        updateGameLoopView(); // Prompts overlay cleanly
-                    }
-                });
-                return;
-            }
+        function triggerFuelOutage() {
+            isFuelOut = true;
+            updateGameLoopView();
+            tutorialFuelOutagesOccurred++;
             
-            // Format timer display directly
-            let minutes = Math.floor(currentTaskTimeLeft / 60);
-            let seconds = currentTaskTimeLeft % 60;
-            if (timerHud) timerHud.innerText = `Est: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            openAppModal(
+                "Out of Fuel!", 
+                "You're out of fuel. Buy some to continue the journey.", 
+                "Pay 5 MTC", 
+                () => processQuickFix('fuel')
+            );
+        }
 
-        }, 1000);
-    }
+        // FIXED: Now triggers the custom Modal dialog cleanly
+        function triggerEngineBreakdown() {
+            isEngineDead = true;
+            updateGameLoopView();
+            tutorialEngineFailuresOccurred++;
+            
+            openAppModal(
+                "Engine Failure!", 
+                "Oops! Looks like the engine died, let's fix it.", 
+                "Pay 5 MTC", 
+                () => processQuickFix('engine')
+            );
+        }
 
-    function acceptNewJobContract() {
-        jobWaitingApproval = false;
-        if (jobBoardOverlay) jobBoardOverlay.style.display = 'none';
-        updateGameLoopView();
-    }
-
-    function triggerFuelOutage() {
-        isFuelOut = true;
-        updateGameLoopView(); // Pauses loops and freezes visual timer
-        tutorialFuelOutagesOccurred++;
-        
-        openAppModal(
-            "Out of Fuel!", 
-            "You're out of fuel. Buy some to continue the journey.", 
-            "Pay 5 MTC", 
-            () => processQuickFix('fuel')
-        );
-    }
-
-    function triggerEngineBreakdown() {
-        isEngineDead = true;
-        updateGameLoopView(); // Pauses loops and freezes visual timer
-        tutorialEngineFailuresOccurred++;
-        
-        openAppModal(
-            "Engine Failure!", 
-            "Oops! Looks like the engine died, let's fix it.", 
-            "Pay 5 MTC", 
-            () => processQuickFix('engine')
-        );
-    }
-
-    function processQuickFix(type) {
-        const userId = tg.initDataUnsafe.user?.id || 12345;
-        
-        fetch(`${NGROK_URL}/deduct_fix`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.status === "success") {
-                balance = data.new_balance;
-                if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
-                
-                if (type === 'fuel') {
-                    isFuelOut = false;
-                    secondsWorkedThisJob = 0; // Refill resets consumption tracking
-                    fuelPercentage = 100;
-                    if (fuelFill) fuelFill.style.width = `100%`;
-                }
-                if (type === 'engine') {
-                    isEngineDead = false;
-                }
-                tg.showAlert("System restored! Keep driving.");
-                updateGameLoopView(); // Resumes right where we left off
-            } else {
-                tg.showAlert(data.message);
-                if (type === 'fuel') triggerFuelOutage();
-                if (type === 'engine') triggerEngineBreakdown();
-            }
-        });
-    }
-
-    function loadUserData() {
-        const userId = tg.initDataUnsafe.user?.id || 12345;
-
-        fetch(`${NGROK_URL}/get_profile`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.status === "success") {
-                balance = data.balance;
-                fuelLevel = data.fuel_lvl;
-                speedsLevel = data.speed_lvl;
-                engineLevel = data.engine_lvl;
-                taskStartTime = data.task_start_time;
-                isFirstRunDone = data.is_first_run_done;
-
-                if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
-                if (fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel;
-                if (speedLvlTxt) speedLvlTxt.innerText = speedsLevel;
-                if (engineLvlTxt) engineLvlTxt.innerText = engineLevel;
-
-                // Bind initial levels to display exact backend prices right away!
-                syncPriceButtonLabels(data.fuel_cost, data.speed_cost, data.engine_cost);
-
-                if (isFirstRunDone === 1) {
-                    totalTaskDuration = 1200; 
-                    currentTaskTimeLeft = 1200;
-                } else {
-                    totalTaskDuration = 600;
-                    currentTaskTimeLeft = 600;
-                }
-
-                // If recovering an active crash session, safe check calculations
-                if (taskStartTime > 0 && fuelLevel > 0) {
-                    let nowInSeconds = Math.floor(Date.now() / 1000);
-                    let secondsPassed = nowInSeconds - Math.floor(taskStartTime);
-                    currentTaskTimeLeft = totalTaskDuration - secondsPassed;
-                    secondsWorkedThisJob = secondsPassed;
+        function processQuickFix(type) {
+            const userId = tg.initDataUnsafe.user?.id || 12345;
+            
+            fetch(`${NGROK_URL}/deduct_fix`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "success") {
+                    balance = data.new_balance;
+                    if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
                     
-                    if (currentTaskTimeLeft <= 0) {
-                        currentTaskTimeLeft = 0;
-                        taskStartTime = 0;
-                        secondsWorkedThisJob = 0;
+                    if (type === 'fuel') {
+                        isFuelOut = false;
+                        secondsWorkedThisJob = 0; 
+                        fuelPercentage = 100;
+                        if (fuelFill) fuelFill.style.width = `100%`;
                     }
+                    if (type === 'engine') {
+                        isEngineDead = false;
+                    }
+                    tg.showAlert("System restored! Keep driving.");
+                    updateGameLoopView(); 
+                } else {
+                    tg.showAlert(data.message);
+                    if (type === 'fuel') triggerFuelOutage();
+                    if (type === 'engine') triggerEngineBreakdown();
                 }
-                updateGameLoopView();
-            }
-        });
-    }
+            });
+        }
 
-    function upgrade(statName) {
-        const userId = tg.initDataUnsafe.user?.id || 12345;
-        
-        fetch(`${NGROK_URL}/upgrade`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId, stat: statName })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if(data.status === "success") {
-                tg.showAlert(data.message);
-                
-                if (statName === 'fuel') { fuelLevel++; if(fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel; }
-                if (statName === 'speed') { speedsLevel++; if(speedLvlTxt) speedLvlTxt.innerText = speedsLevel; }
-                if (statName === 'engine') { engineLevel++; if(engineLvlTxt) engineLvlTxt.innerText = engineLevel; }
+        function loadUserData() {
+            const userId = tg.initDataUnsafe.user?.id || 12345;
 
-                balance = data.new_balance;
-                if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
+            fetch(`${NGROK_URL}/get_profile`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "success") {
+                    balance = data.balance;
+                    fuelLevel = data.fuel_lvl;
+                    speedsLevel = data.speed_lvl;
+                    engineLevel = data.engine_lvl;
+                    taskStartTime = data.task_start_time;
+                    isFirstRunDone = data.is_first_run_done;
 
-                // Instantly sync the button label costs with the progressive brackets returned by backend!
-                syncPriceButtonLabels(data.fuel_cost, data.speed_cost, data.engine_cost);
-                updateGameLoopView();
-            } else {
-                tg.showAlert(data.message);
-            }
-        })
-        .catch(err => tg.showAlert("Engine Connection Error"));
-    }
+                    if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
+                    if (fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel;
+                    if (speedLvlTxt) speedLvlTxt.innerText = speedsLevel;
+                    if (engineLvlTxt) engineLvlTxt.innerText = engineLevel;
 
-    loadUserData();
-</script>
+                    syncPriceButtonLabels(data.fuel_cost, data.speed_cost, data.engine_cost);
+
+                    if (isFirstRunDone === 1) {
+                        totalTaskDuration = 1200; 
+                        currentTaskTimeLeft = 1200;
+                    } else {
+                        totalTaskDuration = 600;
+                        currentTaskTimeLeft = 600;
+                    }
+
+                    if (taskStartTime > 0 && fuelLevel > 0) {
+                        let nowInSeconds = Math.floor(Date.now() / 1000);
+                        let secondsPassed = nowInSeconds - Math.floor(taskStartTime);
+                        currentTaskTimeLeft = totalTaskDuration - secondsPassed;
+                        secondsWorkedThisJob = secondsPassed;
+                        
+                        if (currentTaskTimeLeft <= 0) {
+                            currentTaskTimeLeft = 0;
+                            taskStartTime = 0;
+                            secondsWorkedThisJob = 0;
+                        }
+                    }
+                    updateGameLoopView();
+                }
+            });
+        }
+
+        function upgrade(statName) {
+            const userId = tg.initDataUnsafe.user?.id || 12345;
+            
+            fetch(`${NGROK_URL}/upgrade`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId, stat: statName })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === "success") {
+                    tg.showAlert(data.message);
+                    
+                    if (statName === 'fuel') { fuelLevel++; if(fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel; }
+                    if (statName === 'speed') { speedsLevel++; if(speedLvlTxt) speedLvlTxt.innerText = speedsLevel; }
+                    if (statName === 'engine') { engineLevel++; if(engineLvlTxt) engineLvlTxt.innerText = engineLevel; }
+
+                    balance = data.new_balance;
+                    if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
+
+                    syncPriceButtonLabels(data.fuel_cost, data.speed_cost, data.engine_cost);
+                    updateGameLoopView();
+                } else {
+                    tg.showAlert(data.message);
+                }
+            })
+            .catch(err => tg.showAlert("Engine Connection Error"));
+        }
+
+        loadUserData();
+    </script>
 </body>
 </html>
