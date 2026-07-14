@@ -361,19 +361,36 @@
         <a href="#" class="nav-item">📋<br>Tasks</a>
     </div>
 
-    <script>
+   <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
 
         const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev";
 
-        // Bind WebApp info context 
+        // Truncation helper function for clean username scaling
+        function formatUsername(name) {
+            if (!name) return "Driver";
+            let rawName = name.startsWith('@') ? name.substring(1) : name;
+            if (rawName.length > 12) {
+                return `@${rawName.substring(0, 12)}...`;
+            }
+            return `@${rawName}`;
+        }
+
+        // Bind WebApp info context with strict truncation constraints
         if (tg.initDataUnsafe?.user) {
             const user = tg.initDataUnsafe.user;
             const usernameEl = document.getElementById('username');
             if (usernameEl) {
-                usernameEl.innerText = user.username ? `@${user.username}` : (user.first_name || "Driver");
+                const displayName = user.username || user.first_name || "Driver";
+                usernameEl.innerText = formatUsername(displayName);
+            }
+        } else {
+            // Default fallback for browser testing
+            const usernameEl = document.getElementById('username');
+            if (usernameEl) {
+                usernameEl.innerText = formatUsername("TestDriverWithAVeryLongName");
             }
         }
 
@@ -389,7 +406,9 @@
             .then(data => {
                 if (data.status === "success") {
                     const balanceTextElement = document.getElementById('balance-display');
-                    if (balanceTextElement) balanceTextElement.innerText = `${data.balance} MTC`;
+                    if (balanceTextElement) {
+                        balanceTextElement.innerText = `${data.balance} MTC`;
+                    }
                 }
             }).catch(err => console.log("Failed to sync profile context data."));
         }
