@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MoneyTrucks - Store</title>
+    <style>
+        /* Base Game Theme Styling */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0b0b0e;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding-bottom: 90px; /* Leave space for bottom nav navigation */
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #111116;
+            padding: 15px 20px;
+            border-bottom: 2px solid #1e1e24;
+        }
+
+        .user-info {
+            font-weight: bold;
+            color: #f39c12;
+        }
+
+        .balance {
+            background: #23232e;
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid #f39c12;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .store-container {
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            color: #f39c12;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            border-left: 4px solid #f39c12;
+            padding-left: 10px;
+        }
+
+        /* --- TRUCK GRID & HOVER CARD STYLE --- */
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 480px) {
+            .grid-container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .product-card {
+            background: #16161f;
+            border: 1px solid #23232e;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            text-align: center;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .product-card:hover {
+            border-color: #f39c12;
+            transform: translateY(-2px);
+        }
+
+        /* Container designed to handle your asset framing cleanly */
+        .image-viewport {
+            width: 100%;
+            height: 140px;
+            background: #0b0b0e;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .image-viewport img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Hidden Description Overlay revealed seamlessly on desktop hover or mobile interaction focus */
+        .hover-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(17, 17, 22, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+            box-sizing: border-box;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+            color: #ddd;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .product-card:hover .hover-overlay {
+            opacity: 1;
+        }
+
+        .item-name {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #fff;
+        }
+
+        .item-price {
+            font-size: 0.95rem;
+            color: #2ecc71;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+
+        .buy-btn {
+            background: #f39c12;
+            color: #000;
+            border: none;
+            font-weight: bold;
+            padding: 10px 0;
+            width: 100%;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: background 0.2s;
+            margin-top: auto;
+        }
+
+        .buy-btn:hover {
+            background: #e67e22;
+        }
+
+        /* --- MTC PURCHASES GRID STYLE --- */
+        .mtc-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .mtc-card {
+            background: linear-gradient(135deg, #16161f 0%, #1c1c27 100%);
+            border: 1px solid #23232e;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .mtc-icon-frame {
+            width: 65px;
+            height: 65px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .mtc-icon-frame img {
+            width: 100%;
+            height: auto;
+        }
+
+        /* --- FOOTER NAVIGATION STANDARDS --- */
+        .footer-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: #111116;
+            border-top: 2px solid #1e1e24;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            z-index: 1000;
+        }
+
+        .nav-item {
+            color: #888;
+            text-decoration: none;
+            text-align: center;
+            font-size: 0.75rem;
+            transition: color 0.2s;
+        }
+
+        .nav-item.active {
+            color: #f39c12;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header syncing user interface data layout -->
+    <div class="header">
+        <div class="user-info">
+            <span id="username">Driver</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <span class="balance" id="balance-display">0 MTC</span>
+        </div>
+    </div>
+
+    <div class="store-container">
+        
+        <!-- 🚚 TRUCKS STORE SECTION -->
+        <div class="section-title">Fleet Showroom</div>
+        <div class="grid-container">
+            
+            <!-- Truck 1 -->
+            <div class="product-card">
+                <div class="image-viewport">
+                    <!-- Replace with your truck 1 image asset link later -->
+                    <img src="images/truck_iron_hauler.jpg" alt="Iron Hauler">
+                    <div class="hover-overlay">
+                        A robust, heavy-duty commercial cruiser built to maximize delivery payload limits. Boosts mission payout base rates considerably.
+                    </div>
+                </div>
+                <div class="item-name">Iron Hauler</div>
+                <div class="item-price">1,000 MTC</div>
+                <button class="buy-btn" onclick="triggerPurchase('truck', 'iron_hauler', 1000)">Buy</button>
+            </div>
+
+            <!-- Truck 2 -->
+            <div class="product-card">
+                <div class="image-viewport">
+                    <!-- Replace with your truck 2 image asset link later -->
+                    <img src="images/truck_diesel_beast.jpg" alt="Diesel Beast">
+                    <div class="hover-overlay">
+                        Equipped with high-performance multi-valve induction systems. Significantly scales up job performance multipliers.
+                    </div>
+                </div>
+                <div class="item-name">Diesel Beast</div>
+                <div class="item-price">10,000 MTC</div>
+                <button class="buy-btn" onclick="triggerPurchase('truck', 'diesel_beast', 10000)">Buy</button>
+            </div>
+
+            <!-- Truck 3 -->
+            <div class="product-card">
+                <div class="image-viewport">
+                    <!-- Replace with your truck 3 image asset link later -->
+                    <img src="images/truck_titan_hypermax.jpg" alt="Titan Hypermax">
+                    <div class="hover-overlay">
+                        The ultimate high-tier apex transport vessel. Provides maximum possible earnings per trip across all contracts.
+                    </div>
+                </div>
+                <div class="item-name">Titan Hypermax</div>
+                <div class="item-price">100,000 MTC</div>
+                <button class="buy-btn" onclick="triggerPurchase('truck', 'titan_hypermax', 100000)">Buy</button>
+            </div>
+
+        </div>
+
+        <!-- 🪙 MTC PREMIUM CURRENCY SECTION -->
+        <div class="section-title">Purchase MTC Coins</div>
+        <div class="mtc-grid">
+            
+            <!-- Box 1 -->
+            <div class="mtc-card">
+                <div class="mtc-icon-frame">
+                    <img src="images/coins_tier1.png" alt="100 MTC Pack">
+                </div>
+                <div class="item-name">100 MTC</div>
+                <div class="item-price">$1.00</div>
+                <button class="buy-btn" onclick="triggerPurchase('currency', '100_pack', 1.00)">Buy</button>
+            </div>
+
+            <!-- Box 2 -->
+            <div class="mtc-card">
+                <div class="mtc-icon-frame">
+                    <img src="images/coins_tier2.png" alt="200 MTC Pack">
+                </div>
+                <div class="item-name">200 MTC</div>
+                <div class="item-price">$2.00</div>
+                <button class="buy-btn" onclick="triggerPurchase('currency', '200_pack', 2.00)">Buy</button>
+            </div>
+
+            <!-- Box 3 -->
+            <div class="mtc-card">
+                <div class="mtc-icon-frame">
+                    <img src="images/coins_tier3.png" alt="500 MTC Pack">
+                </div>
+                <div class="item-name">500 MTC</div>
+                <div class="item-price">$5.00</div>
+                <button class="buy-btn" onclick="triggerPurchase('currency', '500_pack', 5.00)">Buy</button>
+            </div>
+
+            <!-- Box 4 -->
+            <div class="mtc-card">
+                <div class="mtc-icon-frame">
+                    <img src="images/coins_tier4.png" alt="1000 MTC Pack">
+                </div>
+                <div class="item-name">1,000 MTC</div>
+                <div class="item-price">$10.00</div>
+                <button class="buy-btn" onclick="triggerPurchase('currency', '1000_pack', 10.00)">Buy</button>
+            </div>
+
+            <!-- Box 5 -->
+            <div class="mtc-card">
+                <div class="mtc-icon-frame">
+                    <img src="images/coins_tier5.png" alt="5000 MTC Pack">
+                </div>
+                <div class="item-name">5,000 MTC</div>
+                <div class="item-price">$50.00</div>
+                <button class="buy-btn" onclick="triggerPurchase('currency', '5000_pack', 50.00)">Buy</button>
+            </div>
+
+            <!-- Box 6 -->
+            <div class="mtc-card">
+                <div class="mtc-icon-frame">
+                    <img src="images/coins_tier6.png" alt="10000 MTC Pack">
+                </div>
+                <div class="item-name">10,000 MTC</div>
+                <div class="item-price">$100.00</div>
+                <button class="buy-btn" onclick="triggerPurchase('currency', '10000_pack', 100.00)">Buy</button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Bottom Global App Navigation Matrix -->
+    <div class="footer-nav">
+        <!-- FIXED: Links reference separate index.html and store.html pathways cleanly -->
+        <a href="index.html" class="nav-item">🏠<br>Home</a>
+        <a href="store.html" class="nav-item active">🛒<br>Store</a>
+        <a href="#" class="nav-item">👥<br>Friends</a>
+        <a href="#" class="nav-item">📋<br>Tasks</a>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev";
+
+        // Bind WebApp info context 
+        if (tg.initDataUnsafe?.user) {
+            const user = tg.initDataUnsafe.user;
+            const usernameEl = document.getElementById('username');
+            if (usernameEl) {
+                usernameEl.innerText = user.username ? `@${user.username}` : (user.first_name || "Driver");
+            }
+        }
+
+        // Fetch current baseline user financial stats to make store layout context reflective
+        function loadBalanceDisplay() {
+            const userId = tg.initDataUnsafe.user?.id || 12345;
+            fetch(`${NGROK_URL}/get_profile`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "success") {
+                    const balanceTextElement = document.getElementById('balance-display');
+                    if (balanceTextElement) balanceTextElement.innerText = `${data.balance} MTC`;
+                }
+            }).catch(err => console.log("Failed to sync profile context data."));
+        }
+
+        // Hook function placeholder to execute actual purchase processing modules later
+        function triggerPurchase(category, itemId, pricing) {
+            tg.showAlert(`Purchase processing sequence for ${itemId} (${category}) will hook into payment engines next!`);
+        }
+
+        loadBalanceDisplay();
+    </script>
+</body>
+</html>
