@@ -245,17 +245,17 @@
     <div class="upgrade-card">
         <span>Fuel Tank</span>
         <strong>LVL <span id="fuel-lvl">0</span></strong>
-        <button class="buy-btn" onclick="upgrade('fuel')">20 MTC</button>
+        <button id="fuel-upgrade-btn" onclick="upgrade('fuel')">Upgrade (20 MTC)</button>
     </div>
     <div class="upgrade-card">
         <span>Speed</span>
         <strong>LVL <span id="speed-lvl">0</span></strong>
-        <button class="buy-btn" onclick="upgrade('speed')">20 MTC</button>
+        <button id="speed-upgrade-btn" onclick="upgrade('speed')">Upgrade (20 MTC)</button>
     </div>
     <div class="upgrade-card">
         <span>Engine</span>
         <strong>LVL <span id="engine-lvl">0</span></strong>
-        <button class="buy-btn" onclick="upgrade('engine')">20 MTC</button>
+       <button id="engine-upgrade-btn" onclick="upgrade('engine')">Upgrade (20 MTC)</button>
     </div>
 </div>
 
@@ -279,8 +279,9 @@
     let fuelLevel = 0;
     let engineLevel = 0;
 
-    let totalTaskTime = 600; // Default first run is 10 mins (600s)
-    let currentTaskTimeLeft = 600;
+    // Pure Integer Countdown System (Fixes the real-time warp gap!)
+    let currentTaskTimeLeft = 600; // 10 Minutes = 600 seconds sharp
+    let totalTaskDuration = 600; 
     let fuelPercentage = 100;
     
     let isDriving = false;
@@ -289,17 +290,15 @@
     let isFirstRunDone = 0;
     let jobWaitingApproval = false;
 
-    // Inside-task calculation anchors to keep fuel reduction linear post-refuel
-    let fuelBurntThisSession = 0;
-    let lastFuelCheckTimestamp = 0;
+    let secondsWorkedThisJob = 0; // Tracks active driving time to deduct fuel fairly
 
     let tutorialFuelOutagesOccurred = 0;
     let tutorialEngineFailuresOccurred = 0;
 
     let gameInterval = null;
-    let taskStartTime = 0;
+    let taskStartTime = 0; // Backend bookmark anchor
 
-    // --- CACHED NODES ---
+    // --- CACHED DOM NODES ---
     const usernameElement = document.getElementById('username');
     const videoEl = document.getElementById('road-video');
     const stagnantEl = document.getElementById('stagnant-truck');
@@ -323,6 +322,7 @@
         usernameElement.innerText = user.username ? `@${user.username}` : (user.first_name || "Driver");
     }
 
+    // Explicitly update button label displays in the DOM
     function syncPriceButtonLabels(fCost, sCost, eCost) {
         if (fuelBtn) fuelBtn.innerText = `Upgrade (${fCost} MTC)`;
         if (speedBtn) speedBtn.innerText = `Upgrade (${sCost} MTC)`;
@@ -360,6 +360,7 @@
                     videoEl.play().catch(e => console.log("Autoplay context pending"));
                 }
                 
+                // Keep backend tracked for crash recovery, but use our pure variable clock for ticks
                 if (taskStartTime === 0) {
                     const userId = tg.initDataUnsafe.user?.id || 12345;
                     fetch(`${NGROK_URL}/start_task`, {
@@ -371,12 +372,8 @@
                     .then(data => { 
                         if(data.status === "success") {
                             taskStartTime = data.task_start_time;
-                            lastFuelCheckTimestamp = Math.floor(Date.now() / 1000);
-                            fuelBurntThisSession = 0;
                         } 
                     });
-                } else if (lastFuelCheckTimestamp === 0) {
-                    lastFuelCheckTimestamp = Math.floor(Date.now() / 1000);
                 }
                 startCoreTimers();
             }
@@ -396,26 +393,26 @@
         }
     }
 
-    // --- CLOCK TICK LOOP ---
+    // --- CLOCK TICK LOOP (FIXED DECREMENT SYSTEM) ---
     function startCoreTimers() {
         clearInterval(gameInterval);
         
         gameInterval = setInterval(() => {
-            if (!isDriving || taskStartTime === 0 || isFuelOut || isEngineDead || jobWaitingApproval) return;
+            // Hard stop if driving state is interrupted (frozen on screen, freezes timer!)
+            if (!isDriving || isFuelOut || isEngineDead || jobWaitingApproval) {
+                clearInterval(gameInterval);
+                return;
+            }
 
-            let nowInSeconds = Math.floor(Date.now() / 1000);
-            let totalSecondsElapsed = nowInSeconds - Math.floor(taskStartTime);
-            currentTaskTimeLeft = totalTaskTime - totalSecondsElapsed;
+            // Decrement exact integer time
+            currentTaskTimeLeft--;
+            secondsWorkedThisJob++;
 
-            // Calculate consumption since the last checkpoint
-            let dynamicTimeChunk = nowInSeconds - lastFuelCheckTimestamp;
-            lastFuelCheckTimestamp = nowInSeconds;
-
+            // Fuel depletion scales off active drive time, not real system clocks
             let fuelBurnRate = 0.5 / fuelLevel; 
-            fuelBurntThisSession += (dynamicTimeChunk * fuelBurnRate);
-            fuelPercentage = 100 - fuelBurntThisSession;
+            fuelPercentage = 100 - (secondsWorkedThisJob * fuelBurnRate);
 
-            // Tutorial Filter Rule
+            // Tutorial safety filter (No permanent lockouts on first run)
             if (isFirstRunDone === 0 && tutorialFuelOutagesOccurred >= 1) {
                 fuelPercentage = 40; 
             }
@@ -428,7 +425,7 @@
             }
             if (fuelFill) fuelFill.style.width = `${fuelPercentage}%`;
 
-            // Breakdown Probabilities
+            // Random Breakdown Checks
             let breakdownChance = 0.008 / engineLevel;
             if (isFirstRunDone === 0 && tutorialEngineFailuresOccurred >= 1) {
                 breakdownChance = 0;
@@ -439,7 +436,7 @@
                 return;
             }
 
-            // Mission Finished State Execution
+            // Task Completed Target Reached
             if (currentTaskTimeLeft <= 0) {
                 currentTaskTimeLeft = 0;
                 isDriving = false;
@@ -459,16 +456,20 @@
                         if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
                         isFirstRunDone = 1;
                         taskStartTime = 0;
-                        totalTaskTime = 1200; // Force all subsequent runs to 20 mins
+                        secondsWorkedThisJob = 0;
+                        
+                        // Prep contract parameters for mission 2
+                        totalTaskDuration = 1200; // 20 mins
                         currentTaskTimeLeft = 1200;
                         
                         tg.showAlert("Task Finished! Your delivery run earned you 50 MTC.");
-                        updateGameLoopView(); // Triggers the stagnant layout and displays job overlay
+                        updateGameLoopView(); // Prompts overlay cleanly
                     }
                 });
                 return;
             }
             
+            // Format timer display directly
             let minutes = Math.floor(currentTaskTimeLeft / 60);
             let seconds = currentTaskTimeLeft % 60;
             if (timerHud) timerHud.innerText = `Est: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
@@ -479,13 +480,12 @@
     function acceptNewJobContract() {
         jobWaitingApproval = false;
         if (jobBoardOverlay) jobBoardOverlay.style.display = 'none';
-        // Keeps your current fuelBurntThisSession intact so fuel continues from where it left off
         updateGameLoopView();
     }
 
     function triggerFuelOutage() {
         isFuelOut = true;
-        updateGameLoopView();
+        updateGameLoopView(); // Pauses loops and freezes visual timer
         tutorialFuelOutagesOccurred++;
         
         openAppModal(
@@ -498,7 +498,7 @@
 
     function triggerEngineBreakdown() {
         isEngineDead = true;
-        updateGameLoopView();
+        updateGameLoopView(); // Pauses loops and freezes visual timer
         tutorialEngineFailuresOccurred++;
         
         openAppModal(
@@ -525,17 +525,15 @@
                 
                 if (type === 'fuel') {
                     isFuelOut = false;
-                    fuelBurntThisSession = 0; // Completely tops off the tank
+                    secondsWorkedThisJob = 0; // Refill resets consumption tracking
                     fuelPercentage = 100;
                     if (fuelFill) fuelFill.style.width = `100%`;
-                    lastFuelCheckTimestamp = Math.floor(Date.now() / 1000); 
-                    updateGameLoopView();
                 }
                 if (type === 'engine') {
                     isEngineDead = false;
-                    updateGameLoopView();
                 }
                 tg.showAlert("System restored! Keep driving.");
+                updateGameLoopView(); // Resumes right where we left off
             } else {
                 tg.showAlert(data.message);
                 if (type === 'fuel') triggerFuelOutage();
@@ -567,22 +565,28 @@
                 if (speedLvlTxt) speedLvlTxt.innerText = speedsLevel;
                 if (engineLvlTxt) engineLvlTxt.innerText = engineLevel;
 
-                // Dynamically update the pricing buttons with server values right away
+                // Bind initial levels to display exact backend prices right away!
                 syncPriceButtonLabels(data.fuel_cost, data.speed_cost, data.engine_cost);
 
                 if (isFirstRunDone === 1) {
-                    totalTaskTime = 1200; // All future tasks run at 20 mins
+                    totalTaskDuration = 1200; 
                     currentTaskTimeLeft = 1200;
+                } else {
+                    totalTaskDuration = 600;
+                    currentTaskTimeLeft = 600;
                 }
 
+                // If recovering an active crash session, safe check calculations
                 if (taskStartTime > 0 && fuelLevel > 0) {
                     let nowInSeconds = Math.floor(Date.now() / 1000);
                     let secondsPassed = nowInSeconds - Math.floor(taskStartTime);
-                    currentTaskTimeLeft = totalTaskTime - secondsPassed;
+                    currentTaskTimeLeft = totalTaskDuration - secondsPassed;
+                    secondsWorkedThisJob = secondsPassed;
                     
                     if (currentTaskTimeLeft <= 0) {
                         currentTaskTimeLeft = 0;
                         taskStartTime = 0;
+                        secondsWorkedThisJob = 0;
                     }
                 }
                 updateGameLoopView();
@@ -610,7 +614,7 @@
                 balance = data.new_balance;
                 if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
 
-                // Instantly update button label costs with the new progressive brackets returned by backend
+                // Instantly sync the button label costs with the progressive brackets returned by backend!
                 syncPriceButtonLabels(data.fuel_cost, data.speed_cost, data.engine_cost);
                 updateGameLoopView();
             } else {
