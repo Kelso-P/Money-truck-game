@@ -260,7 +260,7 @@
     <a href="#" class="nav-item">📋<br>Tasks</a>
 </div>
 
-    <script>
+   <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
@@ -309,9 +309,21 @@
         const speedBtn = document.getElementById('speed-upgrade-btn');
         const engineBtn = document.getElementById('engine-upgrade-btn');
 
+        // --- UTILITIES ---
+        // Formatting helper that handles 12-character limit truncation safely
+        function formatUsername(name) {
+            if (!name) return "Driver";
+            let rawName = name.startsWith('@') ? name.substring(1) : name;
+            if (rawName.length > 12) {
+                return `@${rawName.substring(0, 12)}...`;
+            }
+            return `@${rawName}`;
+        }
+
         if (usernameElement && tg.initDataUnsafe?.user) {
             const user = tg.initDataUnsafe.user;
-            usernameElement.innerText = user.username ? `@${user.username}` : (user.first_name || "Driver");
+            const displayName = user.username || user.first_name || "Driver";
+            usernameElement.innerText = formatUsername(displayName);
         }
 
         function syncPriceButtonLabels(fCost, sCost, eCost) {
@@ -615,6 +627,6 @@
             });
         }
         loadUserData();
-    </script>
+</script>
 </body>
 </html>
