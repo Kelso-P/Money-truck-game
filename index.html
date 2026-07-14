@@ -204,16 +204,24 @@
         </div>
     </div>
 
-   <div id="game-stage" style="position: relative;">
-        <video id="road-video" autoplay loop muted playsinline style="display: none;">
+   <div id="game-stage" style="position: relative; overflow: hidden; border-radius: 12px;">
+        <video id="road-video" autoplay loop muted playsinline style="display: none; width: 100%; height: 100%; object-fit: cover;">
             <source src="videos/Pickuptruck-loopvideo1.mp4" type="video/mp4">
         </video>
 
-        <img id="stagnant-truck" src="images/stagnant_pickuptruck.jpg" alt="Truck Engine Off">
+        <img id="stagnant-truck" src="images/stagnant_pickuptruck.jpg" alt="Truck Engine Off" style="width: 100%; height: auto; display: block;">
 
         <div id="job-board-overlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 500; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; box-sizing: border-box;">
-            <h2 style="color: #fff; font-size: 1.4rem; margin-bottom: 15px;">There's another job, let's hit the road!</h2>
-            <button id="start-job-btn" onclick="acceptNewJobContract()" style="background: #2ecc71; color: #fff; font-weight: bold; padding: 14px 35px; border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">Start Job</button>
+            <h2 style="color: #fff; font-size: 1.2rem; margin-bottom: 15px;">There's another job, let's hit the road!</h2>
+            <button id="start-job-btn" onclick="acceptNewJobContract()" style="background: #2ecc71; color: #fff; font-weight: bold; padding: 12px 30px; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">Start Job</button>
+        </div>
+
+        <div id="game-modal" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 999; justify-content: center; align-items: center; box-sizing: border-box; padding: 15px;">
+            <div style="background: #1e1e24; border: 2px solid #f39c12; border-radius: 12px; padding: 20px; width: 90%; max-width: 280px; text-align: center; color: #fff; box-shadow: 0px 4px 15px rgba(0,0,0,0.6);">
+                <h3 id="modal-title" style="margin-top: 0; color: #f39c12; font-size: 1.15rem; margin-bottom: 10px;">Alert</h3>
+                <p id="modal-message" style="font-size: 0.88rem; line-height: 1.4; color: #ddd; margin: 0 0 15px 0;"></p>
+                <button id="modal-action-btn" style="background: #f39c12; border: none; color: #000; font-weight: bold; padding: 10px 20px; font-size: 0.95rem; border-radius: 6px; cursor: pointer; width: 100%;">Pay 5 MTC</button>
+            </div>
         </div>
 
         <div id="hud-overlay">
@@ -225,14 +233,6 @@
             <div class="fuel-bar-container">
                 <div id="fuel-bar-fill" style="width: 100%;"></div>
             </div>
-        </div>
-    </div>
-
-    <div id="game-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; font-family: sans-serif;">
-        <div style="background: #1e1e24; border: 2px solid #f39c12; border-radius: 12px; padding: 25px; width: 85%; max-width: 320px; text-align: center; color: #fff; box-shadow: 0px 4px 15px rgba(0,0,0,0.5);">
-            <h3 id="modal-title" style="margin-top: 0; color: #f39c12; font-size: 1.3rem;">Alert</h3>
-            <p id="modal-message" style="font-size: 0.95rem; line-height: 1.4; color: #ddd; margin: 15px 0 20px 0;"></p>
-            <button id="modal-action-btn" style="background: #f39c12; border: none; color: #000; font-weight: bold; padding: 12px 24px; font-size: 1rem; border-radius: 6px; cursor: pointer; width: 100%;">Pay 5 MTC</button>
         </div>
     </div>
 
@@ -516,16 +516,21 @@
                     if (type === 'engine') {
                         isEngineDead = false;
                     }
-                    tg.showAlert("System restored! Keep driving.");
-                    updateGameLoopView(); 
+                    
+                    // 🟩 CHANGED: Changed restoration success confirmation to use our in-app stage modal overlay
+                    openAppModal("System Restored", "Your truck has been fully operationalized! Keep moving.", "Continue", () => {
+                        updateGameLoopView(); 
+                    });
                 } else {
-                    tg.showAlert(data.message);
-                    if (type === 'fuel') triggerFuelOutage();
-                    if (type === 'engine') triggerEngineBreakdown();
+                    // If deduction fails due to insufficient funds, show warning and loop back to roadblock
+                    openAppModal("Transaction Denied", data.message, "Try Again", () => {
+                        if (type === 'fuel') triggerFuelOutage();
+                        if (type === 'engine') triggerEngineBreakdown();
+                    });
                 }
             });
         }
-
+        
         function loadUserData() {
             const userId = tg.initDataUnsafe.user?.id || 12345;
 
@@ -576,7 +581,7 @@
             });
         }
 
-        function upgrade(statName) {
+       function upgrade(statName) {
             const userId = tg.initDataUnsafe.user?.id || 12345;
             
             fetch(`${NGROK_URL}/upgrade`, {
@@ -587,24 +592,29 @@
             .then(res => res.json())
             .then(data => {
                 if(data.status === "success") {
-                    tg.showAlert(data.message);
-                    
-                    if (statName === 'fuel') { fuelLevel++; if(fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel; }
-                    if (statName === 'speed') { speedsLevel++; if(speedLvlTxt) speedLvlTxt.innerText = speedsLevel; }
-                    if (statName === 'engine') { engineLevel++; if(engineLvlTxt) engineLvlTxt.innerText = engineLevel; }
+                    // 🟩 CHANGED: Changed upgrade success announcement to use our local stage modal overlay
+                    openAppModal("Upgrade Complete!", data.message, "Awesome", () => {
+                        if (statName === 'fuel') { fuelLevel++; if(fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel; }
+                        if (statName === 'speed') { speedsLevel++; if(speedLvlTxt) speedLvlTxt.innerText = speedsLevel; }
+                        if (statName === 'engine') { engineLevel++; if(engineLvlTxt) engineLvlTxt.innerText = engineLevel; }
 
-                    balance = data.new_balance;
-                    if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
+                        balance = data.new_balance;
+                        if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
 
-                    syncPriceButtonLabels(data.fuel_cost, data.speed_cost, data.engine_cost);
-                    updateGameLoopView();
+                        syncPriceButtonLabels(data.fuel_cost, data.speed_cost, data.engine_cost);
+                        updateGameLoopView();
+                    });
                 } else {
-                    tg.showAlert(data.message);
+                    // 🟩 CHANGED: Replaced progression locks and fund warnings to use local stage modal overlay
+                    openAppModal("Upgrade Locked", data.message, "Understood", () => {
+                        updateGameLoopView();
+                    });
                 }
             })
-            .catch(err => tg.showAlert("Engine Connection Error"));
+            .catch(err => {
+                openAppModal("Connection Error", "Could not synchronize with engine node.", "Retry", () => {});
+            });
         }
-
         loadUserData();
     </script>
 </body>
