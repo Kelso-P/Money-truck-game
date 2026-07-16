@@ -335,11 +335,14 @@
         function loadTaskData() {
             const userId = tg.initDataUnsafe.user?.id || 12345;
 
-            fetch(`${NGROK_URL}/get_profile`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: userId })
-            })
+           fetch(`${NGROK_URL}/get_profile`, {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true' // <--- ADD THIS LINE
+        },
+        body: JSON.stringify({ user_id: userId })
+    })
             .then(res => res.json())
             .then(data => {
                 if (data.status === "success") {
@@ -358,11 +361,14 @@
         function claimTask(taskId) {
             const userId = tg.initDataUnsafe.user?.id || 12345;
 
-            fetch(`${NGROK_URL}/claim_task`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: userId, task_id: taskId })
-            })
+           fetch(`${NGROK_URL}/claim_task`, {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true' // <--- ADD THIS LINE
+        },
+        body: JSON.stringify({ user_id: userId, task_id: taskId })
+    })
             .then(res => res.json())
             .then(data => {
                 if (data.status === "success") {
