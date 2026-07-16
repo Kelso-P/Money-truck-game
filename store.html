@@ -361,7 +361,7 @@
         <a href="#" class="nav-item">📋<br>Tasks</a>
     </div>
 
-   <script>
+  <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
@@ -378,25 +378,18 @@
             return `@${rawName}`;
         }
 
-        // Bind WebApp info context with strict truncation constraints
-        if (tg.initDataUnsafe?.user) {
-            const user = tg.initDataUnsafe.user;
-            const usernameEl = document.getElementById('username');
-            if (usernameEl) {
-                const displayName = user.username || user.first_name || "Driver";
-                usernameEl.innerText = formatUsername(displayName);
-            }
-        } else {
-            // Default fallback for browser testing
-            const usernameEl = document.getElementById('username');
-            if (usernameEl) {
-                usernameEl.innerText = formatUsername("TestDriverWithAVeryLongName");
-            }
+        // Define a global variable for the user ID with a safe browser-testing fallback
+        const userId = tg.initDataUnsafe?.user?.id || 12345;
+
+        // Render the formatted username
+        const usernameEl = document.getElementById('username');
+        if (usernameEl) {
+            const displayName = tg.initDataUnsafe?.user?.username || tg.initDataUnsafe?.user?.first_name || "Driver";
+            usernameEl.innerText = formatUsername(displayName);
         }
 
-        // Fetch current baseline user financial stats to make store layout context reflective
+        // Fetch actual backend profile data using the confirmed userId
         function loadBalanceDisplay() {
-            const userId = tg.initDataUnsafe.user?.id || 12345;
             fetch(`${NGROK_URL}/get_profile`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -410,14 +403,18 @@
                         balanceTextElement.innerText = `${data.balance} MTC`;
                     }
                 }
-            }).catch(err => console.log("Failed to sync profile context data."));
+            })
+            .catch(err => {
+                console.error("Failed to sync profile data:", err);
+            });
         }
 
-        // Hook function placeholder to execute actual purchase processing modules later
+        // Placeholder for future checkout systems
         function triggerPurchase(category, itemId, pricing) {
-            tg.showAlert(`Purchase processing sequence for ${itemId} (${category}) will hook into payment engines next!`);
+            tg.showAlert(`Purchase sequence for ${itemId} (${category}) costing ${pricing} will hook into payment systems!`);
         }
 
+        // Run profile fetch immediately on load
         loadBalanceDisplay();
     </script>
 </body>
