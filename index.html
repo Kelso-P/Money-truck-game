@@ -267,14 +267,14 @@
         </div>
     </div>
 
-    <div class="footer-nav">
+   <div class="footer-nav">
     <a href="index.html" class="nav-item active">🏠<br>Home</a>
-    <a href="store.html" class="nav-item active"> <br>Store
+    <a href="store.html" class="nav-item">🛒<br>Store</a>
     <a href="#" class="nav-item">👥<br>Friends</a>
     <a href="#" class="nav-item">📋<br>Tasks</a>
 </div>
 
-   <script>
+  <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
@@ -334,25 +334,18 @@
             return `@${rawName}`;
         }
 
-       if (usernameElement && tg.initDataUnsafe?.user) {
+        if (usernameElement && tg.initDataUnsafe?.user) {
             const user = tg.initDataUnsafe.user;
             const displayName = user.username || user.first_name || "Driver";
             usernameElement.innerText = formatUsername(displayName);
-
-            // 🌟 SAVE TO STORAGE SO THE STORE PAGE CAN ACCESS IT!
-            sessionStorage.setItem('tg_user_id', user.id);
-            sessionStorage.setItem('tg_username', displayName);
-        } else {
-            // Local testing fallback values
-            sessionStorage.setItem('tg_user_id', '12345');
-            sessionStorage.setItem('tg_username', 'Driver');
         }
 
-       function syncPriceButtonLabels(fCost, sCost, eCost) {
-            if (fuelBtn) fuelBtn.innerText = `${fCost} MTC`;
-            if (speedBtn) speedBtn.innerText = `${sCost} MTC`;
-            if (engineBtn) engineBtn.innerText = `${eCost} MTC`;
+        function syncPriceButtonLabels(fCost, sCost, eCost) {
+            if (fuelBtn) fuelBtn.innerText = `Upgrade (${fCost} MTC)`;
+            if (speedBtn) speedBtn.innerText = `Upgrade (${sCost} MTC)`;
+            if (engineBtn) engineBtn.innerText = `Upgrade (${eCost} MTC)`;
         }
+
         function openAppModal(title, message, btnText, actionCallback) {
             const modalEl = document.getElementById('game-modal');
             const titleEl = document.getElementById('modal-title');
