@@ -334,10 +334,18 @@
             return `@${rawName}`;
         }
 
-        if (usernameElement && tg.initDataUnsafe?.user) {
+       if (usernameElement && tg.initDataUnsafe?.user) {
             const user = tg.initDataUnsafe.user;
             const displayName = user.username || user.first_name || "Driver";
             usernameElement.innerText = formatUsername(displayName);
+
+            // 🌟 SAVE TO STORAGE SO THE STORE PAGE CAN ACCESS IT!
+            sessionStorage.setItem('tg_user_id', user.id);
+            sessionStorage.setItem('tg_username', displayName);
+        } else {
+            // Local testing fallback values
+            sessionStorage.setItem('tg_user_id', '12345');
+            sessionStorage.setItem('tg_username', 'Driver');
         }
 
        function syncPriceButtonLabels(fCost, sCost, eCost) {
