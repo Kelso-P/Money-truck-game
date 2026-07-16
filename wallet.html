@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Driver Wallet</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-color: #0a0a0a;
+            --card-bg: #1a1a1a;
+            --text-main: #ffffff;
+            --accent-gold: #ffcc00;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            box-sizing: border-box;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: linear-gradient(to bottom, #111, transparent);
+        }
+        .balance { color: var(--accent-gold); font-weight: bold; font-size: 1.1em; }
+
+        .container {
+            padding: 20px;
+            margin-bottom: 80px;
+        }
+
+        .title {
+            font-size: 1.4rem;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .subtitle {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 25px;
+        }
+
+        .section-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid #333;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #f39c12;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.8rem;
+            color: #ccc;
+            margin-bottom: 6px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-symbol {
+            position: absolute;
+            left: 12px;
+            color: #888;
+            font-weight: bold;
+        }
+
+        .form-input {
+            width: 100%;
+            background: #111;
+            border: 1px solid #444;
+            border-radius: 8px;
+            color: #fff;
+            padding: 12px 12px 12px 28px;
+            font-size: 1.1rem;
+            box-sizing: border-box;
+            font-weight: bold;
+        }
+
+        .form-input:focus {
+            border-color: #f39c12;
+            outline: none;
+        }
+
+        .conversion-preview {
+            background: rgba(243, 156, 18, 0.1);
+            border-left: 3px solid #f39c12;
+            padding: 10px 15px;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+        }
+
+        .action-btn {
+            background: #23232e;
+            color: #fff;
+            border: 1px solid #f39c12;
+            border-radius: 8px;
+            width: 100%;
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .action-btn:active {
+            background: #2d2d3a;
+        }
+
+        .paypal-btn-simulation {
+            background: #0070ba;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            width: 100%;
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 15px;
+        }
+        .paypal-btn-simulation:active {
+            background: #005ea6;
+        }
+
+        /* Modal Overlay Styling */
+        #wallet-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+        .modal-content {
+            background: #1e1e24;
+            border: 2px solid #f39c12;
+            border-radius: 12px;
+            padding: 20px;
+            width: 90%;
+            max-width: 280px;
+            text-align: center;
+            color: #fff;
+        }
+
+        /* --- FOOTER NAV --- */
+        .footer-nav {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            background: #111;
+            padding: 15px 0;
+            border-top: 1px solid #333;
+            z-index: 1000;
+        }
+        .nav-item { color: #666; text-decoration: none; font-size: 0.7rem; text-align: center; }
+        .nav-item.active { color: var(--accent-gold); }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div><span style="font-weight: bold; font-size: 1.1rem;">Driver Wallet</span></div>
+    <div>
+        <span class="balance" id="balance-display" style="background: #23232e; padding: 6px 12px; border-radius: 20px; border: 1px solid #f39c12; font-weight: bold; font-size: 0.9rem; color: #fff;">0 MTC</span>
+    </div>
+</div>
+
+<div class="container">
+    <div class="title">Transactions Terminal</div>
+    <div class="subtitle">Convert USD funds to Trucker Coins (MTC) immediately</div>
+
+    <!-- DEPOSIT CARD -->
+    <div class="section-card">
+        <div class="section-title">📥 Top Up Account</div>
+        
+        <div class="form-group">
+            <label class="form-label">Amount in USD (Minimum $0.10)</label>
+            <div class="input-wrapper">
+                <span class="input-symbol">$</span>
+                <input id="usd-amount" type="number" step="0.10" value="1.00" class="form-input" oninput="calculateMTC()">
+            </div>
+        </div>
+
+        <div class="conversion-preview">
+            Exchange Rate: <strong>$1.00 = 100 MTC</strong><br>
+            You will receive: <strong id="mtc-preview">100 MTC</strong>
+        </div>
+
+        <!-- Simulated Sandbox PayPal Button -->
+        <button id="deposit-btn" class="paypal-btn-simulation" onclick="processSandboxDeposit()">
+            <span>💳 Pay with PayPal (Sandbox)</span>
+        </button>
+    </div>
+
+    <!-- WITHDRAW CARD -->
+    <div class="section-card">
+        <div class="section-title">📤 Secure Withdrawal</div>
+        <div class="subtitle" style="margin-bottom: 0;">Withdrawals are currently locked for maintenance. Reopening shortly.</div>
+    </div>
+</div>
+
+<!-- Modal Dialog -->
+<div id="wallet-modal">
+    <div class="modal-content">
+        <h3 id="modal-title" style="margin-top:0; color:#f39c12;">Message</h3>
+        <p id="modal-msg" style="font-size: 0.9rem; margin-bottom: 20px;"></p>
+        <button onclick="closeWalletModal()" style="background:#f39c12; border:none; color:#000; font-weight:bold; padding:10px 20px; border-radius:6px; cursor:pointer; width:100%;">Close</button>
+    </div>
+</div>
+
+<div class="footer-nav">
+    <a href="index.html" class="nav-item">🏠<br>Home</a>
+    <a href="store.html" class="nav-item">🛒<br>Store</a>
+    <a href="#" class="nav-item">👥<br>Friends</a>
+    <a href="tasks.html" class="nav-item">📋<br>Tasks</a>
+</div>
+
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+
+    const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev";
+    let balance = 0;
+
+    function calculateMTC() {
+        const usdInput = document.getElementById('usd-amount').value;
+        const mtcPreview = document.getElementById('mtc-preview');
+        if (!usdInput || isNaN(usdInput) || parseFloat(usdInput) <= 0) {
+            mtcPreview.innerText = "0 MTC";
+            return;
+        }
+        const mtcEquivalent = Math.round(parseFloat(usdInput) * 100);
+        mtcPreview.innerText = `${mtcEquivalent} MTC`;
+    }
+
+    function showWalletModal(title, msg) {
+        document.getElementById('modal-title').innerText = title;
+        document.getElementById('modal-msg').innerText = msg;
+        document.getElementById('wallet-modal').style.display = 'flex';
+    }
+
+    function closeWalletModal() {
+        document.getElementById('wallet-modal').style.display = 'none';
+    }
+
+    function fetchBalance() {
+        const userId = tg.initDataUnsafe.user?.id || 12345;
+        fetch(`${NGROK_URL}/get_profile`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "success") {
+                balance = data.balance;
+                document.getElementById('balance-display').innerText = `${balance} MTC`;
+            }
+        });
+    }
+
+    function processSandboxDeposit() {
+        const userId = tg.initDataUnsafe.user?.id || 12345;
+        const usdAmount = parseFloat(document.getElementById('usd-amount').value);
+
+        if (isNaN(usdAmount) || usdAmount < 0.10) {
+            showWalletModal("Validation Failed", "Minimum development phase deposit allowed is $0.10 (10 MTC).");
+            return;
+        }
+
+        // Simulate PayPal Sandbox Processing Animation
+        const btn = document.getElementById('deposit-btn');
+        btn.disabled = true;
+        btn.innerText = "Connecting to PayPal Sandbox...";
+
+        setTimeout(() => {
+            // After 1.5 seconds, send the simulated successful transaction details to the server
+            fetch(`${NGROK_URL}/deposit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: userId,
+                    amount_usd: usdAmount
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = "<span>💳 Pay with PayPal (Sandbox)</span>";
+                
+                if (data.status === "success") {
+                    balance = data.new_balance;
+                    document.getElementById('balance-display').innerText = `${balance} MTC`;
+                    showWalletModal("Success", `Deposit verified! $${usdAmount.toFixed(2)} converted to ${Math.round(usdAmount * 100)} MTC successfully added to your balance.`);
+                } else {
+                    showWalletModal("Error", data.message || "Failed to finalize deposit.");
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = "<span>💳 Pay with PayPal (Sandbox)</span>";
+                showWalletModal("Network Error", "Unable to establish secure tunnel to backend node.");
+            });
+        }, 1500);
+    }
+
+    // Initial load
+    fetchBalance();
+    calculateMTC();
+</script>
+</body>
+</html>
