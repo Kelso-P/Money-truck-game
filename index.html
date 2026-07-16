@@ -340,12 +340,11 @@
             usernameElement.innerText = formatUsername(displayName);
         }
 
-        function syncPriceButtonLabels(fCost, sCost, eCost) {
-            if (fuelBtn) fuelBtn.innerText = `Upgrade (${fCost} MTC)`;
-            if (speedBtn) speedBtn.innerText = `Upgrade (${sCost} MTC)`;
-            if (engineBtn) engineBtn.innerText = `Upgrade (${eCost} MTC)`;
+       function syncPriceButtonLabels(fCost, sCost, eCost) {
+            if (fuelBtn) fuelBtn.innerText = `${fCost} MTC`;
+            if (speedBtn) speedBtn.innerText = `${sCost} MTC`;
+            if (engineBtn) engineBtn.innerText = `${eCost} MTC`;
         }
-
         function openAppModal(title, message, btnText, actionCallback) {
             const modalEl = document.getElementById('game-modal');
             const titleEl = document.getElementById('modal-title');
