@@ -366,13 +366,9 @@
         tg.ready();
         tg.expand();
 
-        const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev"; 
+        const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev";
 
-        // --- CACHED DOM NODES ---
-        const usernameElement = document.getElementById('username');
-        const balanceTextElement = document.getElementById('balance-display');
-
-        // --- UTILITIES ---
+        // Truncation helper function for clean username scaling
         function formatUsername(name) {
             if (!name) return "Driver";
             let rawName = name.startsWith('@') ? name.substring(1) : name;
@@ -382,19 +378,18 @@
             return `@${rawName}`;
         }
 
-        // --- RETRIEVE SESSION STATE ---
-        // Pull data saved from index.html, fallback to TG, fallback to 12345
-        const userId = sessionStorage.getItem('tg_user_id') || tg.initDataUnsafe?.user?.id || 12345;
-        const displayName = sessionStorage.getItem('tg_username') || tg.initDataUnsafe?.user?.username || tg.initDataUnsafe?.user?.first_name || "Driver";
+        // Define a global variable for the user ID with a safe browser-testing fallback
+        const userId = tg.initDataUnsafe?.user?.id || 12345;
 
-        // Display the correct username immediately
-        if (usernameElement) {
-            usernameElement.innerText = formatUsername(displayName);
+        // Render the formatted username
+        const usernameEl = document.getElementById('username');
+        if (usernameEl) {
+            const displayName = tg.initDataUnsafe?.user?.username || tg.initDataUnsafe?.user?.first_name || "Driver";
+            usernameEl.innerText = formatUsername(displayName);
         }
 
-        // --- PROFILE SYNC DATA ---
-        function loadUserData() {
-            // Use the verified userId to request actual balance from backend database
+        // Fetch actual backend profile data using the confirmed userId
+        function loadBalanceDisplay() {
             fetch(`${NGROK_URL}/get_profile`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -403,21 +398,24 @@
             .then(res => res.json())
             .then(data => {
                 if (data.status === "success") {
+                    const balanceTextElement = document.getElementById('balance-display');
                     if (balanceTextElement) {
                         balanceTextElement.innerText = `${data.balance} MTC`;
                     }
                 }
             })
-            .catch(err => console.error("Failed to sync profile context data:", err));
+            .catch(err => {
+                console.error("Failed to sync profile data:", err);
+            });
         }
 
-        // Hook function placeholder to execute actual purchase processing modules
+        // Placeholder for future checkout systems
         function triggerPurchase(category, itemId, pricing) {
-            tg.showAlert(`Purchase processing sequence for ${itemId} (${category}) costing ${pricing} MTC will hook into payment engines next!`);
+            tg.showAlert(`Purchase sequence for ${itemId} (${category}) costing ${pricing} will hook into payment systems!`);
         }
 
-        // Initialize balance sync immediately
-        loadUserData();
-</script>
+        // Run profile fetch immediately on load
+        loadBalanceDisplay();
+    </script>
 </body>
 </html>
