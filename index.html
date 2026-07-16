@@ -269,9 +269,7 @@
 
     <div class="footer-nav">
     <a href="index.html" class="nav-item active">🏠<br>Home</a>
-   <button onclick="goToStore()" style="background: #f39c12; color: black; font-weight: bold; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer;">
-    Go to Store
-</button>
+    <a href="store.html" class="nav-item active"> <br>Store
     <a href="#" class="nav-item">👥<br>Friends</a>
     <a href="#" class="nav-item">📋<br>Tasks</a>
 </div>
@@ -614,15 +612,6 @@
                 }
             });
         }
-
-       function goToStore() {
-    // Grab user details from Telegram or storage
-    const userId = tg.initDataUnsafe?.user?.id || sessionStorage.getItem('tg_user_id') || 12345;
-    const username = tg.initDataUnsafe?.user?.username || tg.initDataUnsafe?.user?.first_name || sessionStorage.getItem('tg_username') || "Driver";
-    
-    // Pass them directly as URL parameters to bypass storage blocks!
-    window.location.href = `store.html?user_id=${userId}&username=${encodeURIComponent(username)}`;
-}
 
        function upgrade(statName) {
             const userId = tg.initDataUnsafe.user?.id || 12345;
