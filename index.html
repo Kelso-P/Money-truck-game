@@ -35,115 +35,116 @@
         .balance { color: var(--accent-gold); font-weight: bold; font-size: 1.1em; }
         .day-night-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
 
-   #game-stage {
-    width: 100%;
-    height: 350px;
-    position: relative;
-    background-color: #050505;
-    overflow: hidden;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-bottom: 2px solid #1a1a1a;
-}
+        #game-stage {
+            width: 100%;
+            height: 350px;
+            position: relative;
+            background-color: #050505;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-bottom: 2px solid #1a1a1a;
+        }
 
-#road-video, #stagnant-truck {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center;
-    z-index: 1;
-}
+        #road-video, #stagnant-truck {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            z-index: 1;
+        }
 
-/* HUD Overlay Styling */
-#hud-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 5;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 15px;
-    box-sizing: border-box;
-    pointer-events: none; /* Allows clicking through to game components if needed */
-}
+        /* HUD Overlay Styling */
+        #hud-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 15px;
+            box-sizing: border-box;
+            pointer-events: none; /* Allows clicking through to game components if needed */
+        }
 
-.hud-top {
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-}
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
 
-#hud-speed, #hud-timer {
-    background: rgba(5, 5, 5, 0.75);
-    color: #fff;
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-family: monospace;
-    font-size: 14px;
-    letter-spacing: 1px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
+        #hud-speed, #hud-timer {
+            background: rgba(5, 5, 5, 0.75);
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            letter-spacing: 1px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
 
-/* Uniform Decreasing Fuel Bar */
-.fuel-bar-container {
-    width: 100%;
-    height: 6px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-    overflow: hidden;
-    margin-top: auto;
-}
+        /* Uniform Decreasing Fuel Bar */
+        .fuel-bar-container {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: auto;
+        }
 
-#fuel-bar-fill {
-    height: 100%;
-    background: #ff3333; /* Crimson/Red alert color */
-    width: 100%;
-    transition: width 0.5s linear;
-}
+        #fuel-bar-fill {
+            height: 100%;
+            background: #ff3333; /* Crimson/Red alert color */
+            width: 100%;
+            transition: width 0.5s linear;
+        }
 
-/* Breakdown Action Overlay */
-#breakdown-screen {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    background: rgba(5, 5, 5, 0.85);
-    z-index: 15;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    color: #fff;
-    padding: 20px;
-    box-sizing: border-box;
-}
+        /* Breakdown Action Overlay */
+        #breakdown-screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 5, 5, 0.85);
+            z-index: 15;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: #fff;
+            padding: 20px;
+            box-sizing: border-box;
+        }
 
-#breakdown-screen p {
-    font-size: 16px;
-    margin-bottom: 20px;
-    line-height: 1.5;
-    font-weight: bold;
-}
+        #breakdown-screen p {
+            font-size: 16px;
+            margin-bottom: 20px;
+            line-height: 1.5;
+            font-weight: bold;
+        }
 
-#breakdown-screen button {
-    background: #fff;
-    color: #050505;
-    border: none;
-    padding: 12px 30px;
-    font-weight: bold;
-    border-radius: 4px;
-    cursor: pointer;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    box-shadow: 0 4px 15px rgba(255,255,255,0.2);
-}
+        #breakdown-screen button {
+            background: #fff;
+            color: #050505;
+            border: none;
+            padding: 12px 30px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(255,255,255,0.2);
+        }
+
         /* --- UPGRADES SECTION --- */
         .upgrades-container {
             padding: 20px;
@@ -164,17 +165,8 @@
         .upgrade-card:active { transform: scale(0.95); }
         .upgrade-card span { display: block; font-size: 0.8rem; color: #888; margin-bottom: 5px; }
         .upgrade-card strong { display: block; font-size: 0.9rem; margin-bottom: 10px; }
-        .buy-btn {
-            background: var(--accent-gold);
-            color: #000;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-weight: bold;
-            font-size: 0.75rem;
-        }
-
-       .upgrade-card button {
+        
+        .upgrade-card button {
             background: #f39c12 !important;
             color: #000000 !important;
             font-weight: bold;
@@ -203,21 +195,20 @@
         .nav-item { color: #666; text-decoration: none; font-size: 0.7rem; text-align: center; }
         .nav-item i { display: block; font-size: 1.4rem; margin-bottom: 4px; }
         .nav-item.active { color: var(--accent-gold); }
-
     </style>
 </head>
 <body>
 
-   <div class="header">
-    <div class="user-info">
-        <span id="username">Driver</span>
+    <div class="header">
+        <div class="user-info">
+            <span id="username">Driver</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <span class="balance" id="balance-display" style="background: #23232e; padding: 6px 12px; border-radius: 20px; border: 1px solid #f39c12; font-weight: bold; font-size: 0.9rem; color: #fff;">0 MTC</span>
+        </div>
     </div>
-    <div style="display: flex; align-items: center; gap: 15px;">
-        <span class="balance" id="balance-display" style="background: #23232e; padding: 6px 12px; border-radius: 20px; border: 1px solid #f39c12; font-weight: bold; font-size: 0.9rem; color: #fff;">0 MTC</span>
-    </div>
-</div>
 
-   <div id="game-stage" style="position: relative; overflow: hidden; border-radius: 12px;">
+    <div id="game-stage" style="position: relative; overflow: hidden; border-radius: 12px;">
         <video id="road-video" autoplay loop muted playsinline style="display: none; width: 100%; height: 100%; object-fit: cover;">
             <source src="videos/Pickuptruck-loopvideo1.mp4" type="video/mp4">
         </video>
@@ -267,14 +258,14 @@
         </div>
     </div>
 
-   <div class="footer-nav">
-    <a href="index.html" class="nav-item active">🏠<br>Home</a>
-    <a href="store.html" class="nav-item">🛒<br>Store</a>
-    <a href="#" class="nav-item">👥<br>Friends</a>
-    <a href="#" class="nav-item">📋<br>Tasks</a>
-</div>
+    <div class="footer-nav">
+        <a href="index.html" class="nav-item active">🏠<br>Home</a>
+        <a href="store.html" class="nav-item">🛒<br>Store</a>
+        <a href="#" class="nav-item">👥<br>Friends</a>
+        <a href="#" class="nav-item">📋<br>Tasks</a>
+    </div>
 
-  <script>
+    <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
@@ -324,7 +315,6 @@
         const engineBtn = document.getElementById('engine-upgrade-btn');
 
         // --- UTILITIES ---
-        // Formatting helper that handles 12-character limit truncation safely
         function formatUsername(name) {
             if (!name) return "Driver";
             let rawName = name.startsWith('@') ? name.substring(1) : name;
@@ -408,7 +398,7 @@
             }
         }
 
-        // --- CLOCK TICK LOOP (FIXED DECREMENT SYSTEM) ---
+        // --- CLOCK TICK LOOP ---
         function startCoreTimers() {
             clearInterval(gameInterval);
             
@@ -436,7 +426,6 @@
                 }
                 if (fuelFill) fuelFill.style.width = `${fuelPercentage}%`;
 
-                // FIXED: Decreased base breakdown rate significantly (0.008 -> 0.003)
                 let breakdownChance = 0.003 / engineLevel;
                 if (isFirstRunDone === 0 && tutorialEngineFailuresOccurred >= 1) {
                     breakdownChance = 0;
@@ -504,7 +493,6 @@
             );
         }
 
-        // FIXED: Now triggers the custom Modal dialog cleanly
         function triggerEngineBreakdown() {
             isEngineDead = true;
             updateGameLoopView();
@@ -542,12 +530,10 @@
                         isEngineDead = false;
                     }
                     
-                    // 🟩 CHANGED: Changed restoration success confirmation to use our in-app stage modal overlay
                     openAppModal("System Restored", "Your truck has been fully operationalized! Keep moving.", "Continue", () => {
                         updateGameLoopView(); 
                     });
                 } else {
-                    // If deduction fails due to insufficient funds, show warning and loop back to roadblock
                     openAppModal("Transaction Denied", data.message, "Try Again", () => {
                         if (type === 'fuel') triggerFuelOutage();
                         if (type === 'engine') triggerEngineBreakdown();
@@ -606,7 +592,7 @@
             });
         }
 
-       function upgrade(statName) {
+        function upgrade(statName) {
             const userId = tg.initDataUnsafe.user?.id || 12345;
             
             fetch(`${NGROK_URL}/upgrade`, {
@@ -617,7 +603,6 @@
             .then(res => res.json())
             .then(data => {
                 if(data.status === "success") {
-                    // 🟩 CHANGED: Changed upgrade success announcement to use our local stage modal overlay
                     openAppModal("Upgrade Complete!", data.message, "Awesome", () => {
                         if (statName === 'fuel') { fuelLevel++; if(fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel; }
                         if (statName === 'speed') { speedsLevel++; if(speedLvlTxt) speedLvlTxt.innerText = speedsLevel; }
@@ -630,7 +615,6 @@
                         updateGameLoopView();
                     });
                 } else {
-                    // 🟩 CHANGED: Replaced progression locks and fund warnings to use local stage modal overlay
                     openAppModal("Upgrade Locked", data.message, "Understood", () => {
                         updateGameLoopView();
                     });
@@ -640,7 +624,8 @@
                 openAppModal("Connection Error", "Could not synchronize with engine node.", "Retry", () => {});
             });
         }
+        
         loadUserData();
-</script>
+    </script>
 </body>
 </html>
