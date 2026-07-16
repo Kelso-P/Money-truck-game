@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MoneyTrucks - Tasks</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        /* --- BASE THEME (Matching index & store) --- */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0b0b0e;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding-bottom: 90px; /* Space for bottom nav */
+        }
+
+        /* --- HEADER --- */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #111116;
+            padding: 15px 20px;
+            border-bottom: 2px solid #1e1e24;
+        }
+
+        .user-info {
+            font-weight: bold;
+            color: #f39c12;
+        }
+
+        .balance {
+            background: #23232e;
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid #f39c12;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        /* --- CONTAINER & TABS --- */
+        .tasks-container {
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .task-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #1e1e24;
+            padding-bottom: 15px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            background: #16161f;
+            border: 1px solid #23232e;
+            color: #888;
+            font-weight: bold;
+            font-size: 0.95rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn.active {
+            background: #f39c12;
+            color: #000;
+            border-color: #f39c12;
+        }
+
+        /* --- TASK CARDS --- */
+        .task-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .task-card {
+            background: #16161f;
+            border: 1px solid #23232e;
+            padding: 16px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: border-color 0.2s ease;
+        }
+
+        .task-card:hover {
+            border-color: #3a3a4a;
+        }
+
+        .task-details h4 {
+            margin: 0 0 4px 0;
+            color: #fff;
+            font-size: 1rem;
+        }
+
+        .task-details p {
+            margin: 0 0 6px 0;
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        .task-reward {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #2ecc71;
+            background: rgba(46, 204, 113, 0.1);
+            padding: 3px 8px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        /* --- BUTTONS --- */
+        .claim-btn {
+            background: #f39c12;
+            color: #000;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            min-width: 85px;
+            text-align: center;
+        }
+
+        .claim-btn:hover:not(:disabled) {
+            background: #e67e22;
+        }
+
+        .claim-btn:disabled {
+            background: #1e1e24;
+            color: #555;
+            cursor: not-allowed;
+            border: 1px solid #23232e;
+        }
+
+        /* --- FOOTER NAVIGATION --- */
+        .footer-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: #111116;
+            border-top: 2px solid #1e1e24;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            z-index: 1000;
+        }
+
+        .nav-item {
+            color: #888;
+            text-decoration: none;
+            text-align: center;
+            font-size: 0.75rem;
+            transition: color 0.2s;
+        }
+
+        .nav-item i {
+            display: block;
+            font-size: 1.4rem;
+            margin-bottom: 4px;
+        }
+
+        .nav-item.active {
+            color: #f39c12;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="user-info">
+            <span id="username">Driver</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <span class="balance" id="balance-display">0 MTC</span>
+        </div>
+    </div>
+
+    <div class="tasks-container">
+        
+        <div class="task-tabs">
+            <button id="tab-app" class="tab-btn active" onclick="switchTaskTab('app')">App Tasks</button>
+            <button id="tab-social" class="tab-btn" onclick="switchTaskTab('social')">Social Tasks</button>
+        </div>
+
+        <div id="app-tasks-section" class="task-section">
+            
+            <div class="task-card" id="task-daily_login">
+                <div class="task-details">
+                    <h4>Daily Check-in 📅</h4>
+                    <p>Claim your daily operational bonus.</p>
+                    <span class="task-reward">+10 MTC</span>
+                </div>
+                <button class="claim-btn" onclick="claimTask('daily_login')">Claim</button>
+            </div>
+
+            <div class="task-card" id="task-buy_mtc">
+                <div class="task-details">
+                    <h4>Top Up Logistics 💳</h4>
+                    <p>Purchase MTC worth more than $1 today.</p>
+                    <span class="task-reward">+20 MTC</span>
+                </div>
+                <button class="claim-btn" onclick="claimTask('buy_mtc')">Claim</button>
+            </div>
+
+            <div class="task-card" id="task-watch_ad">
+                <div class="task-details">
+                    <h4>Watch Sponsored Ad 📺</h4>
+                    <p>Briefly view a promotional transmission.</p>
+                    <span class="task-reward">+2 MTC</span>
+                </div>
+                <button class="claim-btn" disabled>Soon</button>
+            </div>
+
+            <div class="task-card" id="task-buy_iron">
+                <div class="task-details">
+                    <h4>Acquire Iron Hauler 🚛</h4>
+                    <p>Deploy the robust mid-tier cruiser.</p>
+                    <span class="task-reward">+50 MTC</span>
+                </div>
+                <button class="claim-btn" onclick="claimTask('buy_iron')">Claim</button>
+            </div>
+
+            <div class="task-card" id="task-buy_diesel">
+                <div class="task-details">
+                    <h4>Deploy Diesel Beast 👹</h4>
+                    <p>Unlock this command-grade heavy rig.</p>
+                    <span class="task-reward">+100 MTC</span>
+                </div>
+                <button class="claim-btn" onclick="claimTask('buy_diesel')">Claim</button>
+            </div>
+
+            <div class="task-card" id="task-buy_titan">
+                <div class="task-details">
+                    <h4>Rule with Titan Hypermax 🚀</h4>
+                    <p>Acquire the absolute ultimate freight model.</p>
+                    <span class="task-reward">+500 MTC</span>
+                </div>
+                <button class="claim-btn" onclick="claimTask('buy_titan')">Claim</button>
+            </div>
+
+        </div>
+
+        <div id="social-tasks-section" class="task-section" style="display: none; text-align: center; padding-top: 40px; color: #888;">
+            <p style="font-size: 1.1rem; margin-bottom: 10px;">🌐 Social Tasks</p>
+            <p style="font-size: 0.85rem;">Global campaign contracts are coming soon!</p>
+        </div>
+
+    </div>
+
+    <div class="footer-nav">
+        <a href="index.html" class="nav-item">🏠<br>Home</a>
+        <a href="store.html" class="nav-item">🛒<br>Store</a>
+        <a href="#" class="nav-item">👥<br>Friends</a>
+        <a href="tasks.html" class="nav-item active">📋<br>Tasks</a>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev"; 
+        let balance = 0;
+
+        // --- DYNAMIC USERNAME FORMATTING ---
+        function formatUsername(name) {
+            if (!name) return "Driver";
+            let rawName = name.startsWith('@') ? name.substring(1) : name;
+            if (rawName.length > 12) {
+                return `@${rawName.substring(0, 12)}...`;
+            }
+            return `@${rawName}`;
+        }
+
+        if (tg.initDataUnsafe?.user) {
+            const user = tg.initDataUnsafe.user;
+            const displayName = user.username || user.first_name || "Driver";
+            document.getElementById('username').innerText = formatUsername(displayName);
+        }
+
+        // --- TAB NAVIGATION SWITCH ---
+        function switchTaskTab(tab) {
+            const appSection = document.getElementById('app-tasks-section');
+            const socialSection = document.getElementById('social-tasks-section');
+            const appBtn = document.getElementById('tab-app');
+            const socialBtn = document.getElementById('tab-social');
+
+            if (tab === 'app') {
+                appSection.style.display = 'flex';
+                socialSection.style.display = 'none';
+                appBtn.classList.add('active');
+                socialBtn.classList.remove('active');
+            } else {
+                appSection.style.display = 'none';
+                socialSection.style.display = 'block';
+                appBtn.classList.remove('active');
+                socialBtn.classList.add('active');
+            }
+        }
+
+        // --- SYNC UI ACCORDING TO SYSTEM STATE ---
+        function syncTasksUI(completedTasks) {
+            const trackingIds = ['daily_login', 'buy_mtc', 'buy_iron', 'buy_diesel', 'buy_titan'];
+            
+            trackingIds.forEach(id => {
+                const card = document.getElementById(`task-${id}`);
+                if (!card) return;
+                
+                const btn = card.querySelector('.claim-btn');
+                if (completedTasks.includes(id)) {
+                    btn.innerText = "Claimed ✓";
+                    btn.disabled = true;
+                } else {
+                    btn.innerText = "Claim";
+                    btn.disabled = false;
+                }
+            });
+        }
+
+        // --- FETCH USER COMPLETED TASKS & PROFILE ---
+        function loadTaskData() {
+            const userId = tg.initDataUnsafe.user?.id || 12345;
+
+            fetch(`${NGROK_URL}/get_profile`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "success") {
+                    balance = data.balance;
+                    document.getElementById('balance-display').innerText = `${balance} MTC`;
+                    
+                    if (data.completed_tasks) {
+                        syncTasksUI(data.completed_tasks);
+                    }
+                }
+            })
+            .catch(err => console.error("Error loading profile configuration:", err));
+        }
+
+        // --- CLAIM PROCESS ACTION ---
+        function claimTask(taskId) {
+            const userId = tg.initDataUnsafe.user?.id || 12345;
+
+            fetch(`${NGROK_URL}/claim_task`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId, task_id: taskId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "success") {
+                    balance = data.new_balance;
+                    document.getElementById('balance-display').innerText = `${balance} MTC`;
+                    
+                    // Instantly lock button as "Claimed ✓"
+                    syncTasksUI(data.completed_tasks);
+                    tg.showAlert(`Successfully Claimed +${data.reward} MTC!`);
+                } else {
+                    tg.showAlert(data.message);
+                }
+            })
+            .catch(err => {
+                console.error("Transmission error claiming task:", err);
+                tg.showAlert("Unable to connect to service registry.");
+            });
+        }
+
+        // Initial launch execute
+        loadTaskData();
+    </script>
+</body>
+</html>
