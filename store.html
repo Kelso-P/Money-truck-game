@@ -361,22 +361,18 @@
         <a href="#" class="nav-item">📋<br>Tasks</a>
     </div>
 
-  <script>
+ <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
 
         const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev"; 
 
-        // --- STATE MANAGEMENT ---
-        let balance = 0;
-
         // --- CACHED DOM NODES ---
         const usernameElement = document.getElementById('username');
         const balanceTextElement = document.getElementById('balance-display');
 
         // --- UTILITIES ---
-        // Formatting helper that handles 12-character limit truncation safely
         function formatUsername(name) {
             if (!name) return "Driver";
             let rawName = name.startsWith('@') ? name.substring(1) : name;
@@ -386,17 +382,19 @@
             return `@${rawName}`;
         }
 
-        // Set up the username exactly like the index page
-        if (usernameElement && tg.initDataUnsafe?.user) {
-            const user = tg.initDataUnsafe.user;
-            const displayName = user.username || user.first_name || "Driver";
+        // --- RETRIEVE SESSION STATE ---
+        // Pull data saved from index.html, fallback to TG, fallback to 12345
+        const userId = sessionStorage.getItem('tg_user_id') || tg.initDataUnsafe?.user?.id || 12345;
+        const displayName = sessionStorage.getItem('tg_username') || tg.initDataUnsafe?.user?.username || tg.initDataUnsafe?.user?.first_name || "Driver";
+
+        // Display the correct username immediately
+        if (usernameElement) {
             usernameElement.innerText = formatUsername(displayName);
         }
 
         // --- PROFILE SYNC DATA ---
         function loadUserData() {
-            const userId = tg.initDataUnsafe.user?.id || 12345;
-
+            // Use the verified userId to request actual balance from backend database
             fetch(`${NGROK_URL}/get_profile`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -405,9 +403,8 @@
             .then(res => res.json())
             .then(data => {
                 if (data.status === "success") {
-                    balance = data.balance;
                     if (balanceTextElement) {
-                        balanceTextElement.innerText = `${balance} MTC`;
+                        balanceTextElement.innerText = `${data.balance} MTC`;
                     }
                 }
             })
@@ -419,7 +416,7 @@
             tg.showAlert(`Purchase processing sequence for ${itemId} (${category}) costing ${pricing} MTC will hook into payment engines next!`);
         }
 
-        // Initialize user load immediately
+        // Initialize balance sync immediately
         loadUserData();
 </script>
 </body>
