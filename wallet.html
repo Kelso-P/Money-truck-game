@@ -133,6 +133,20 @@
 
     const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev";
 
+    // 🌟 Dynamically extract and display the Telegram Username
+    function initUserHeader() {
+        const usernameDisplay = document.getElementById('username-display'); // Make sure your HTML element has this ID!
+        if (usernameDisplay) {
+            const user = tg.initDataUnsafe?.user;
+            if (user) {
+                // Uses first name, fallback to username, fallback to "Driver"
+                usernameDisplay.innerText = user.first_name || user.username || "Driver";
+            } else {
+                usernameDisplay.innerText = "Test Driver";
+            }
+        }
+    }
+
     function calculateMTC() {
         const usdInput = document.getElementById('usd-amount').value;
         const mtcPreview = document.getElementById('mtc-preview');
@@ -145,56 +159,6 @@
         return parseFloat(usdInput);
     }
 
-    // INITIALIZE THE PAYPAL BUTTONS
-  paypal.Buttons({
-    createOrder: function() {
-        const amount = calculateMTC();
-        if (amount < 0.10) {
-            alert("Minimum deposit is $0.10");
-            return false;
-        }
-        
-        return fetch(`${NGROK_URL}/create-paypal-order`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ amount_usd: amount })
-        })
-        .then(res => res.json())
-        .then(order => order.id); 
-    },
-    
-    onApprove: function(data) {
-        const userId = tg.initDataUnsafe.user?.id || 12345;
-        
-        // Tells the Flask server to capture the funds immediately 
-        return fetch(`${NGROK_URL}/capture-paypal-order`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                order_id: data.orderID,
-                user_id: userId
-            })
-        })
-        .then(res => res.json())
-        .then(serverData => {
-            if (serverData.status === "success") {
-                document.getElementById('balance-display').innerText = `${serverData.new_balance} MTC`;
-                
-                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                
-                tg.showPopup({
-                    title: "Deposit Successful!",
-                    message: `Thank you! Your account has been credited with MTC coins.`,
-                    buttons: [{id: "ok", type: "ok"}]
-                });
-            } else {
-                alert("Payment processing error: " + serverData.message);
-            }
-        });
-    }
-}).render('#paypal-button-container');
-
-
     function fetchBalance() {
         const userId = tg.initDataUnsafe.user?.id || 12345;
         fetch(`${NGROK_URL}/get_profile`, {
@@ -205,58 +169,64 @@
         .then(res => res.json())
         .then(data => {
             if (data.status === "success") {
-                document.getElementById('balance-display').innerText = `${data.balance} MTC`;
+                // Updates balance tracker container smoothly
+                const balanceEl = document.getElementById('balance-display');
+                if (balanceEl) {
+                    balanceEl.innerText = `${data.balance} MTC`;
+                }
             }
+        })
+        .catch(err => console.error("Error updating layout balances:", err));
+    }
+
+    function startDirectCheckout() {
+        const amount = calculateMTC();
+        if (amount < 0.10) {
+            alert("Minimum deposit is $0.10");
+            return;
+        }
+        
+        const userId = tg.initDataUnsafe.user?.id || 12345;
+        const button = document.getElementById('custom-checkout-btn');
+        button.innerText = "Generating checkout link...";
+        button.disabled = true;
+
+        // Send payment request to Flask backend
+        fetch(`${NGROK_URL}/create-paypal-order`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                amount_usd: amount,
+                user_id: userId
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            button.innerText = "Pay with PayPal";
+            button.disabled = false;
+            
+            if (data.status === "success" && data.checkout_url) {
+                // Breaks out cleanly to device native web browser cleanly
+                if (tg.openLink) {
+                    tg.openLink(data.checkout_url);
+                } else {
+                    window.location.href = data.checkout_url;
+                }
+            } else {
+                alert("Error setting up payment link: " + data.message);
+            }
+        })
+        .catch(err => {
+            button.innerText = "Pay with PayPal";
+            button.disabled = false;
+            console.error(err);
+            alert("Network communication error.");
         });
     }
 
+    // 🌟 Initialize layout profiles right as the window opens
+    initUserHeader();
     fetchBalance();
-
-    function startDirectCheckout() {
-    const amount = calculateMTC();
-    if (amount < 0.10) {
-        alert("Minimum deposit is $0.10");
-        return;
-    }
-    
-    const userId = tg.initDataUnsafe.user?.id || 12345;
-    const button = document.getElementById('custom-checkout-btn');
-    button.innerText = "Generating checkout link...";
-    button.disabled = true;
-
-    // Send payment request to Flask backend
-    fetch(`${NGROK_URL}/create-paypal-order`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            amount_usd: amount,
-            user_id: userId
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
-        button.innerText = "Pay with PayPal";
-        button.disabled = false;
-        
-        if (data.status === "success" && data.checkout_url) {
-            // 🚀 MAGIC FIX: Tells Telegram to break out of the buggy webview container 
-            // and open the real checkout link in the system's robust default browser.
-            if (tg.openLink) {
-                tg.openLink(data.checkout_url);
-            } else {
-                window.location.href = data.checkout_url;
-            }
-        } else {
-            alert("Error setting up payment link: " + data.message);
-        }
-    })
-    .catch(err => {
-        button.innerText = "Pay with PayPal";
-        button.disabled = false;
-        console.error(err);
-        alert("Network communication error.");
-    });
-}
 </script>
 </body>
 </html>
