@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Driver Wallet</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- 🌟 INCLUDE THE OFFICIAL PAYPAL SDK (Replace YOUR_SANDBOX_CLIENT_ID) -->
+    <!-- 🌟 OFFICIAL PAYPAL SDK INTEGRATED WITH YOUR LIVE SANDBOX CLIENT ID -->
     <script src="https://www.paypal.com/sdk/js?client-id=AWQaOL9MYXfmsJoDnu_Dvtd6ZADjt7w50peJlCfW53Nm_rIegtxGr5pfw3ej6iIvnsWeJfnAJOYjQdEB&currency=USD&intent=capture"></script>
     <style>
         :root {
@@ -68,7 +68,6 @@
             font-size: 0.85rem;
             margin-bottom: 20px;
         }
-        /* Container for the real PayPal smart buttons */
         #paypal-button-container {
             margin-top: 20px;
         }
@@ -115,7 +114,7 @@
             You will receive: <strong id="mtc-preview">100 MTC</strong>
         </div>
 
-        <!-- 🌟 THE OFFICIAL SMART BUTTON WILL RENDER HERE -->
+        <!-- THE SMART BUTTONS RENDER HERE -->
         <div id="paypal-button-container"></div>
     </div>
 </div>
@@ -132,7 +131,6 @@
     tg.expand();
 
     const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev";
-    let balance = 0;
 
     function calculateMTC() {
         const usdInput = document.getElementById('usd-amount').value;
@@ -146,9 +144,8 @@
         return parseFloat(usdInput);
     }
 
-    // 🌟 RENDER THE LIVE PAYPAL BUTTONS
+    // INITIALIZE THE PAYPAL BUTTONS
     paypal.Buttons({
-        // 1. Set up the transaction details when button is clicked
         createOrder: function(data, actions) {
             const amount = calculateMTC();
             if (amount < 0.10) {
@@ -165,20 +162,19 @@
             });
         },
         
-        // 2. Triggered when user authorizes payment inside the popup frame
         onApprove: function(data, actions) {
             return actions.order.capture().then(function(details) {
                 const userId = tg.initDataUnsafe.user?.id || 12345;
                 const paidAmount = parseFloat(details.purchase_units[0].amount.value);
 
-                // 3. Inform your backend to save the data securely
+                // Send the transaction token over to Flask backend to settle
                 return fetch(`${NGROK_URL}/deposit`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         user_id: userId,
                         amount_usd: paidAmount,
-                        order_id: data.orderID // Keep tracking id
+                        order_id: data.orderID
                     })
                 })
                 .then(res => res.json())
@@ -199,8 +195,8 @@
         },
 
         onError: function(err) {
-            console.error("PayPal Error:", err);
-            alert("Something went wrong with the PayPal frame authentication.");
+            console.error("PayPal Initialization Error:", err);
+            alert("PayPal configuration mismatch. Please check your network session or use an Incognito Window.");
         }
     }).render('#paypal-button-container');
 
