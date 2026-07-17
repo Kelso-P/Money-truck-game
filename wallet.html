@@ -132,18 +132,24 @@
     tg.expand();
 
     const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev";
+    const userId = tg.initDataUnsafe?.user?.id || 12345;
+
+    // 🌟 Helper function matching store/tasks formatting
+    function formatUsername(name) {
+        if (!name) return "Driver";
+        let rawName = name.startsWith('@') ? name.substring(1) : name;
+        if (rawName.length > 12) {
+            return `@${rawName.substring(0, 12)}...`;
+        }
+        return `@${rawName}`;
+    }
 
     // 🌟 Dynamically extract and display the Telegram Username
     function initUserHeader() {
-        const usernameDisplay = document.getElementById('username-display'); // Make sure your HTML element has this ID!
+        const usernameDisplay = document.getElementById('username-display');
         if (usernameDisplay) {
-            const user = tg.initDataUnsafe?.user;
-            if (user) {
-                // Uses first name, fallback to username, fallback to "Driver"
-                usernameDisplay.innerText = user.first_name || user.username || "Driver";
-            } else {
-                usernameDisplay.innerText = "Test Driver";
-            }
+            const displayName = tg.initDataUnsafe?.user?.username || tg.initDataUnsafe?.user?.first_name || "Driver";
+            usernameDisplay.innerText = formatUsername(displayName);
         }
     }
 
@@ -159,17 +165,19 @@
         return parseFloat(usdInput);
     }
 
+    // 🌟 Synced balance fetcher with proper ngrok bypass headers
     function fetchBalance() {
-        const userId = tg.initDataUnsafe.user?.id || 12345;
         fetch(`${NGROK_URL}/get_profile`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true' 
+            },
             body: JSON.stringify({ user_id: userId })
         })
         .then(res => res.json())
         .then(data => {
             if (data.status === "success") {
-                // Updates balance tracker container smoothly
                 const balanceEl = document.getElementById('balance-display');
                 if (balanceEl) {
                     balanceEl.innerText = `${data.balance} MTC`;
@@ -186,7 +194,6 @@
             return;
         }
         
-        const userId = tg.initDataUnsafe.user?.id || 12345;
         const button = document.getElementById('custom-checkout-btn');
         button.innerText = "Generating checkout link...";
         button.disabled = true;
@@ -194,7 +201,10 @@
         // Send payment request to Flask backend
         fetch(`${NGROK_URL}/create-paypal-order`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true'
+            },
             body: JSON.stringify({ 
                 amount_usd: amount,
                 user_id: userId
@@ -206,7 +216,6 @@
             button.disabled = false;
             
             if (data.status === "success" && data.checkout_url) {
-                // Breaks out cleanly to device native web browser cleanly
                 if (tg.openLink) {
                     tg.openLink(data.checkout_url);
                 } else {
