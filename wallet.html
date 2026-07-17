@@ -145,7 +145,7 @@
     }
 
     // INITIALIZE THE PAYPAL BUTTONS
-   paypal.Buttons({
+  paypal.Buttons({
     createOrder: function() {
         const amount = calculateMTC();
         if (amount < 0.10) {
@@ -153,20 +153,19 @@
             return false;
         }
         
-        // Let the secure backend generate the order
         return fetch(`${NGROK_URL}/create-paypal-order`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ amount_usd: amount })
         })
         .then(res => res.json())
-        .then(order => order.id); // Return the generated transaction ID to PayPal SDK
+        .then(order => order.id); 
     },
     
     onApprove: function(data) {
         const userId = tg.initDataUnsafe.user?.id || 12345;
         
-        // Let the backend securely capture the payment
+        // Tells the Flask server to capture the funds immediately 
         return fetch(`${NGROK_URL}/capture-paypal-order`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -184,18 +183,13 @@
                 
                 tg.showPopup({
                     title: "Deposit Successful!",
-                    message: `Thank you! Your account has been credited with ${Math.round(serverData.amount_usd * 100)} MTC.`,
+                    message: `Thank you! Your account has been credited with MTC coins.`,
                     buttons: [{id: "ok", type: "ok"}]
                 });
             } else {
-                alert("Payment capture failed on backend: " + serverData.message);
+                alert("Payment processing error: " + serverData.message);
             }
         });
-    },
-
-    onError: function(err) {
-        console.error("PayPal Error:", err);
-        alert("Transaction failed. Try checking out using your phone's default browser.");
     }
 }).render('#paypal-button-container');
 
