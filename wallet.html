@@ -99,6 +99,11 @@
             font-weight: bold;
         }
 
+        .form-input.email-input {
+            padding-left: 12px; /* Standard internal padding for text input */
+            font-size: 1rem;
+        }
+
         .form-input:focus {
             border-color: #f39c12;
             outline: none;
@@ -111,22 +116,6 @@
             border-radius: 0 8px 8px 0;
             font-size: 0.85rem;
             margin-bottom: 20px;
-        }
-
-        .action-btn {
-            background: #23232e;
-            color: #fff;
-            border: 1px solid #f39c12;
-            border-radius: 8px;
-            width: 100%;
-            padding: 14px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .action-btn:active {
-            background: #2d2d3a;
         }
 
         .paypal-btn-simulation {
@@ -143,13 +132,13 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            margin-top: 15px;
+            margin-top: 5px;
         }
         .paypal-btn-simulation:active {
             background: #005ea6;
         }
 
-        /* Modal Overlay Styling */
+        /* --- POPUP WINDOW MODAL --- */
         #wallet-modal {
             display: none;
             position: fixed;
@@ -175,6 +164,94 @@
             text-align: center;
             color: #fff;
         }
+
+        /* --- PAYPAL LOOKALIKE LIVE GATEWAY SIMULATOR --- */
+        #paypal-gateway-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #fff; /* Authentic look white background */
+            color: #2c2e2f;
+            z-index: 3000;
+            flex-direction: column;
+            box-sizing: border-box;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+        .pp-header {
+            background: #fcfcfc;
+            border-bottom: 1px solid #eee;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .pp-logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            font-style: italic;
+            color: #003087;
+        }
+        .pp-logo span { color: #0070ba; }
+        .pp-body {
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-grow: 1;
+        }
+        .pp-amount-badge {
+            font-size: 2rem;
+            font-weight: 300;
+            margin-bottom: 25px;
+            color: #000;
+        }
+        .pp-box {
+            border: 1px solid #cbd2d6;
+            border-radius: 5px;
+            padding: 15px;
+            width: 100%;
+            max-width: 400px;
+            box-sizing: border-box;
+            background: #fff;
+            margin-bottom: 20px;
+        }
+        .pp-btn {
+            background: #0070ba;
+            color: #fff;
+            border: none;
+            border-radius: 25px;
+            width: 100%;
+            max-width: 400px;
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        .pp-btn-cancel {
+            background: none;
+            border: none;
+            color: #0070ba;
+            margin-top: 15px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* Spinner Component */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #0070ba;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         /* --- FOOTER NAV --- */
         .footer-nav {
@@ -209,6 +286,7 @@
     <div class="section-card">
         <div class="section-title">📥 Top Up Account</div>
         
+        <!-- Input Amount field -->
         <div class="form-group">
             <label class="form-label">Amount in USD (Minimum $0.10)</label>
             <div class="input-wrapper">
@@ -222,9 +300,15 @@
             You will receive: <strong id="mtc-preview">100 MTC</strong>
         </div>
 
-        <!-- Simulated Sandbox PayPal Button -->
-        <button id="deposit-btn" class="paypal-btn-simulation" onclick="processSandboxDeposit()">
-            <span>💳 Pay with PayPal (Sandbox)</span>
+        <!-- 🌟 NEW: STRICT PAYPAL EMAIL TEXTBOX -->
+        <div class="form-group">
+            <label class="form-label">Your PayPal Billing Account Email</label>
+            <input id="paypal-email" type="email" placeholder="example@email.com" class="form-input email-input">
+        </div>
+
+        <!-- Checkout Action Trigger -->
+        <button id="deposit-btn" class="paypal-btn-simulation" onclick="initiateCheckoutFlow()">
+            <span>💳 Pay with PayPal</span>
         </button>
     </div>
 
@@ -235,7 +319,40 @@
     </div>
 </div>
 
-<!-- Modal Dialog -->
+<!-- 🌟 REALISTIC PAYPAL SECURE CHECKOUT WINDOW GATEWAY OVERLAY -->
+<div id="paypal-gateway-overlay">
+    <div class="pp-header">
+        <div class="pp-logo">Pay<span>Pal</span></div>
+    </div>
+    <div class="pp-body" id="gateway-view-authenticate">
+        <div class="pp-amount-badge" id="pp-display-cost">$1.00 USD</div>
+        
+        <div class="pp-box">
+            <div style="font-size: 0.9rem; font-weight: bold; margin-bottom: 4px; color: #333;">Merchant: Money Trucks App</div>
+            <div style="font-size: 0.8rem; color: #666; margin-bottom: 12px;">Order Code: MT-DEPOSIT-SIM</div>
+            <hr style="border: none; border-top: 1px solid #eee; margin-bottom: 12px;">
+            <div style="font-size: 0.85rem; color: #444;">
+                Funding account: <strong id="pp-target-email">user@email.com</strong>
+            </div>
+        </div>
+        
+        <p style="font-size: 0.8rem; color: #666; text-align: center; max-width: 340px; line-height: 1.4; margin-bottom: 20px;">
+            By clicking authorization below, you approve immediate fund settlement from your PayPal balance to Money Trucks Ltd.
+        </p>
+
+        <button class="pp-btn" onclick="authorizeGatewayPayment()">Approve & Pay Now</button>
+        <button class="pp-btn-cancel" onclick="abortGatewayFlow()">Cancel Transaction</button>
+    </div>
+
+    <!-- Loading Engine state overlay -->
+    <div class="pp-body" id="gateway-view-processing" style="display: none; justify-content: center; transform: translateY(40px);">
+        <div class="spinner"></div>
+        <h3 style="margin: 10px 0 5px 0; font-weight: bold;">Processing Settlement...</h3>
+        <p style="font-size: 0.85rem; color:#666; text-align:center;">Verifying secure billing details and sending notification updates.</p>
+    </div>
+</div>
+
+<!-- Alert Popups -->
 <div id="wallet-modal">
     <div class="modal-content">
         <h3 id="modal-title" style="margin-top:0; color:#f39c12;">Message</h3>
@@ -258,6 +375,7 @@
 
     const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev";
     let balance = 0;
+    let validatedUsdAmount = 0;
 
     function calculateMTC() {
         const usdInput = document.getElementById('usd-amount').value;
@@ -280,6 +398,91 @@
         document.getElementById('wallet-modal').style.display = 'none';
     }
 
+    // Input text evaluation helper 
+    function isValidEmail(email) {
+        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return regex.test(email);
+    }
+
+    function initiateCheckoutFlow() {
+        const emailInput = document.getElementById('paypal-email').value.trim();
+        const usdAmount = parseFloat(document.getElementById('usd-amount').value);
+
+        if (isNaN(usdAmount) || usdAmount < 0.10) {
+            showWalletModal("Validation Error", "Minimum top up amount allowed is $0.10 (10 MTC).");
+            return;
+        }
+
+        if (!emailInput || !isValidEmail(emailInput)) {
+            showWalletModal("Invalid PayPal Account", "Please specify a correct email formatting address. Example: context@email.com");
+            return;
+        }
+
+        // Cache parameters to pass upon confirmation phase
+        validatedUsdAmount = usdAmount;
+
+        // Render target values inside the custom checkout view
+        document.getElementById('pp-display-cost').innerText = `$${usdAmount.toFixed(2)} USD`;
+        document.getElementById('pp-target-email').innerText = emailInput;
+
+        // Display the checkout gateway view
+        document.getElementById('gateway-view-authenticate').style.display = 'flex';
+        document.getElementById('gateway-view-processing').style.display = 'none';
+        document.getElementById('paypal-gateway-overlay').style.display = 'flex';
+    }
+
+    function abortGatewayFlow() {
+        document.getElementById('paypal-gateway-overlay').style.display = 'none';
+        showWalletModal("Transaction Aborted", "The checkout process was cancelled by user choice.");
+    }
+
+    function authorizeGatewayPayment() {
+        // Move view from interactive interface into background processor loader
+        document.getElementById('gateway-view-authenticate').style.display = 'none';
+        document.getElementById('gateway-view-processing').style.display = 'flex';
+
+        const userId = tg.initDataUnsafe.user?.id || 12345;
+
+        // Simulate background payment handshake delay
+        setTimeout(() => {
+            fetch(`${NGROK_URL}/deposit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: userId,
+                    amount_usd: validatedUsdAmount
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                // Remove the checkout layout overlay
+                document.getElementById('paypal-gateway-overlay').style.display = 'none';
+                
+                if (data.status === "success") {
+                    balance = data.new_balance;
+                    document.getElementById('balance-display').innerText = `${balance} MTC`;
+                    
+                    // 🌟 REAL LIFE FEEDBACK: Play haptic click and fire Telegram notification alert
+                    if (tg.HapticFeedback) {
+                        tg.HapticFeedback.notificationOccurred('success');
+                    }
+                    
+                    tg.showPopup({
+                        title: "PayPal Payment Settled",
+                        message: `Transaction Notification: Success! $${validatedUsdAmount.toFixed(2)} USD was successfully withdrawn from your PayPal account balance. ${Math.round(validatedUsdAmount * 100)} MTC has been added to your app profile.`,
+                        buttons: [{id: "ok", type: "ok"}]
+                    });
+                } else {
+                    showWalletModal("Gateway Error", data.message || "PayPal rejected authorization request.");
+                }
+            })
+            .catch(err => {
+                document.getElementById('paypal-gateway-overlay').style.display = 'none';
+                showWalletModal("Connection Reset", "Could not verify transaction with the server.");
+            });
+        }, 2200); // 2.2 seconds simulation loading
+    }
+
     function fetchBalance() {
         const userId = tg.initDataUnsafe.user?.id || 12345;
         fetch(`${NGROK_URL}/get_profile`, {
@@ -296,52 +499,7 @@
         });
     }
 
-    function processSandboxDeposit() {
-        const userId = tg.initDataUnsafe.user?.id || 12345;
-        const usdAmount = parseFloat(document.getElementById('usd-amount').value);
-
-        if (isNaN(usdAmount) || usdAmount < 0.10) {
-            showWalletModal("Validation Failed", "Minimum development phase deposit allowed is $0.10 (10 MTC).");
-            return;
-        }
-
-        // Simulate PayPal Sandbox Processing Animation
-        const btn = document.getElementById('deposit-btn');
-        btn.disabled = true;
-        btn.innerText = "Connecting to PayPal Sandbox...";
-
-        setTimeout(() => {
-            // After 1.5 seconds, send the simulated successful transaction details to the server
-            fetch(`${NGROK_URL}/deposit`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    user_id: userId,
-                    amount_usd: usdAmount
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                btn.disabled = false;
-                btn.innerHTML = "<span>💳 Pay with PayPal (Sandbox)</span>";
-                
-                if (data.status === "success") {
-                    balance = data.new_balance;
-                    document.getElementById('balance-display').innerText = `${balance} MTC`;
-                    showWalletModal("Success", `Deposit verified! $${usdAmount.toFixed(2)} converted to ${Math.round(usdAmount * 100)} MTC successfully added to your balance.`);
-                } else {
-                    showWalletModal("Error", data.message || "Failed to finalize deposit.");
-                }
-            })
-            .catch(err => {
-                btn.disabled = false;
-                btn.innerHTML = "<span>💳 Pay with PayPal (Sandbox)</span>";
-                showWalletModal("Network Error", "Unable to establish secure tunnel to backend node.");
-            });
-        }, 1500);
-    }
-
-    // Initial load
+    // Initialize triggers
     fetchBalance();
     calculateMTC();
 </script>
