@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <title>Driver Wallet</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- 🌟 OFFICIAL PAYPAL SDK INTEGRATED WITH YOUR LIVE SANDBOX CLIENT ID -->
-    <script src="https://www.paypal.com/sdk/js?client-id=AShBjL64NyUnN91vbvCmRbvSQRahSJbkF1x64-rxRQjvIG0hS0gm4Jgzs4Oucuwh25jDDeuv3Ry_e4ia&currency=USD&intent=capture"></script>
+    
     <style>
         :root {
             --bg-color: #0a0a0a;
@@ -115,8 +114,10 @@
         </div>
 
         <!-- THE SMART BUTTONS RENDER HERE -->
-        <div id="paypal-button-container"></div>
-    </div>
+       <!-- Replace your old #paypal-button-container div with a clean custom button -->
+<button id="custom-checkout-btn" class="form-btn" onclick="startDirectCheckout()" style="background: #0070ba; color: #fff; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+    Pay with PayPal
+</button>
 </div>
 
 <div class="footer-nav">
@@ -193,6 +194,52 @@
     }
 }).render('#paypal-button-container');
 
+    function startDirectCheckout() {
+    const amount = calculateMTC();
+    if (amount < 0.10) {
+        alert("Minimum deposit is $0.10");
+        return;
+    }
+    
+    const userId = tg.initDataUnsafe.user?.id || 12345;
+    const button = document.getElementById('custom-checkout-btn');
+    button.innerText = "Generating checkout link...";
+    button.disabled = true;
+
+    // Send payment request to Flask backend
+    fetch(`${NGROK_URL}/create-paypal-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            amount_usd: amount,
+            user_id: userId
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        button.innerText = "Pay with PayPal";
+        button.disabled = false;
+        
+        if (data.status === "success" && data.checkout_url) {
+            // 🚀 MAGIC FIX: Tells Telegram to break out of the buggy webview container 
+            // and open the real checkout link in the system's robust default browser.
+            if (tg.openLink) {
+                tg.openLink(data.checkout_url);
+            } else {
+                window.location.href = data.checkout_url;
+            }
+        } else {
+            alert("Error setting up payment link: " + data.message);
+        }
+    })
+    .catch(err => {
+        button.innerText = "Pay with PayPal";
+        button.disabled = false;
+        console.error(err);
+        alert("Network communication error.");
+    });
+}
+
     function fetchBalance() {
         const userId = tg.initDataUnsafe.user?.id || 12345;
         fetch(`${NGROK_URL}/get_profile`, {
@@ -209,6 +256,8 @@
     }
 
     fetchBalance();
+
+    
 </script>
 </body>
 </html>
