@@ -145,60 +145,59 @@
     }
 
     // INITIALIZE THE PAYPAL BUTTONS
-    paypal.Buttons({
-        createOrder: function(data, actions) {
-            const amount = calculateMTC();
-            if (amount < 0.10) {
-                alert("Minimum deposit is $0.10");
-                return false;
-            }
-            return actions.order.create({
-                purchase_units: [{
-                    amount: {
-                        value: amount.toFixed(2)
-                    },
-                    description: "Money Trucks MTC Coin Topup"
-                }]
-            });
-        },
-        
-        onApprove: function(data, actions) {
-            return actions.order.capture().then(function(details) {
-                const userId = tg.initDataUnsafe.user?.id || 12345;
-                const paidAmount = parseFloat(details.purchase_units[0].amount.value);
-
-                // Send the transaction token over to Flask backend to settle
-                return fetch(`${NGROK_URL}/deposit`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        user_id: userId,
-                        amount_usd: paidAmount,
-                        order_id: data.orderID
-                    })
-                })
-                .then(res => res.json())
-                .then(serverData => {
-                    if (serverData.status === "success") {
-                        document.getElementById('balance-display').innerText = `${serverData.new_balance} MTC`;
-                        
-                        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                        
-                        tg.showPopup({
-                            title: "Deposit Successful!",
-                            message: `Thank you! $${paidAmount.toFixed(2)} was debited. Your profile has been credited with ${Math.round(paidAmount * 100)} MTC.`,
-                            buttons: [{id: "ok", type: "ok"}]
-                        });
-                    }
-                });
-            });
-        },
-
-        onError: function(err) {
-            console.error("PayPal Initialization Error:", err);
-            alert("PayPal configuration mismatch. Please check your network session or use an Incognito Window.");
+   paypal.Buttons({
+    createOrder: function() {
+        const amount = calculateMTC();
+        if (amount < 0.10) {
+            alert("Minimum deposit is $0.10");
+            return false;
         }
-    }).render('#paypal-button-container');
+        
+        // Let the secure backend generate the order
+        return fetch(`${NGROK_URL}/create-paypal-order`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount_usd: amount })
+        })
+        .then(res => res.json())
+        .then(order => order.id); // Return the generated transaction ID to PayPal SDK
+    },
+    
+    onApprove: function(data) {
+        const userId = tg.initDataUnsafe.user?.id || 12345;
+        
+        // Let the backend securely capture the payment
+        return fetch(`${NGROK_URL}/capture-paypal-order`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                order_id: data.orderID,
+                user_id: userId
+            })
+        })
+        .then(res => res.json())
+        .then(serverData => {
+            if (serverData.status === "success") {
+                document.getElementById('balance-display').innerText = `${serverData.new_balance} MTC`;
+                
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                
+                tg.showPopup({
+                    title: "Deposit Successful!",
+                    message: `Thank you! Your account has been credited with ${Math.round(serverData.amount_usd * 100)} MTC.`,
+                    buttons: [{id: "ok", type: "ok"}]
+                });
+            } else {
+                alert("Payment capture failed on backend: " + serverData.message);
+            }
+        });
+    },
+
+    onError: function(err) {
+        console.error("PayPal Error:", err);
+        alert("Transaction failed. Try checking out using your phone's default browser.");
+    }
+}).render('#paypal-button-container');
 
     function fetchBalance() {
         const userId = tg.initDataUnsafe.user?.id || 12345;
