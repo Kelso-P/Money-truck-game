@@ -194,6 +194,24 @@
     }
 }).render('#paypal-button-container');
 
+
+    function fetchBalance() {
+        const userId = tg.initDataUnsafe.user?.id || 12345;
+        fetch(`${NGROK_URL}/get_profile`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "success") {
+                document.getElementById('balance-display').innerText = `${data.balance} MTC`;
+            }
+        });
+    }
+
+    fetchBalance();
+
     function startDirectCheckout() {
     const amount = calculateMTC();
     if (amount < 0.10) {
@@ -239,25 +257,6 @@
         alert("Network communication error.");
     });
 }
-
-    function fetchBalance() {
-        const userId = tg.initDataUnsafe.user?.id || 12345;
-        fetch(`${NGROK_URL}/get_profile`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.status === "success") {
-                document.getElementById('balance-display').innerText = `${data.balance} MTC`;
-            }
-        });
-    }
-
-    fetchBalance();
-
-    
 </script>
 </body>
 </html>
