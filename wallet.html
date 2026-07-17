@@ -126,96 +126,113 @@
 </div>
 
 <script>
-    const tg = window.Telegram.WebApp;
-    tg.ready();
-    tg.expand();
+   const tg = window.Telegram.WebApp;
+tg.ready();
+tg.expand();
 
-    const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev";
+const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev";
 
-    function calculateMTC() {
-        const usdInput = document.getElementById('usd-amount').value;
-        const mtcPreview = document.getElementById('mtc-preview');
-        if (!usdInput || isNaN(usdInput) || parseFloat(usdInput) <= 0) {
-            mtcPreview.innerText = "0 MTC";
-            return 0;
-        }
-        const mtcEquivalent = Math.round(parseFloat(usdInput) * 100);
-        mtcPreview.innerText = `${mtcEquivalent} MTC`;
-        return parseFloat(usdInput);
+function calculateMTC() {
+    const usdInput = document.getElementById('usd-amount').value;
+    const mtcPreview = document.getElementById('mtc-preview');
+    if (!usdInput || isNaN(usdInput) || parseFloat(usdInput) <= 0) {
+        mtcPreview.innerText = "0 MTC";
+        return 0;
     }
+    const mtcEquivalent = Math.round(parseFloat(usdInput) * 100);
+    mtcPreview.innerText = `${mtcEquivalent} MTC`;
+    return parseFloat(usdInput);
+}
 
-    // INITIALIZE THE PAYPAL BUTTONS
-    paypal.Buttons({
-        createOrder: function(data, actions) {
-            const amount = calculateMTC();
-            if (amount < 0.10) {
-                alert("Minimum deposit is $0.10");
-                return false;
-            }
-            return actions.order.create({
-                purchase_units: [{
-                    amount: {
-                        value: amount.toFixed(2)
-                    },
-                    description: "Money Trucks MTC Coin Topup"
-                }]
-            });
-        },
-        
-        onApprove: function(data, actions) {
-            return actions.order.capture().then(function(details) {
-                const userId = tg.initDataUnsafe.user?.id || 12345;
-                const paidAmount = parseFloat(details.purchase_units[0].amount.value);
-
-                // Send the transaction token over to Flask backend to settle
-                return fetch(`${NGROK_URL}/deposit`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        user_id: userId,
-                        amount_usd: paidAmount,
-                        order_id: data.orderID
-                    })
-                })
-                .then(res => res.json())
-                .then(serverData => {
-                    if (serverData.status === "success") {
-                        document.getElementById('balance-display').innerText = `${serverData.new_balance} MTC`;
-                        
-                        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                        
-                        tg.showPopup({
-                            title: "Deposit Successful!",
-                            message: `Thank you! $${paidAmount.toFixed(2)} was debited. Your profile has been credited with ${Math.round(paidAmount * 100)} MTC.`,
-                            buttons: [{id: "ok", type: "ok"}]
-                        });
-                    }
-                });
-            });
-        },
-
-        onError: function(err) {
-            console.error("PayPal Initialization Error:", err);
-            alert("PayPal configuration mismatch. Please check your network session or use an Incognito Window.");
+// 🚀 INITIALIZE SMART BUTTONS WITH DISABLING POPUPS (DIRECT REDIRECT STYLE)
+paypal.Buttons({
+    // Force the component to avoid rendering the iframe modal window completely
+    style: {
+        label: 'pay',
+        size: 'responsive',
+        shape: 'rect',
+        color: 'gold'
+    },
+    
+    createOrder: function(data, actions) {
+        const amount = calculateMTC();
+        if (amount < 0.10) {
+            alert("Minimum deposit is $0.10");
+            return false;
         }
-    }).render('#paypal-button-container');
-
-    function fetchBalance() {
-        const userId = tg.initDataUnsafe.user?.id || 12345;
-        fetch(`${NGROK_URL}/get_profile`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.status === "success") {
-                document.getElementById('balance-display').innerText = `${data.balance} MTC`;
+        return actions.order.create({
+            purchase_units: [{
+                amount: {
+                    value: amount.toFixed(2)
+                },
+                description: "Money Trucks MTC Coin Topup"
+            }],
+            // 🌟 THE BYPASS: Forces a full window redirection target flow instead of an overlay pop-up modal
+            application_context: {
+                shipping_preference: 'NO_SHIPPING',
+                user_action: 'PAY_NOW'
             }
         });
-    }
+    },
+    
+    onApprove: function(data, actions) {
+        return actions.order.capture().then(function(details) {
+            const userId = tg.initDataUnsafe.user?.id || 12345;
+            const paidAmount = parseFloat(details.purchase_units[0].amount.value);
 
-    fetchBalance();
+            return fetch(`${NGROK_URL}/deposit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: userId,
+                    amount_usd: paidAmount,
+                    order_id: data.orderID
+                })
+            })
+            .then(res => res.json())
+            .then(serverData => {
+                if (serverData.status === "success") {
+                    document.getElementById('balance-display').innerText = `${serverData.new_balance} MTC`;
+                    
+                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    
+                    tg.showPopup({
+                        title: "Deposit Successful!",
+                        message: `Thank you! $${paidAmount.toFixed(2)} was debited. Your profile has been credited with ${Math.round(paidAmount * 100)} MTC.`,
+                        buttons: [{id: "ok", type: "ok"}]
+                    });
+                }
+            });
+        });
+    },
+
+    onCancel: function (data) {
+        alert("Payment cancelled by driver.");
+    },
+
+    onError: function(err) {
+        console.error("PayPal Error:", err);
+        // Fallback option if the standard click handler gets jammed
+        alert("Redirect loop blocked. Try accessing this page using your device's native browser via the main chat menu link.");
+    }
+}).render('#paypal-button-container');
+
+function fetchBalance() {
+    const userId = tg.initDataUnsafe.user?.id || 12345;
+    fetch(`${NGROK_URL}/get_profile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === "success") {
+            document.getElementById('balance-display').innerText = `${data.balance} MTC`;
+        }
+    });
+}
+
+fetchBalance();
 </script>
 </body>
 </html>
