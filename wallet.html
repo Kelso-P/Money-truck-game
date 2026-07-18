@@ -67,9 +67,6 @@
             font-size: 0.85rem;
             margin-bottom: 20px;
         }
-        #paypal-button-container {
-            margin-top: 20px;
-        }
         .footer-nav {
             position: fixed;
             bottom: 0;
@@ -97,6 +94,7 @@
     <div class="title">Transactions Terminal</div>
     <div class="subtitle">Real PayPal Sandbox Integration</div>
 
+    <!-- 📥 TOP UP SECTION -->
     <div class="section-card">
         <div class="section-title">📥 Top Up Account</div>
         
@@ -113,11 +111,40 @@
             You will receive: <strong id="mtc-preview">100 MTC</strong>
         </div>
 
-        <!-- THE SMART BUTTONS RENDER HERE -->
-       <!-- Replace your old #paypal-button-container div with a clean custom button -->
-<button id="custom-checkout-btn" class="form-btn" onclick="startDirectCheckout()" style="background: #0070ba; color: #fff; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
-    Pay with PayPal
-</button>
+        <button id="custom-checkout-btn" class="form-btn" onclick="startDirectCheckout()" style="background: #0070ba; color: #fff; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+            Pay with PayPal
+        </button>
+    </div>
+
+    <!-- 📤 WITHDRAW SECTION -->
+    <div class="section-card">
+        <div class="section-title">📤 Request Withdrawal</div>
+        
+        <div class="form-group">
+            <label class="form-label">PayPal Email Address</label>
+            <div class="input-wrapper" style="display: block;">
+                <input id="withdraw-email" type="email" placeholder="your-email@example.com" class="form-input" style="padding-left: 12px;">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Amount to Withdraw (Minimum 500 MTC)</label>
+            <div class="input-wrapper">
+                <span class="input-symbol" style="left: 10px; font-size: 0.85rem; color: #f39c12;">MTC</span>
+                <input id="withdraw-amount" type="number" step="100" value="500" class="form-input" style="padding-left: 45px;" oninput="calculateUSDWithdrawal()">
+            </div>
+        </div>
+
+        <div class="conversion-preview" style="background: rgba(46, 204, 113, 0.1); border-left: 3px solid #2ecc71;">
+            Conversion Value: <strong>100 MTC = $1.00</strong><br>
+            You will receive roughly: <strong id="usd-withdraw-preview">$5.00 USD</strong>
+        </div>
+
+        <button id="custom-withdraw-btn" class="form-btn" onclick="submitWithdrawal()" style="background: #2ecc71; color: #fff; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+            Confirm Withdrawal Request
+        </button>
+    </div>
+
 </div>
 
 <div class="footer-nav">
@@ -133,8 +160,9 @@
 
     const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev";
     const userId = tg.initDataUnsafe?.user?.id || 12345;
+    let currentBalance = 0;
 
-    // 🌟 Helper function matching store/tasks formatting
+    // Helper function matching store/tasks formatting
     function formatUsername(name) {
         if (!name) return "Driver";
         let rawName = name.startsWith('@') ? name.substring(1) : name;
@@ -144,7 +172,7 @@
         return `@${rawName}`;
     }
 
-    // 🌟 Dynamically extract and display the Telegram Username
+    // Dynamically extract and display the Telegram Username
     function initUserHeader() {
         const usernameDisplay = document.getElementById('username-display');
         if (usernameDisplay) {
@@ -165,7 +193,19 @@
         return parseFloat(usdInput);
     }
 
-    // 🌟 Synced balance fetcher with proper ngrok bypass headers
+    function calculateUSDWithdrawal() {
+        const mtcInput = document.getElementById('withdraw-amount').value;
+        const usdPreview = document.getElementById('usd-withdraw-preview');
+        if (!mtcInput || isNaN(mtcInput) || parseInt(mtcInput) <= 0) {
+            usdPreview.innerText = "$0.00 USD";
+            return 0;
+        }
+        const usdEquivalent = (parseInt(mtcInput) / 100).toFixed(2);
+        usdPreview.innerText = `$${usdEquivalent} USD`;
+        return parseInt(mtcInput);
+    }
+
+    // Synced balance fetcher with proper ngrok bypass headers
     function fetchBalance() {
         fetch(`${NGROK_URL}/get_profile`, {
             method: 'POST',
@@ -178,6 +218,7 @@
         .then(res => res.json())
         .then(data => {
             if (data.status === "success") {
+                currentBalance = data.balance;
                 const balanceEl = document.getElementById('balance-display');
                 if (balanceEl) {
                     balanceEl.innerText = `${data.balance} MTC`;
@@ -190,7 +231,7 @@
     function startDirectCheckout() {
         const amount = calculateMTC();
         if (amount < 0.10) {
-            alert("Minimum deposit is $0.10");
+            tg.showAlert("Minimum deposit is $0.10");
             return;
         }
         
@@ -198,7 +239,6 @@
         button.innerText = "Generating checkout link...";
         button.disabled = true;
 
-        // Send payment request to Flask backend
         fetch(`${NGROK_URL}/create-paypal-order`, {
             method: 'POST',
             headers: { 
@@ -222,18 +262,72 @@
                     window.location.href = data.checkout_url;
                 }
             } else {
-                alert("Error setting up payment link: " + data.message);
+                tg.showAlert("Error setting up payment link: " + data.message);
             }
         })
         .catch(err => {
             button.innerText = "Pay with PayPal";
             button.disabled = false;
             console.error(err);
-            alert("Network communication error.");
+            tg.showAlert("Network communication error.");
         });
     }
 
-    // 🌟 Initialize layout profiles right as the window opens
+    // New functional payout endpoint logic execution
+    function submitWithdrawal() {
+        const email = document.getElementById('withdraw-email').value.trim();
+        const amountMTC = parseInt(document.getElementById('withdraw-amount').value);
+        const button = document.getElementById('custom-withdraw-btn');
+
+        if (!email || !email.includes('@')) {
+            tg.showAlert("Please provide a valid PayPal email address.");
+            return;
+        }
+        if (isNaN(amountMTC) || amountMTC < 500) {
+            tg.showAlert("Minimum withdrawal amount is 500 MTC.");
+            return;
+        }
+        if (amountMTC > currentBalance) {
+            tg.showAlert(`Insufficient funds. Your current balance is ${currentBalance} MTC.`);
+            return;
+        }
+
+        button.innerText = "Processing Request...";
+        button.disabled = true;
+
+        fetch(`${NGROK_URL}/request-withdrawal`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true'
+            },
+            body: JSON.stringify({
+                user_id: userId,
+                paypal_email: email,
+                amount_mtc: amountMTC
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            button.innerText = "Confirm Withdrawal Request";
+            button.disabled = false;
+
+            if (data.status === "success") {
+                tg.showAlert(`Success! Your request to withdraw ${amountMTC} MTC has been logged.`);
+                fetchBalance(); // Smoothly update UI balance counts
+            } else {
+                tg.showAlert("Withdrawal failed: " + data.message);
+            }
+        })
+        .catch(err => {
+            button.innerText = "Confirm Withdrawal Request";
+            button.disabled = false;
+            console.error(err);
+            tg.showAlert("Network communication error.");
+        });
+    }
+
+    // Initialize layout profiles right as the window opens
     initUserHeader();
     fetchBalance();
 </script>
