@@ -82,6 +82,7 @@
         }
 
         .task-card {
+            position: relative; /* Context layout for animation anchor */
             background: #16161f;
             border: 1px solid #23232e;
             padding: 16px;
@@ -128,8 +129,8 @@
             font-weight: bold;
             font-size: 0.9rem;
             cursor: pointer;
-            transition: background 0.2s;
-            min-width: 85px;
+            transition: all 0.2s ease;
+            min-width: 140px;
             text-align: center;
         }
 
@@ -138,10 +139,34 @@
         }
 
         .claim-btn:disabled {
-            background: #1e1e24;
-            color: #555;
+            background: #2a2a35;
+            color: #888;
             cursor: not-allowed;
-            border: 1px solid #23232e;
+            border: 1px solid #3a3a4a;
+        }
+
+        /* --- DYNAMIC FLOATING ANIMATION --- */
+        .float-fade-text {
+            position: absolute;
+            right: 60px;
+            bottom: -5px;
+            color: #2ecc71;
+            font-size: 0.85rem;
+            font-weight: bold;
+            pointer-events: none;
+            animation: floatDownFade 2.5s forwards ease-out;
+            z-index: 10;
+        }
+
+        @keyframes floatDownFade {
+            0% {
+                transform: translateY(-10px);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(15px);
+                opacity: 0;
+            }
         }
 
         /* --- FOOTER NAVIGATION --- */
@@ -275,6 +300,7 @@
 
         const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev"; 
         let balance = 0;
+        let activeTimers = {};
 
         // --- DYNAMIC USERNAME FORMATTING ---
         function formatUsername(name) {
@@ -312,8 +338,56 @@
             }
         }
 
-        // --- SYNC UI ACCORDING TO SYSTEM STATE ---
-        function syncTasksUI(completedTasks) {
+        // --- SECURE TIMERS ENGINE ---
+        function startCountdown(taskId, totalSeconds) {
+            if (activeTimers[taskId]) {
+                clearInterval(activeTimers[taskId]);
+            }
+
+            const card = document.getElementById(`task-${taskId}`);
+            if (!card) return;
+            const btn = card.querySelector('.claim-btn');
+
+            function updateUI() {
+                if (totalSeconds <= 0) {
+                    clearInterval(activeTimers[taskId]);
+                    btn.innerText = "Claim";
+                    btn.disabled = false;
+                    return;
+                }
+
+                const hrs = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+                const mins = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+                const secs = (totalSeconds % 60).toString().padStart(2, '0');
+
+                btn.innerText = `Come back in ${hrs}:${mins}:${secs}`;
+                btn.disabled = true;
+                totalSeconds--;
+            }
+
+            updateUI();
+            activeTimers[taskId] = setInterval(updateUI, 1000);
+        }
+
+        // --- FLOATING TEXT ANIMATION TRIGGERS ---
+        function triggerFloatAnimation(taskId) {
+            const card = document.getElementById(`task-${taskId}`);
+            if (!card) return;
+
+            const animateText = document.createElement('div');
+            animateText.className = 'float-fade-text';
+            animateText.innerText = 'Claimed ✓';
+            
+            card.appendChild(animateText);
+
+            // Housekeeping cleanup to keep memory usage safe
+            setTimeout(() => {
+                animateText.remove();
+            }, 2500);
+        }
+
+        // --- SYNC SYSTEM STATE ---
+        function syncTasksUI(completedTasks, loginTimeLeft, buyTimeLeft) {
             const trackingIds = ['daily_login', 'buy_mtc', 'buy_iron', 'buy_diesel', 'buy_titan'];
             
             trackingIds.forEach(id => {
@@ -321,63 +395,78 @@
                 if (!card) return;
                 
                 const btn = card.querySelector('.claim-btn');
-                if (completedTasks.includes(id)) {
-                    btn.innerText = "Claimed ✓";
-                    btn.disabled = true;
+                
+                if (id === 'daily_login' && loginTimeLeft > 0) {
+                    startCountdown(id, loginTimeLeft);
+                } else if (id === 'buy_mtc' && buyTimeLeft > 0) {
+                    startCountdown(id, buyTimeLeft);
                 } else {
-                    btn.innerText = "Claim";
-                    btn.disabled = false;
+                    if (completedTasks.includes(id)) {
+                        btn.innerText = "Claimed ✓";
+                        btn.disabled = true;
+                    } else {
+                        btn.innerText = "Claim";
+                        btn.disabled = false;
+                    }
                 }
             });
         }
 
-        // --- FETCH USER COMPLETED TASKS & PROFILE ---
+        // --- FETCH PROFILE CONFIGURATION ---
         function loadTaskData() {
             const userId = tg.initDataUnsafe.user?.id || 12345;
 
-           fetch(`${NGROK_URL}/get_profile`, {
-        method: 'POST',
-        headers: { 
-            'Content-Type': 'application/json',
-            'ngrok-skip-browser-warning': 'true' // <--- ADD THIS LINE
-        },
-        body: JSON.stringify({ user_id: userId })
-    })
+            fetch(`${NGROK_URL}/get_profile`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': 'true'
+                },
+                body: JSON.stringify({ user_id: userId })
+            })
             .then(res => res.json())
             .then(data => {
                 if (data.status === "success") {
                     balance = data.balance;
                     document.getElementById('balance-display').innerText = `${balance} MTC`;
                     
-                    if (data.completed_tasks) {
-                        syncTasksUI(data.completed_tasks);
-                    }
+                    syncTasksUI(
+                        data.completed_tasks || [], 
+                        data.login_time_left || 0, 
+                        data.buy_time_left || 0
+                    );
                 }
             })
             .catch(err => console.error("Error loading profile configuration:", err));
         }
 
-        // --- CLAIM PROCESS ACTION ---
+        // --- ACTION HANDLER ---
         function claimTask(taskId) {
             const userId = tg.initDataUnsafe.user?.id || 12345;
 
-           fetch(`${NGROK_URL}/claim_task`, {
-        method: 'POST',
-        headers: { 
-            'Content-Type': 'application/json',
-            'ngrok-skip-browser-warning': 'true' // <--- ADD THIS LINE
-        },
-        body: JSON.stringify({ user_id: userId, task_id: taskId })
-    })
+            fetch(`${NGROK_URL}/claim_task`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': 'true'
+                },
+                body: JSON.stringify({ user_id: userId, task_id: taskId })
+            })
             .then(res => res.json())
             .then(data => {
                 if (data.status === "success") {
                     balance = data.new_balance;
                     document.getElementById('balance-display').innerText = `${balance} MTC`;
                     
-                    // Instantly lock button as "Claimed ✓"
-                    syncTasksUI(data.completed_tasks);
-                    tg.showAlert(`Successfully Claimed +${data.reward} MTC!`);
+                    // Trigger the UI flowing animations
+                    triggerFloatAnimation(taskId);
+                    
+                    // Activate grey countdown constraints instantly if it is a daily task
+                    if (taskId === 'daily_login' || taskId === 'buy_mtc') {
+                        startCountdown(taskId, data.time_left || 86400);
+                    } else {
+                        syncTasksUI(data.completed_tasks, 0, 0);
+                    }
                 } else {
                     tg.showAlert(data.message);
                 }
@@ -388,7 +477,7 @@
             });
         }
 
-        // Initial launch execute
+        // Start execution loop
         loadTaskData();
     </script>
 </body>
