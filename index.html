@@ -20,7 +20,6 @@
             overflow: hidden;
         }
 
-        /* --- HEADER --- */
         .header {
             display: flex;
             justify-content: space-between;
@@ -55,14 +54,13 @@
         }
 
         #stagnant-truck {
-            z-index: 2; /* Sits above video while video loads */
+            z-index: 2;
         }
 
         #road-video {
             z-index: 1;
         }
 
-        /* HUD Overlay Styling */
         #hud-overlay {
             position: absolute;
             top: 0;
@@ -95,7 +93,6 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        /* Uniform Decreasing Fuel Bar */
         .fuel-bar-container {
             width: 100%;
             height: 6px;
@@ -109,10 +106,9 @@
             height: 100%;
             background: #ff3333;
             width: 100%;
-            transition: width 0.5s linear;
+            transition: width 0.3s ease;
         }
 
-        /* --- UPGRADES SECTION --- */
         .upgrades-container {
             padding: 20px 20px 10px 20px;
             display: grid;
@@ -147,7 +143,6 @@
             background: #e67e22 !important;
         }
 
-        /* --- WALLET CONTAINER --- */
         .wallet-container {
             padding: 0 20px;
             margin-bottom: 80px;
@@ -178,7 +173,6 @@
             background-color: #2d2d3a;
         }
 
-        /* --- FOOTER NAV --- */
         .footer-nav {
             position: fixed;
             bottom: 0;
@@ -211,7 +205,6 @@
         <source id="video-source" src="videos/Pickuptruck-loopvideo1.mp4" type="video/mp4">
     </video>
 
-    <!-- Stagnant truck image: initialized immediately via inline script below if Iron Hauler is owned -->
     <img id="stagnant-truck" src="images/stagnant_pickuptruck.jpg" alt="Truck Engine Off" style="display: block;">
 
     <div id="job-board-overlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 500; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; box-sizing: border-box;">
@@ -278,7 +271,6 @@
     const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev"; 
     const userId = tg.initDataUnsafe.user?.id || 12345;
 
-    // PRE-CHECK TRUCK OWNERSHIP IMMEDIATELY to prevent pickup truck image flicker
     let activeTruck = "pickup";
     if (localStorage.getItem(`owned_iron_hauler_${userId}`) === "true") {
         activeTruck = "iron_hauler";
@@ -328,13 +320,11 @@
     const speedBtn = document.getElementById('speed-upgrade-btn');
     const engineBtn = document.getElementById('engine-upgrade-btn');
 
-    // Immediate asset sync on JS initialization
     if (activeTruck === "iron_hauler") {
         stagnantEl.src = "images/truck_iron_hauler.png";
         videoSource.src = "videos/Ironhauler-loopvideo1.mp4";
     }
 
-    // --- TRUCK CONFIGURATION HELPER ---
     function getTruckConfig() {
         if (activeTruck === "iron_hauler") {
             return {
@@ -354,11 +344,9 @@
 
     function syncTruckAssets() {
         const config = getTruckConfig();
-        
         if (stagnantEl && !stagnantEl.src.includes(config.stagnantImg)) {
             stagnantEl.src = config.stagnantImg;
         }
-
         if (videoSource && !videoSource.src.includes(config.loopVideo)) {
             videoSource.src = config.loopVideo;
             videoEl.load();
@@ -367,7 +355,6 @@
 
     function checkAndApplyTruckUpgrade() {
         const ownsIronHauler = localStorage.getItem(`owned_iron_hauler_${userId}`);
-        
         if (ownsIronHauler === "true") {
             activeTruck = "iron_hauler";
             syncTruckAssets();
@@ -380,13 +367,10 @@
         }
     }
 
-    // --- UTILITIES ---
     function formatUsername(name) {
         if (!name) return "Driver";
         let rawName = name.startsWith('@') ? name.substring(1) : name;
-        if (rawName.length > 12) {
-            return `@${rawName.substring(0, 12)}...`;
-        }
+        if (rawName.length > 12) return `@${rawName.substring(0, 12)}...`;
         return `@${rawName}`;
     }
 
@@ -420,38 +404,37 @@
         };
     }
 
-    // --- VISUAL ROUTINE CONTROL ---
     function updateGameLoopView() {
         syncTruckAssets();
 
-        if (speedsLevel > 0 && fuelLevel > 0 && engineLevel > 0 && !isFuelOut && !isEngineDead && !jobWaitingApproval) {
-            if (!isDriving) {
-                isDriving = true;
-                if (jobBoardOverlay) jobBoardOverlay.style.display = 'none';
-                if (videoEl) {
-                    videoEl.style.display = 'block';
-                    // Keep stagnant truck visible as placeholder until video is ready to play
-                    videoEl.oncanplay = () => {
-                        if (stagnantEl && isDriving) stagnantEl.style.display = 'none';
-                    };
-                    videoEl.play().catch(e => console.log("Autoplay pending"));
-                }
-                
-                if (taskStartTime === 0) {
-                    fetch(`${NGROK_URL}/start_task`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ user_id: userId })
-                    })
-                    .then(res => res.json())
-                    .then(data => { 
-                        if(data.status === "success") {
-                            taskStartTime = data.task_start_time;
-                        } 
-                    });
-                }
-                startCoreTimers();
+        const allUpgradesActive = speedsLevel > 0 && fuelLevel > 0 && engineLevel > 0;
+
+        if (allUpgradesActive && !isFuelOut && !isEngineDead && !jobWaitingApproval) {
+            isDriving = true;
+            if (jobBoardOverlay) jobBoardOverlay.style.display = 'none';
+            
+            if (videoEl) {
+                videoEl.style.display = 'block';
+                videoEl.oncanplay = () => {
+                    if (stagnantEl && isDriving) stagnantEl.style.display = 'none';
+                };
+                videoEl.play().catch(e => console.log("Autoplay pending"));
             }
+            
+            if (taskStartTime === 0) {
+                fetch(`${NGROK_URL}/start_task`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId })
+                })
+                .then(res => res.json())
+                .then(data => { 
+                    if(data.status === "success") {
+                        taskStartTime = data.task_start_time;
+                    } 
+                });
+            }
+            startCoreTimers();
             if (speedHud) speedHud.innerText = `${20 + (speedsLevel * 10)} m/s`;
         } else {
             isDriving = false;
@@ -468,7 +451,6 @@
         }
     }
 
-    // --- CLOCK TICK LOOP ---
     function startCoreTimers() {
         clearInterval(gameInterval);
         
@@ -481,22 +463,26 @@
             currentTaskTimeLeft--;
             secondsWorkedThisJob++;
 
-            let fuelBurnRate = 0.5 / fuelLevel; 
-            fuelPercentage = 100 - (secondsWorkedThisJob * fuelBurnRate);
+            // Fuel depletion calculation scaled accurately to level
+            let safeFuelLvl = Math.max(1, fuelLevel);
+            let fuelBurnRate = 0.08 / safeFuelLvl; 
+            
+            fuelPercentage = Math.max(0, 100 - (secondsWorkedThisJob * fuelBurnRate));
 
             if (isFirstRunDone === 0 && activeTruck === "pickup" && tutorialFuelOutagesOccurred >= 1) {
-                fuelPercentage = 40; 
+                fuelPercentage = Math.max(20, fuelPercentage); 
             }
 
+            if (fuelFill) fuelFill.style.width = `${fuelPercentage.toFixed(1)}%`;
+
+            // Trigger outage ONLY when fuel percentage genuinely reaches 0
             if (fuelPercentage <= 0) {
-                fuelPercentage = 0;
-                if (fuelFill) fuelFill.style.width = `0%`;
                 triggerFuelOutage();
                 return;
             }
-            if (fuelFill) fuelFill.style.width = `${fuelPercentage}%`;
 
-            let breakdownChance = 0.003 / engineLevel;
+            let safeEngineLvl = Math.max(1, engineLevel);
+            let breakdownChance = 0.001 / safeEngineLvl;
             if (isFirstRunDone === 0 && activeTruck === "pickup" && tutorialEngineFailuresOccurred >= 1) {
                 breakdownChance = 0;
             }
@@ -531,7 +517,6 @@
                         taskStartTime = 0;
                         secondsWorkedThisJob = 0;
                         
-                        // Standardize all subsequent runs to 20 mins
                         totalTaskDuration = 1200; 
                         currentTaskTimeLeft = 1200;
                         
@@ -563,14 +548,14 @@
         
         jobWaitingApproval = false;
         if (jobBoardOverlay) jobBoardOverlay.style.display = 'none';
-        
         if (jobBoardTitle) jobBoardTitle.innerText = "There's another job, let's hit the road!";
         
-        // Explicitly set 20-minute task duration for starting a new job
         totalTaskDuration = 1200;
         currentTaskTimeLeft = 1200;
         taskStartTime = 0;
         secondsWorkedThisJob = 0;
+        fuelPercentage = 100;
+        if (fuelFill) fuelFill.style.width = `100%`;
 
         updateGameLoopView();
     }
@@ -665,7 +650,6 @@
 
                 syncPriceButtonLabels(data.fuel_cost, data.speed_cost, data.engine_cost);
 
-                // Standard duration for all runs after tutorial or when using upgraded trucks
                 if (isFirstRunDone === 1 || activeTruck === "iron_hauler") {
                     totalTaskDuration = 1200; 
                 } else {
@@ -675,7 +659,7 @@
                 if (taskStartTime > 0 && fuelLevel > 0) {
                     let nowInSeconds = Math.floor(Date.now() / 1000);
                     let secondsPassed = nowInSeconds - Math.floor(taskStartTime);
-                    currentTaskTimeLeft = totalTaskDuration - secondsPassed;
+                    currentTaskTimeLeft = Math.max(0, totalTaskDuration - secondsPassed);
                     secondsWorkedThisJob = secondsPassed;
                     
                     if (currentTaskTimeLeft <= 0) {
@@ -711,7 +695,9 @@
                     if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
 
                     syncPriceButtonLabels(data.fuel_cost, data.speed_cost, data.engine_cost);
-                    updateGameLoopView();
+                    
+                    // Force refresh profile state to keep drive loop active without requiring restart
+                    loadUserData();
                 });
             } else {
                 openAppModal("Upgrade Locked", data.message, "Understood", () => {
