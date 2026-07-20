@@ -293,192 +293,219 @@
         <a href="tasks.html" class="nav-item active">📋<br>Tasks</a>
     </div>
 
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
+   <script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
 
-        const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev"; 
-        let balance = 0;
-        let activeTimers = {};
+    const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev"; 
+    let balance = 0;
+    let activeTimers = {};
+    let ownedTrucks = []; // Store list of owned trucks
 
-        // --- DYNAMIC USERNAME FORMATTING ---
-        function formatUsername(name) {
-            if (!name) return "Driver";
-            let rawName = name.startsWith('@') ? name.substring(1) : name;
-            if (rawName.length > 12) {
-                return `@${rawName.substring(0, 12)}...`;
-            }
-            return `@${rawName}`;
+    // Mapping truck tasks to their corresponding truck key/id in backend
+    const TRUCK_TASK_MAP = {
+        'buy_iron': 'iron_hauler',
+        'buy_diesel': 'diesel_beast',
+        'buy_titan': 'titan_hypermax'
+    };
+
+    // --- DYNAMIC USERNAME FORMATTING ---
+    function formatUsername(name) {
+        if (!name) return "Driver";
+        let rawName = name.startsWith('@') ? name.substring(1) : name;
+        if (rawName.length > 12) {
+            return `@${rawName.substring(0, 12)}...`;
+        }
+        return `@${rawName}`;
+    }
+
+    if (tg.initDataUnsafe?.user) {
+        const user = tg.initDataUnsafe.user;
+        const displayName = user.username || user.first_name || "Driver";
+        document.getElementById('username').innerText = formatUsername(displayName);
+    }
+
+    // --- TAB NAVIGATION SWITCH ---
+    function switchTaskTab(tab) {
+        const appSection = document.getElementById('app-tasks-section');
+        const socialSection = document.getElementById('social-tasks-section');
+        const appBtn = document.getElementById('tab-app');
+        const socialBtn = document.getElementById('tab-social');
+
+        if (tab === 'app') {
+            appSection.style.display = 'flex';
+            socialSection.style.display = 'none';
+            appBtn.classList.add('active');
+            socialBtn.classList.remove('active');
+        } else {
+            appSection.style.display = 'none';
+            socialSection.style.display = 'block';
+            appBtn.classList.remove('active');
+            socialBtn.classList.add('active');
+        }
+    }
+
+    // --- SECURE TIMERS ENGINE ---
+    function startCountdown(taskId, totalSeconds) {
+        if (activeTimers[taskId]) {
+            clearInterval(activeTimers[taskId]);
         }
 
-        if (tg.initDataUnsafe?.user) {
-            const user = tg.initDataUnsafe.user;
-            const displayName = user.username || user.first_name || "Driver";
-            document.getElementById('username').innerText = formatUsername(displayName);
-        }
+        const card = document.getElementById(`task-${taskId}`);
+        if (!card) return;
+        const btn = card.querySelector('.claim-btn');
 
-        // --- TAB NAVIGATION SWITCH ---
-        function switchTaskTab(tab) {
-            const appSection = document.getElementById('app-tasks-section');
-            const socialSection = document.getElementById('social-tasks-section');
-            const appBtn = document.getElementById('tab-app');
-            const socialBtn = document.getElementById('tab-social');
-
-            if (tab === 'app') {
-                appSection.style.display = 'flex';
-                socialSection.style.display = 'none';
-                appBtn.classList.add('active');
-                socialBtn.classList.remove('active');
-            } else {
-                appSection.style.display = 'none';
-                socialSection.style.display = 'block';
-                appBtn.classList.remove('active');
-                socialBtn.classList.add('active');
-            }
-        }
-
-        // --- SECURE TIMERS ENGINE ---
-        function startCountdown(taskId, totalSeconds) {
-            if (activeTimers[taskId]) {
+        function updateUI() {
+            if (totalSeconds <= 0) {
                 clearInterval(activeTimers[taskId]);
+                btn.innerText = "Claim";
+                btn.disabled = false;
+                return;
             }
 
-            const card = document.getElementById(`task-${taskId}`);
-            if (!card) return;
-            const btn = card.querySelector('.claim-btn');
+            const hrs = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+            const mins = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+            const secs = (totalSeconds % 60).toString().padStart(2, '0');
 
-            function updateUI() {
-                if (totalSeconds <= 0) {
-                    clearInterval(activeTimers[taskId]);
+            btn.innerText = `Come back in ${hrs}:${mins}:${secs}`;
+            btn.disabled = true;
+            totalSeconds--;
+        }
+
+        updateUI();
+        activeTimers[taskId] = setInterval(updateUI, 1000);
+    }
+
+    // --- FLOATING TEXT ANIMATION TRIGGERS ---
+    function triggerFloatAnimation(taskId) {
+        const card = document.getElementById(`task-${taskId}`);
+        if (!card) return;
+
+        const animateText = document.createElement('div');
+        animateText.className = 'float-fade-text';
+        animateText.innerText = 'Claimed ✓';
+        
+        card.appendChild(animateText);
+
+        // Housekeeping cleanup
+        setTimeout(() => {
+            animateText.remove();
+        }, 2500);
+    }
+
+    // --- SYNC SYSTEM STATE ---
+    function syncTasksUI(completedTasks, loginTimeLeft, buyTimeLeft) {
+        const trackingIds = ['daily_login', 'buy_mtc', 'buy_iron', 'buy_diesel', 'buy_titan'];
+        
+        trackingIds.forEach(id => {
+            const card = document.getElementById(`task-${id}`);
+            if (!card) return;
+            
+            const btn = card.querySelector('.claim-btn');
+            
+            if (id === 'daily_login' && loginTimeLeft > 0) {
+                startCountdown(id, loginTimeLeft);
+            } else if (id === 'buy_mtc' && buyTimeLeft > 0) {
+                startCountdown(id, buyTimeLeft);
+            } else {
+                if (completedTasks.includes(id)) {
+                    btn.innerText = "Claimed ✓";
+                    btn.disabled = true;
+                } else {
                     btn.innerText = "Claim";
                     btn.disabled = false;
-                    return;
                 }
-
-                const hrs = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
-                const mins = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
-                const secs = (totalSeconds % 60).toString().padStart(2, '0');
-
-                btn.innerText = `Come back in ${hrs}:${mins}:${secs}`;
-                btn.disabled = true;
-                totalSeconds--;
             }
+        });
+    }
 
-            updateUI();
-            activeTimers[taskId] = setInterval(updateUI, 1000);
-        }
+    // --- FETCH PROFILE CONFIGURATION ---
+    function loadTaskData() {
+        const userId = tg.initDataUnsafe.user?.id || 12345;
 
-        // --- FLOATING TEXT ANIMATION TRIGGERS ---
-        function triggerFloatAnimation(taskId) {
-            const card = document.getElementById(`task-${taskId}`);
-            if (!card) return;
-
-            const animateText = document.createElement('div');
-            animateText.className = 'float-fade-text';
-            animateText.innerText = 'Claimed ✓';
-            
-            card.appendChild(animateText);
-
-            // Housekeeping cleanup to keep memory usage safe
-            setTimeout(() => {
-                animateText.remove();
-            }, 2500);
-        }
-
-        // --- SYNC SYSTEM STATE ---
-        function syncTasksUI(completedTasks, loginTimeLeft, buyTimeLeft) {
-            const trackingIds = ['daily_login', 'buy_mtc', 'buy_iron', 'buy_diesel', 'buy_titan'];
-            
-            trackingIds.forEach(id => {
-                const card = document.getElementById(`task-${id}`);
-                if (!card) return;
+        fetch(`${NGROK_URL}/get_profile`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true'
+            },
+            body: JSON.stringify({ user_id: userId })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "success") {
+                balance = data.balance;
+                document.getElementById('balance-display').innerText = `${balance} MTC`;
                 
-                const btn = card.querySelector('.claim-btn');
+                // Store list of owned trucks from response (handles trucks/owned_trucks keys)
+                ownedTrucks = data.trucks || data.owned_trucks || [];
+
+                syncTasksUI(
+                    data.completed_tasks || [], 
+                    data.login_time_left || 0, 
+                    data.buy_time_left || 0
+                );
+            }
+        })
+        .catch(err => console.error("Error loading profile configuration:", err));
+    }
+
+    // --- ACTION HANDLER WITH TRUCK OWNERSHIP CHECK ---
+    function claimTask(taskId) {
+        // Verification step for truck acquisition tasks
+        if (TRUCK_TASK_MAP[taskId]) {
+            const requiredTruck = TRUCK_TASK_MAP[taskId];
+            const isOwned = ownedTrucks.includes(requiredTruck) || ownedTrucks.some(t => (t.id || t) === requiredTruck);
+
+            if (!isOwned) {
+                let truckName = "the required truck";
+                if (taskId === 'buy_iron') truckName = "Iron Hauler";
+                if (taskId === 'buy_diesel') truckName = "Diesel Beast";
+                if (taskId === 'buy_titan') truckName = "Titan Hypermax";
+
+                tg.showAlert(`You must purchase the ${truckName} in the Store to claim this reward!`);
+                return;
+            }
+        }
+
+        const userId = tg.initDataUnsafe.user?.id || 12345;
+
+        fetch(`${NGROK_URL}/claim_task`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true'
+            },
+            body: JSON.stringify({ user_id: userId, task_id: taskId })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "success") {
+                balance = data.new_balance;
+                document.getElementById('balance-display').innerText = `${balance} MTC`;
                 
-                if (id === 'daily_login' && loginTimeLeft > 0) {
-                    startCountdown(id, loginTimeLeft);
-                } else if (id === 'buy_mtc' && buyTimeLeft > 0) {
-                    startCountdown(id, buyTimeLeft);
+                // Trigger floating animation
+                triggerFloatAnimation(taskId);
+                
+                // Set button to disabled "Claimed ✓" state permanently for one-off tasks
+                if (taskId === 'daily_login' || taskId === 'buy_mtc') {
+                    startCountdown(taskId, data.time_left || 86400);
                 } else {
-                    if (completedTasks.includes(id)) {
-                        btn.innerText = "Claimed ✓";
-                        btn.disabled = true;
-                    } else {
-                        btn.innerText = "Claim";
-                        btn.disabled = false;
-                    }
+                    syncTasksUI(data.completed_tasks || [], 0, 0);
                 }
-            });
-        }
+            } else {
+                tg.showAlert(data.message);
+            }
+        })
+        .catch(err => {
+            console.error("Transmission error claiming task:", err);
+            tg.showAlert("Unable to connect to service registry.");
+        });
+    }
 
-        // --- FETCH PROFILE CONFIGURATION ---
-        function loadTaskData() {
-            const userId = tg.initDataUnsafe.user?.id || 12345;
-
-            fetch(`${NGROK_URL}/get_profile`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'ngrok-skip-browser-warning': 'true'
-                },
-                body: JSON.stringify({ user_id: userId })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === "success") {
-                    balance = data.balance;
-                    document.getElementById('balance-display').innerText = `${balance} MTC`;
-                    
-                    syncTasksUI(
-                        data.completed_tasks || [], 
-                        data.login_time_left || 0, 
-                        data.buy_time_left || 0
-                    );
-                }
-            })
-            .catch(err => console.error("Error loading profile configuration:", err));
-        }
-
-        // --- ACTION HANDLER ---
-        function claimTask(taskId) {
-            const userId = tg.initDataUnsafe.user?.id || 12345;
-
-            fetch(`${NGROK_URL}/claim_task`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'ngrok-skip-browser-warning': 'true'
-                },
-                body: JSON.stringify({ user_id: userId, task_id: taskId })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === "success") {
-                    balance = data.new_balance;
-                    document.getElementById('balance-display').innerText = `${balance} MTC`;
-                    
-                    // Trigger the UI flowing animations
-                    triggerFloatAnimation(taskId);
-                    
-                    // Activate grey countdown constraints instantly if it is a daily task
-                    if (taskId === 'daily_login' || taskId === 'buy_mtc') {
-                        startCountdown(taskId, data.time_left || 86400);
-                    } else {
-                        syncTasksUI(data.completed_tasks, 0, 0);
-                    }
-                } else {
-                    tg.showAlert(data.message);
-                }
-            })
-            .catch(err => {
-                console.error("Transmission error claiming task:", err);
-                tg.showAlert("Unable to connect to service registry.");
-            });
-        }
-
-        // Start execution loop
-        loadTaskData();
-    </script>
+    // Start execution loop
+    loadTaskData();
+</script>
 </body>
 </html>
