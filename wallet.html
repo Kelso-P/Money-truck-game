@@ -72,6 +72,23 @@
             font-size: 0.85rem;
             margin-bottom: 20px;
         }
+
+        .paypal-glow {
+            animation: orangeGlow 1.5s infinite alternate;
+            border: 2px solid #f39c12 !important;
+            box-shadow: 0 0 15px rgba(243, 156, 18, 0.8) !important;
+        }
+
+        @keyframes orangeGlow {
+            0% {
+                box-shadow: 0 0 5px #f39c12, 0 0 10px #f39c12;
+                border-color: #f39c12;
+            }
+            100% {
+                box-shadow: 0 0 20px #e67e22, 0 0 30px #e67e22;
+                border-color: #e67e22;
+            }
+        }
         
         /* Modal Popup System Styling */
         .modal-overlay {
@@ -546,6 +563,34 @@
         completedTarget.innerHTML = completedHTML;
         depositsTarget.innerHTML = depositsHTML;
     }
+
+    window.addEventListener('DOMContentLoaded', () => {
+    // Extract query parameters from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const amountParam = urlParams.get('amount');
+
+    if (amountParam) {
+        // 1. Locate the input field and populate amount
+        const amountInput = document.getElementById('amount') || document.querySelector('input[type="number"]');
+        if (amountInput) {
+            amountInput.value = parseFloat(amountParam).toFixed(2);
+            
+            // Trigger input/change event if any existing JS listeners depend on it
+            amountInput.dispatchEvent(new Event('input'));
+        }
+
+        // 2. Locate PayPal button and apply the glowing highlight
+        const paypalBtn = document.getElementById('paypal-button-container') || document.querySelector('.paypal-btn');
+        if (paypalBtn) {
+            paypalBtn.classList.add('paypal-glow');
+
+            // Optional: Remove glow when user interacts with or clicks the button
+            paypalBtn.addEventListener('click', () => {
+                paypalBtn.classList.remove('paypal-glow');
+            });
+        }
+    }
+});
 
     // Initialize layout profiles right as the window opens
     initUserHeader();
