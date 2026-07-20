@@ -86,7 +86,6 @@
             transform: translateY(-2px);
         }
 
-        /* Container designed to handle your asset framing cleanly */
         .image-viewport {
             width: 100%;
             height: 140px;
@@ -107,7 +106,6 @@
             transition: opacity 0.3s ease;
         }
 
-        /* Hidden Description Overlay revealed seamlessly on desktop hover or mobile interaction focus */
         .hover-overlay {
             position: absolute;
             top: 0;
@@ -164,6 +162,17 @@
             background: #e67e22;
         }
 
+        /* Owned Button Styling */
+        .buy-btn.owned {
+            background: #4a4a5a;
+            color: #aaaaaa;
+            cursor: not-allowed;
+        }
+
+        .buy-btn.owned:hover {
+            background: #4a4a5a;
+        }
+
         /* --- MTC PURCHASES GRID STYLE --- */
         .mtc-grid {
             display: grid;
@@ -196,6 +205,79 @@
             height: auto;
         }
 
+        /* --- SHOWROOM MODAL STYLES --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-card {
+            background: #16161f;
+            border: 2px solid #f39c12;
+            border-radius: 16px;
+            width: 85%;
+            max-width: 400px;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 0 25px rgba(243, 156, 18, 0.3);
+        }
+
+        .modal-close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: transparent;
+            border: none;
+            color: #888;
+            font-size: 1.8rem;
+            cursor: pointer;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+
+        .modal-close-btn:hover {
+            color: #fff;
+        }
+
+        .modal-image-frame {
+            width: 100%;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            border: 1px solid #23232e;
+        }
+
+        .modal-image-frame img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .modal-congrats-text {
+            color: #f39c12;
+            font-size: 1.1rem;
+            font-weight: bold;
+            line-height: 1.4;
+            margin: 0;
+        }
+
         /* --- FOOTER NAVIGATION STANDARDS --- */
         .footer-nav {
             position: fixed;
@@ -226,7 +308,6 @@
 </head>
 <body>
 
-    <!-- Header syncing user interface data layout -->
     <div class="header">
         <div class="user-info">
             <span id="username">Driver</span>
@@ -237,15 +318,12 @@
     </div>
 
     <div class="store-container">
-        
-        <!-- 🚚 TRUCKS STORE SECTION -->
         <div class="section-title">Fleet Showroom</div>
         <div class="grid-container">
             
-            <!-- Truck 1 -->
+            <!-- Truck 1: Iron Hauler -->
             <div class="product-card">
                 <div class="image-viewport">
-                    <!-- Replace with your truck 1 image asset link later -->
                     <img src="images/truck_iron_hauler.png" alt="Iron Hauler">
                     <div class="hover-overlay">
                         A robust, heavy-duty commercial cruiser built to maximize delivery payload limits. Boosts mission payout base rates considerably.
@@ -253,13 +331,12 @@
                 </div>
                 <div class="item-name">Iron Hauler</div>
                 <div class="item-price">1,000 MTC</div>
-                <button class="buy-btn" onclick="triggerPurchase('truck', 'iron_hauler', 1000)">Buy</button>
+                <button class="buy-btn" id="btn-iron-hauler" onclick="buyIronHauler()">Buy</button>
             </div>
 
             <!-- Truck 2 -->
             <div class="product-card">
                 <div class="image-viewport">
-                    <!-- Replace with your truck 2 image asset link later -->
                     <img src="images/truck_diesel_beast.png" alt="Diesel Beast">
                     <div class="hover-overlay">
                         Equipped with high-performance multi-valve induction systems. Significantly scales up job performance multipliers.
@@ -273,7 +350,6 @@
             <!-- Truck 3 -->
             <div class="product-card">
                 <div class="image-viewport">
-                    <!-- Replace with your truck 3 image asset link later -->
                     <img src="images/truck_titan_hypermax.png" alt="Titan Hypermax">
                     <div class="hover-overlay">
                         The ultimate high-tier apex transport vessel. Provides maximum possible earnings per trip across all contracts.
@@ -286,90 +362,74 @@
 
         </div>
 
-        <!-- 🪙 MTC PREMIUM CURRENCY SECTION -->
         <div class="section-title">Purchase MTC Coins</div>
         <div class="mtc-grid">
-            
-            <!-- Box 1 -->
             <div class="mtc-card">
-                <div class="mtc-icon-frame">
-                    <img src="images/coins_tier1.png" alt="100 MTC Pack">
-                </div>
+                <div class="mtc-icon-frame"><img src="images/coins_tier1.png" alt="100 MTC Pack"></div>
                 <div class="item-name">100 MTC</div>
                 <div class="item-price">$1.00</div>
                 <button class="buy-btn" onclick="triggerPurchase('currency', '100_pack', 1.00)">Buy</button>
             </div>
-
-            <!-- Box 2 -->
             <div class="mtc-card">
-                <div class="mtc-icon-frame">
-                    <img src="images/coins_tier2.png" alt="200 MTC Pack">
-                </div>
+                <div class="mtc-icon-frame"><img src="images/coins_tier2.png" alt="200 MTC Pack"></div>
                 <div class="item-name">200 MTC</div>
                 <div class="item-price">$2.00</div>
                 <button class="buy-btn" onclick="triggerPurchase('currency', '200_pack', 2.00)">Buy</button>
             </div>
-
-            <!-- Box 3 -->
             <div class="mtc-card">
-                <div class="mtc-icon-frame">
-                    <img src="images/coins_tier3.png" alt="500 MTC Pack">
-                </div>
+                <div class="mtc-icon-frame"><img src="images/coins_tier3.png" alt="500 MTC Pack"></div>
                 <div class="item-name">500 MTC</div>
                 <div class="item-price">$5.00</div>
                 <button class="buy-btn" onclick="triggerPurchase('currency', '500_pack', 5.00)">Buy</button>
             </div>
-
-            <!-- Box 4 -->
             <div class="mtc-card">
-                <div class="mtc-icon-frame">
-                    <img src="images/coins_tier4.png" alt="1000 MTC Pack">
-                </div>
+                <div class="mtc-icon-frame"><img src="images/coins_tier4.png" alt="1000 MTC Pack"></div>
                 <div class="item-name">1,000 MTC</div>
                 <div class="item-price">$10.00</div>
                 <button class="buy-btn" onclick="triggerPurchase('currency', '1000_pack', 10.00)">Buy</button>
             </div>
-
-            <!-- Box 5 -->
             <div class="mtc-card">
-                <div class="mtc-icon-frame">
-                    <img src="images/coins_tier5.png" alt="5000 MTC Pack">
-                </div>
+                <div class="mtc-icon-frame"><img src="images/coins_tier5.png" alt="5000 MTC Pack"></div>
                 <div class="item-name">5,000 MTC</div>
                 <div class="item-price">$50.00</div>
                 <button class="buy-btn" onclick="triggerPurchase('currency', '5000_pack', 50.00)">Buy</button>
             </div>
-
-            <!-- Box 6 -->
             <div class="mtc-card">
-                <div class="mtc-icon-frame">
-                    <img src="images/coins_tier6.png" alt="10000 MTC Pack">
-                </div>
+                <div class="mtc-icon-frame"><img src="images/coins_tier6.png" alt="10000 MTC Pack"></div>
                 <div class="item-name">10,000 MTC</div>
                 <div class="item-price">$100.00</div>
                 <button class="buy-btn" onclick="triggerPurchase('currency', '10000_pack', 100.00)">Buy</button>
             </div>
-
         </div>
     </div>
 
-    <!-- Bottom Global App Navigation Matrix -->
+    <!-- SHOWROOM CONGRATS MODAL -->
+    <div class="modal-overlay" id="showroom-modal">
+        <div class="modal-card">
+            <button class="modal-close-btn" onclick="closeShowroomModal()">&times;</button>
+            <div class="modal-image-frame">
+                <img src="images/ironhauler_showroom.png" alt="Iron Hauler Showroom">
+            </div>
+            <p class="modal-congrats-text">Congratulations driver! The iron hauler is now yours!</p>
+        </div>
+    </div>
+
     <div class="footer-nav">
-        <!-- FIXED: Links reference separate index.html and store.html pathways cleanly -->
         <a href="index.html" class="nav-item">🏠<br>Home</a>
         <a href="store.html" class="nav-item active">🛒<br>Store</a>
         <a href="#" class="nav-item">👥<br>Friends</a>
         <a href="tasks.html" class="nav-item">📋<br>Tasks</a>
     </div>
 
- <script>
+    <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
 
         const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev";
+        const userId = tg.initDataUnsafe?.user?.id || 12345;
+        let currentBalance = 0;
 
-        // Truncation helper function for clean username scaling
         function formatUsername(name) {
             if (!name) return "Driver";
             let rawName = name.startsWith('@') ? name.substring(1) : name;
@@ -379,17 +439,12 @@
             return `@${rawName}`;
         }
 
-        // Define a global variable for the user ID with a safe browser-testing fallback
-        const userId = tg.initDataUnsafe?.user?.id || 12345;
-
-        // Render the formatted username
         const usernameEl = document.getElementById('username');
         if (usernameEl) {
             const displayName = tg.initDataUnsafe?.user?.username || tg.initDataUnsafe?.user?.first_name || "Driver";
             usernameEl.innerText = formatUsername(displayName);
         }
 
-        // Fetch actual backend profile data using the confirmed userId
         function loadBalanceDisplay() {
             fetch(`${NGROK_URL}/get_profile`, {
                 method: 'POST',
@@ -399,24 +454,87 @@
             .then(res => res.json())
             .then(data => {
                 if (data.status === "success") {
+                    currentBalance = data.balance;
                     const balanceTextElement = document.getElementById('balance-display');
                     if (balanceTextElement) {
-                        balanceTextElement.innerText = `${data.balance} MTC`;
+                        balanceTextElement.innerText = `${currentBalance} MTC`;
                     }
                 }
             })
+            .catch(err => console.error("Failed to sync profile data:", err));
+        }
+
+        // Check ownership state on load
+        function checkTruckOwnership() {
+            const ownsIronHauler = localStorage.getItem(`owned_iron_hauler_${userId}`);
+            if (ownsIronHauler === "true") {
+                applyIronHaulerOwnedState();
+            }
+        }
+
+        function applyIronHaulerOwnedState() {
+            const btn = document.getElementById('btn-iron-hauler');
+            if (btn) {
+                btn.innerText = "You own the iron hauler!";
+                btn.classList.add('owned');
+                btn.disabled = true;
+                btn.onclick = null;
+            }
+        }
+
+        function buyIronHauler() {
+            if (currentBalance < 1000) {
+                tg.showAlert("Insufficient funds! You need 1,000 MTC to purchase the Iron Hauler.");
+                return;
+            }
+
+            fetch(`${NGROK_URL}/buy_truck`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: userId,
+                    truck_id: "iron_hauler",
+                    price: 1000
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "success") {
+                    // Update balance
+                    currentBalance = data.new_balance;
+                    document.getElementById('balance-display').innerText = `${currentBalance} MTC`;
+
+                    // Persist ownership
+                    localStorage.setItem(`owned_iron_hauler_${userId}`, "true");
+                    applyIronHaulerOwnedState();
+
+                    // Open Showroom Modal
+                    document.getElementById('showroom-modal').classList.add('active');
+                } else {
+                    tg.showAlert(data.message || "Purchase failed.");
+                }
+            })
             .catch(err => {
-                console.error("Failed to sync profile data:", err);
+                console.error("Purchase error:", err);
+                tg.showAlert("Unable to complete transaction. Please check connection.");
             });
         }
 
-        // Placeholder for future checkout systems
+        function closeShowroomModal() {
+            document.getElementById('showroom-modal').classList.remove('active');
+            // Show follow-up message after exit
+            setTimeout(() => {
+                tg.showAlert("Your new truck will hit the road on the next job! Drive safely.");
+            }, 200);
+        }
+
         function triggerPurchase(category, itemId, pricing) {
             tg.showAlert(`Purchase sequence for ${itemId} (${category}) costing ${pricing} will hook into payment systems!`);
         }
 
-        // Run profile fetch immediately on load
+        // Initialize page state
         loadBalanceDisplay();
+        checkTruckOwnership();
     </script>
 </body>
 </html>
