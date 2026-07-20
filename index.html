@@ -52,6 +52,13 @@
             height: 100%;
             object-fit: cover;
             object-position: center;
+        }
+
+        #stagnant-truck {
+            z-index: 2; /* Sits above video while video loads */
+        }
+
+        #road-video {
             z-index: 1;
         }
 
@@ -204,7 +211,8 @@
         <source id="video-source" src="videos/Pickuptruck-loopvideo1.mp4" type="video/mp4">
     </video>
 
-    <img id="stagnant-truck" src="images/stagnant_pickuptruck.jpg" alt="Truck Engine Off" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+    <!-- Stagnant truck image: initialized immediately via inline script below if Iron Hauler is owned -->
+    <img id="stagnant-truck" src="images/stagnant_pickuptruck.jpg" alt="Truck Engine Off" style="display: block;">
 
     <div id="job-board-overlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 500; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; box-sizing: border-box;">
         <h2 id="job-board-title" style="color: #fff; font-size: 1.2rem; margin-bottom: 15px;">There's another job, let's hit the road!</h2>
@@ -222,7 +230,7 @@
     <div id="hud-overlay">
         <div class="hud-top">
             <span id="hud-speed">0 m/s</span>
-            <span id="hud-timer">Est: 10:00</span>
+            <span id="hud-timer">Est: 20:00</span>
         </div>
         
         <div class="fuel-bar-container">
@@ -268,6 +276,13 @@
     tg.expand();
 
     const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev"; 
+    const userId = tg.initDataUnsafe.user?.id || 12345;
+
+    // PRE-CHECK TRUCK OWNERSHIP IMMEDIATELY to prevent pickup truck image flicker
+    let activeTruck = "pickup";
+    if (localStorage.getItem(`owned_iron_hauler_${userId}`) === "true") {
+        activeTruck = "iron_hauler";
+    }
 
     // --- STATE MANAGEMENT ---
     let balance = 70;
@@ -275,8 +290,8 @@
     let fuelLevel = 0;
     let engineLevel = 0;
 
-    let totalTaskDuration = 600; 
-    let currentTaskTimeLeft = 600;
+    let totalTaskDuration = 1200; 
+    let currentTaskTimeLeft = 1200;
     let fuelPercentage = 100;
     
     let isDriving = false;
@@ -292,10 +307,6 @@
 
     let gameInterval = null;
     let taskStartTime = 0;
-
-    // --- TRUCK SYSTEM & ECONOMY CONFIG ---
-    let activeTruck = "pickup"; // Default truck
-    const userId = tg.initDataUnsafe.user?.id || 12345;
 
     // --- CACHED DOM NODES ---
     const usernameElement = document.getElementById('username');
@@ -316,6 +327,12 @@
     const fuelBtn = document.getElementById('fuel-upgrade-btn');
     const speedBtn = document.getElementById('speed-upgrade-btn');
     const engineBtn = document.getElementById('engine-upgrade-btn');
+
+    // Immediate asset sync on JS initialization
+    if (activeTruck === "iron_hauler") {
+        stagnantEl.src = "images/truck_iron_hauler.png";
+        videoSource.src = "videos/Ironhauler-loopvideo1.mp4";
+    }
 
     // --- TRUCK CONFIGURATION HELPER ---
     function getTruckConfig() {
@@ -338,27 +355,23 @@
     function syncTruckAssets() {
         const config = getTruckConfig();
         
-        // Update Stagnant Image
         if (stagnantEl && !stagnantEl.src.includes(config.stagnantImg)) {
             stagnantEl.src = config.stagnantImg;
         }
 
-        // Update Video Source
         if (videoSource && !videoSource.src.includes(config.loopVideo)) {
             videoSource.src = config.loopVideo;
-            videoEl.load(); // Reload video with new source
+            videoEl.load();
         }
     }
 
     function checkAndApplyTruckUpgrade() {
         const ownsIronHauler = localStorage.getItem(`owned_iron_hauler_${userId}`);
         
-        // Upgrade to Iron Hauler if owned and currently on default pickup
-        if (ownsIronHauler === "true" && activeTruck === "pickup") {
+        if (ownsIronHauler === "true") {
             activeTruck = "iron_hauler";
             syncTruckAssets();
 
-            // First time using Iron Hauler setup
             const ironHaulerUsedBefore = localStorage.getItem(`iron_hauler_used_${userId}`);
             if (!ironHaulerUsedBefore) {
                 jobWaitingApproval = true;
@@ -414,10 +427,13 @@
         if (speedsLevel > 0 && fuelLevel > 0 && engineLevel > 0 && !isFuelOut && !isEngineDead && !jobWaitingApproval) {
             if (!isDriving) {
                 isDriving = true;
-                if (stagnantEl) stagnantEl.style.display = 'none';
                 if (jobBoardOverlay) jobBoardOverlay.style.display = 'none';
                 if (videoEl) {
                     videoEl.style.display = 'block';
+                    // Keep stagnant truck visible as placeholder until video is ready to play
+                    videoEl.oncanplay = () => {
+                        if (stagnantEl && isDriving) stagnantEl.style.display = 'none';
+                    };
                     videoEl.play().catch(e => console.log("Autoplay pending"));
                 }
                 
@@ -468,7 +484,7 @@
             let fuelBurnRate = 0.5 / fuelLevel; 
             fuelPercentage = 100 - (secondsWorkedThisJob * fuelBurnRate);
 
-            if (isFirstRunDone === 0 && tutorialFuelOutagesOccurred >= 1) {
+            if (isFirstRunDone === 0 && activeTruck === "pickup" && tutorialFuelOutagesOccurred >= 1) {
                 fuelPercentage = 40; 
             }
 
@@ -481,7 +497,7 @@
             if (fuelFill) fuelFill.style.width = `${fuelPercentage}%`;
 
             let breakdownChance = 0.003 / engineLevel;
-            if (isFirstRunDone === 0 && tutorialEngineFailuresOccurred >= 1) {
+            if (isFirstRunDone === 0 && activeTruck === "pickup" && tutorialEngineFailuresOccurred >= 1) {
                 breakdownChance = 0;
             }
 
@@ -515,12 +531,12 @@
                         taskStartTime = 0;
                         secondsWorkedThisJob = 0;
                         
+                        // Standardize all subsequent runs to 20 mins
                         totalTaskDuration = 1200; 
                         currentTaskTimeLeft = 1200;
                         
                         tg.showAlert(`Task Finished! Your delivery run earned you ${currentConfig.reward} MTC.`);
                         
-                        // Check if Iron Hauler was purchased during this job run
                         checkAndApplyTruckUpgrade();
 
                         if (jobBoardTitle && activeTruck !== "iron_hauler") {
@@ -548,9 +564,14 @@
         jobWaitingApproval = false;
         if (jobBoardOverlay) jobBoardOverlay.style.display = 'none';
         
-        // Reset default job board text for future runs
         if (jobBoardTitle) jobBoardTitle.innerText = "There's another job, let's hit the road!";
         
+        // Explicitly set 20-minute task duration for starting a new job
+        totalTaskDuration = 1200;
+        currentTaskTimeLeft = 1200;
+        taskStartTime = 0;
+        secondsWorkedThisJob = 0;
+
         updateGameLoopView();
     }
 
@@ -644,12 +665,11 @@
 
                 syncPriceButtonLabels(data.fuel_cost, data.speed_cost, data.engine_cost);
 
-                if (isFirstRunDone === 1) {
+                // Standard duration for all runs after tutorial or when using upgraded trucks
+                if (isFirstRunDone === 1 || activeTruck === "iron_hauler") {
                     totalTaskDuration = 1200; 
-                    currentTaskTimeLeft = 1200;
                 } else {
                     totalTaskDuration = 600;
-                    currentTaskTimeLeft = 600;
                 }
 
                 if (taskStartTime > 0 && fuelLevel > 0) {
@@ -663,9 +683,10 @@
                         taskStartTime = 0;
                         secondsWorkedThisJob = 0;
                     }
+                } else {
+                    currentTaskTimeLeft = totalTaskDuration;
                 }
 
-                // Check initial truck state upon page load
                 checkAndApplyTruckUpgrade();
                 updateGameLoopView();
             }
