@@ -570,21 +570,27 @@
     const amountParam = urlParams.get('amount');
 
     if (amountParam) {
-        // 1. Locate the input field and populate amount
-        const amountInput = document.getElementById('amount') || document.querySelector('input[type="number"]');
+        // 1. Target the correct input ID ('usd-amount')
+        const amountInput = document.getElementById('usd-amount') || document.querySelector('input[type="number"]');
         if (amountInput) {
             amountInput.value = parseFloat(amountParam).toFixed(2);
             
-            // Trigger input/change event if any existing JS listeners depend on it
+            // Explicitly run the calculation function so "200 MTC" updates right away
+            calculateMTC();
+            
+            // Trigger input event for any extra listeners
             amountInput.dispatchEvent(new Event('input'));
         }
 
-        // 2. Locate PayPal button and apply the glowing highlight
-        const paypalBtn = document.getElementById('paypal-button-container') || document.querySelector('.paypal-btn');
+        // 2. Target the exact button ID ('custom-checkout-btn')
+        const paypalBtn = document.getElementById('custom-checkout-btn') || 
+                          document.getElementById('paypal-button-container') || 
+                          document.querySelector('.paypal-btn');
+
         if (paypalBtn) {
             paypalBtn.classList.add('paypal-glow');
 
-            // Optional: Remove glow when user interacts with or clicks the button
+            // Remove glow when user clicks the button
             paypalBtn.addEventListener('click', () => {
                 paypalBtn.classList.remove('paypal-glow');
             });
