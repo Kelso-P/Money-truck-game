@@ -73,20 +73,28 @@
             margin-bottom: 20px;
         }
 
+        /* Pulsing Orange Glow Highlight */
         .paypal-glow {
-            animation: orangeGlow 1.5s infinite alternate;
+            animation: paypalPulse 1.2s ease-in-out infinite alternate !important;
             border: 2px solid #f39c12 !important;
-            box-shadow: 0 0 15px rgba(243, 156, 18, 0.8) !important;
+            outline: none;
         }
-
-        @keyframes orangeGlow {
+        
+        @keyframes paypalPulse {
             0% {
-                box-shadow: 0 0 5px #f39c12, 0 0 10px #f39c12;
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(243, 156, 18, 0.7);
                 border-color: #f39c12;
             }
-            100% {
-                box-shadow: 0 0 20px #e67e22, 0 0 30px #e67e22;
+            50% {
+                transform: scale(1.03); /* Subtle outward pulse */
+                box-shadow: 0 0 18px 6px rgba(243, 156, 18, 0.9);
                 border-color: #e67e22;
+            }
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(243, 156, 18, 0.7);
+                border-color: #f39c12;
             }
         }
         
