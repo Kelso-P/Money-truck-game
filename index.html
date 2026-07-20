@@ -31,7 +31,6 @@
 
         .user-info { display: flex; align-items: center; gap: 8px; color: #f39c12 }
         .balance { color: var(--accent-gold); font-weight: bold; font-size: 1.1em; }
-        .day-night-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
 
         #game-stage {
             width: 100%;
@@ -106,43 +105,6 @@
             transition: width 0.5s linear;
         }
 
-        /* Breakdown Action Overlay */
-        #breakdown-screen {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background: rgba(5, 5, 5, 0.85);
-            z-index: 15;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            color: #fff;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-
-        #breakdown-screen p {
-            font-size: 16px;
-            margin-bottom: 20px;
-            line-height: 1.5;
-            font-weight: bold;
-        }
-
-        #breakdown-screen button {
-            background: #fff;
-            color: #050505;
-            border: none;
-            padding: 12px 30px;
-            font-weight: bold;
-            border-radius: 4px;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 4px 15px rgba(255,255,255,0.2);
-        }
-
         /* --- UPGRADES SECTION --- */
         .upgrades-container {
             padding: 20px 20px 10px 20px;
@@ -181,7 +143,7 @@
         /* --- WALLET CONTAINER --- */
         .wallet-container {
             padding: 0 20px;
-            margin-bottom: 80px; /* Leave space for navigation bar */
+            margin-bottom: 80px;
         }
 
         .wallet-btn {
@@ -223,7 +185,6 @@
         }
 
         .nav-item { color: #666; text-decoration: none; font-size: 0.7rem; text-align: center; }
-        .nav-item i { display: block; font-size: 1.4rem; margin-bottom: 4px; }
         .nav-item.active { color: var(--accent-gold); }
     </style>
 </head>
@@ -240,13 +201,13 @@
 
 <div id="game-stage" style="position: relative; overflow: hidden; border-radius: 12px; margin: 0 10px;">
     <video id="road-video" autoplay loop muted playsinline style="display: none; width: 100%; height: 100%; object-fit: cover;">
-        <source src="videos/Pickuptruck-loopvideo1.mp4" type="video/mp4">
+        <source id="video-source" src="videos/Pickuptruck-loopvideo1.mp4" type="video/mp4">
     </video>
 
-    <img id="stagnant-truck" src="images/stagnant_pickuptruck.jpg" alt="Truck Engine Off" style="width: 100%; height: auto; display: block;">
+    <img id="stagnant-truck" src="images/stagnant_pickuptruck.jpg" alt="Truck Engine Off" style="width: 100%; height: 100%; object-fit: cover; display: block;">
 
     <div id="job-board-overlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 500; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; box-sizing: border-box;">
-        <h2 style="color: #fff; font-size: 1.2rem; margin-bottom: 15px;">There's another job, let's hit the road!</h2>
+        <h2 id="job-board-title" style="color: #fff; font-size: 1.2rem; margin-bottom: 15px;">There's another job, let's hit the road!</h2>
         <button id="start-job-btn" onclick="acceptNewJobContract()" style="background: #2ecc71; color: #fff; font-weight: bold; padding: 12px 30px; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">Start Job</button>
     </div>
 
@@ -288,7 +249,6 @@
     </div>
 </div>
 
-<!-- 🌟 NEW WALLET BUTTON SECTION -->
 <div class="wallet-container">
     <a href="wallet.html" class="wallet-btn">
         💳 Go to Driver Wallet
@@ -333,15 +293,21 @@
     let gameInterval = null;
     let taskStartTime = 0;
 
+    // --- TRUCK SYSTEM & ECONOMY CONFIG ---
+    let activeTruck = "pickup"; // Default truck
+    const userId = tg.initDataUnsafe.user?.id || 12345;
+
     // --- CACHED DOM NODES ---
     const usernameElement = document.getElementById('username');
     const videoEl = document.getElementById('road-video');
+    const videoSource = document.getElementById('video-source');
     const stagnantEl = document.getElementById('stagnant-truck');
     const speedHud = document.getElementById('hud-speed');
     const timerHud = document.getElementById('hud-timer');
     const fuelFill = document.getElementById('fuel-bar-fill');
     const balanceTextElement = document.getElementById('balance-display');
     const jobBoardOverlay = document.getElementById('job-board-overlay');
+    const jobBoardTitle = document.getElementById('job-board-title');
 
     const fuelLvlTxt = document.getElementById('fuel-lvl');
     const speedLvlTxt = document.getElementById('speed-lvl');
@@ -350,6 +316,56 @@
     const fuelBtn = document.getElementById('fuel-upgrade-btn');
     const speedBtn = document.getElementById('speed-upgrade-btn');
     const engineBtn = document.getElementById('engine-upgrade-btn');
+
+    // --- TRUCK CONFIGURATION HELPER ---
+    function getTruckConfig() {
+        if (activeTruck === "iron_hauler") {
+            return {
+                reward: 100,
+                fixCost: 10,
+                stagnantImg: "images/truck_iron_hauler.png",
+                loopVideo: "videos/Ironhauler-loopvideo1.mp4"
+            };
+        }
+        return {
+            reward: 50,
+            fixCost: 5,
+            stagnantImg: "images/stagnant_pickuptruck.jpg",
+            loopVideo: "videos/Pickuptruck-loopvideo1.mp4"
+        };
+    }
+
+    function syncTruckAssets() {
+        const config = getTruckConfig();
+        
+        // Update Stagnant Image
+        if (stagnantEl && !stagnantEl.src.includes(config.stagnantImg)) {
+            stagnantEl.src = config.stagnantImg;
+        }
+
+        // Update Video Source
+        if (videoSource && !videoSource.src.includes(config.loopVideo)) {
+            videoSource.src = config.loopVideo;
+            videoEl.load(); // Reload video with new source
+        }
+    }
+
+    function checkAndApplyTruckUpgrade() {
+        const ownsIronHauler = localStorage.getItem(`owned_iron_hauler_${userId}`);
+        
+        // Upgrade to Iron Hauler if owned and currently on default pickup
+        if (ownsIronHauler === "true" && activeTruck === "pickup") {
+            activeTruck = "iron_hauler";
+            syncTruckAssets();
+
+            // First time using Iron Hauler setup
+            const ironHaulerUsedBefore = localStorage.getItem(`iron_hauler_used_${userId}`);
+            if (!ironHaulerUsedBefore) {
+                jobWaitingApproval = true;
+                if (jobBoardTitle) jobBoardTitle.innerText = "You have a new truck, let's see it hit the road!";
+            }
+        }
+    }
 
     // --- UTILITIES ---
     function formatUsername(name) {
@@ -393,6 +409,8 @@
 
     // --- VISUAL ROUTINE CONTROL ---
     function updateGameLoopView() {
+        syncTruckAssets();
+
         if (speedsLevel > 0 && fuelLevel > 0 && engineLevel > 0 && !isFuelOut && !isEngineDead && !jobWaitingApproval) {
             if (!isDriving) {
                 isDriving = true;
@@ -404,7 +422,6 @@
                 }
                 
                 if (taskStartTime === 0) {
-                    const userId = tg.initDataUnsafe.user?.id || 12345;
                     fetch(`${NGROK_URL}/start_task`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -479,11 +496,15 @@
                 jobWaitingApproval = true; 
                 clearInterval(gameInterval);
                 
-                const userId = tg.initDataUnsafe.user?.id || 12345;
+                const currentConfig = getTruckConfig();
+
                 fetch(`${NGROK_URL}/complete_task`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: userId })
+                    body: JSON.stringify({ 
+                        user_id: userId,
+                        reward_amount: currentConfig.reward
+                    })
                 })
                 .then(res => res.json())
                 .then(data => {
@@ -497,7 +518,15 @@
                         totalTaskDuration = 1200; 
                         currentTaskTimeLeft = 1200;
                         
-                        tg.showAlert("Task Finished! Your delivery run earned you 50 MTC.");
+                        tg.showAlert(`Task Finished! Your delivery run earned you ${currentConfig.reward} MTC.`);
+                        
+                        // Check if Iron Hauler was purchased during this job run
+                        checkAndApplyTruckUpgrade();
+
+                        if (jobBoardTitle && activeTruck !== "iron_hauler") {
+                            jobBoardTitle.innerText = "There's another job, let's hit the road!";
+                        }
+
                         updateGameLoopView(); 
                     }
                 });
@@ -512,8 +541,16 @@
     }
 
     function acceptNewJobContract() {
+        if (activeTruck === "iron_hauler") {
+            localStorage.setItem(`iron_hauler_used_${userId}`, "true");
+        }
+        
         jobWaitingApproval = false;
         if (jobBoardOverlay) jobBoardOverlay.style.display = 'none';
+        
+        // Reset default job board text for future runs
+        if (jobBoardTitle) jobBoardTitle.innerText = "There's another job, let's hit the road!";
+        
         updateGameLoopView();
     }
 
@@ -522,10 +559,11 @@
         updateGameLoopView();
         tutorialFuelOutagesOccurred++;
         
+        const config = getTruckConfig();
         openAppModal(
             "Out of Fuel!", 
             "You're out of fuel. Buy some to continue the journey.", 
-            "Pay 5 MTC", 
+            `Pay ${config.fixCost} MTC`, 
             () => processQuickFix('fuel')
         );
     }
@@ -535,21 +573,25 @@
         updateGameLoopView();
         tutorialEngineFailuresOccurred++;
         
+        const config = getTruckConfig();
         openAppModal(
             "Engine Failure!", 
             "Oops! Looks like the engine died, let's fix it.", 
-            "Pay 5 MTC", 
+            `Pay ${config.fixCost} MTC`, 
             () => processQuickFix('engine')
         );
     }
 
     function processQuickFix(type) {
-        const userId = tg.initDataUnsafe.user?.id || 12345;
+        const config = getTruckConfig();
         
         fetch(`${NGROK_URL}/deduct_fix`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId })
+            body: JSON.stringify({ 
+                user_id: userId,
+                cost: config.fixCost
+            })
         })
         .then(res => res.json())
         .then(data => {
@@ -580,8 +622,6 @@
     }
     
     function loadUserData() {
-        const userId = tg.initDataUnsafe.user?.id || 12345;
-
         fetch(`${NGROK_URL}/get_profile`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -624,14 +664,15 @@
                         secondsWorkedThisJob = 0;
                     }
                 }
+
+                // Check initial truck state upon page load
+                checkAndApplyTruckUpgrade();
                 updateGameLoopView();
             }
         });
     }
 
-   function upgrade(statName) {
-        const userId = tg.initDataUnsafe.user?.id || 12345;
-        
+    function upgrade(statName) {
         fetch(`${NGROK_URL}/upgrade`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -661,6 +702,8 @@
             openAppModal("Connection Error", "Could not synchronize with engine node.", "Retry", () => {});
         });
     }
+
+    // Initialize application
     loadUserData();
 </script>   
 </body>
