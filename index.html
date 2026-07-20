@@ -201,7 +201,7 @@
 </div>
 
 <div id="game-stage" style="position: relative; overflow: hidden; border-radius: 12px; margin: 0 10px;">
-    <video id="road-video" autoplay loop muted playsinline style="display: none; width: 100%; height: 100%; object-fit: cover;">
+   <video id="road-video" autoplay loop muted playsinline preload="auto" style="display: none; width: 100%; height: 100%; object-fit: cover;">
         <source id="video-source" src="videos/Pickuptruck-loopvideo1.mp4" type="video/mp4">
     </video>
 
@@ -405,51 +405,54 @@
     }
 
     function updateGameLoopView() {
-        syncTruckAssets();
+    syncTruckAssets();
 
-        const allUpgradesActive = speedsLevel > 0 && fuelLevel > 0 && engineLevel > 0;
+    const allUpgradesActive = speedsLevel > 0 && fuelLevel > 0 && engineLevel > 0;
 
-        if (allUpgradesActive && !isFuelOut && !isEngineDead && !jobWaitingApproval) {
-            isDriving = true;
-            if (jobBoardOverlay) jobBoardOverlay.style.display = 'none';
-            
-            if (videoEl) {
-                videoEl.style.display = 'block';
-                videoEl.oncanplay = () => {
-                    if (stagnantEl && isDriving) stagnantEl.style.display = 'none';
-                };
-                videoEl.play().catch(e => console.log("Autoplay pending"));
-            }
-            
-            if (taskStartTime === 0) {
-                fetch(`${NGROK_URL}/start_task`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: userId })
-                })
-                .then(res => res.json())
-                .then(data => { 
-                    if(data.status === "success") {
-                        taskStartTime = data.task_start_time;
-                    } 
-                });
-            }
-            startCoreTimers();
-            if (speedHud) speedHud.innerText = `${20 + (speedsLevel * 10)} m/s`;
-        } else {
-            isDriving = false;
-            if (videoEl) {
-                videoEl.style.display = 'none';
-                videoEl.pause();
-            }
-            if (stagnantEl) stagnantEl.style.display = 'block';
-            if (jobWaitingApproval && jobBoardOverlay) {
-                jobBoardOverlay.style.display = 'flex';
-            }
-            clearInterval(gameInterval);
-            if (speedHud) speedHud.innerText = `0 m/s`;
+    if (allUpgradesActive && !isFuelOut && !isEngineDead && !jobWaitingApproval) {
+        isDriving = true;
+        if (jobBoardOverlay) jobBoardOverlay.style.display = 'none';
+        
+        if (videoEl) {
+            // Instantly hide static truck and show video container
+            if (stagnantEl) stagnantEl.style.display = 'none';
+            videoEl.style.display = 'block';
+
+            // Reset media buffer and force play immediately
+            videoEl.currentTime = 0;
+            videoEl.load();
+            videoEl.play().catch(e => console.log("Autoplay pending:", e));
         }
+        
+        if (taskStartTime === 0) {
+            fetch(`${NGROK_URL}/start_task`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId })
+            })
+            .then(res => res.json())
+            .then(data => { 
+                if(data.status === "success") {
+                    taskStartTime = data.task_start_time;
+                } 
+            });
+        }
+        startCoreTimers();
+        if (speedHud) speedHud.innerText = `${20 + (speedsLevel * 10)} m/s`;
+    } else {
+        isDriving = false;
+        if (videoEl) {
+            videoEl.style.display = 'none';
+            videoEl.pause();
+        }
+        if (stagnantEl) stagnantEl.style.display = 'block';
+        if (jobWaitingApproval && jobBoardOverlay) {
+            jobBoardOverlay.style.display = 'flex';
+        }
+        clearInterval(gameInterval);
+        if (speedHud) speedHud.innerText = `0 m/s`;
     }
+}
 
     function startCoreTimers() {
         clearInterval(gameInterval);
