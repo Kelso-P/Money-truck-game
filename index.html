@@ -271,8 +271,11 @@
     const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev"; 
     const userId = tg.initDataUnsafe.user?.id || 12345;
 
+    // --- TRUCK SELECTION HIERARCHY ---
     let activeTruck = "pickup";
-    if (localStorage.getItem(`owned_iron_hauler_${userId}`) === "true") {
+    if (localStorage.getItem(`owned_diesel_beast_${userId}`) === "true") {
+        activeTruck = "diesel_beast";
+    } else if (localStorage.getItem(`owned_iron_hauler_${userId}`) === "true") {
         activeTruck = "iron_hauler";
     }
 
@@ -320,12 +323,15 @@
     const speedBtn = document.getElementById('speed-upgrade-btn');
     const engineBtn = document.getElementById('engine-upgrade-btn');
 
-    if (activeTruck === "iron_hauler") {
-        stagnantEl.src = "images/truck_iron_hauler.png";
-        videoSource.src = "videos/Ironhauler-loopvideo1.mp4";
-    }
-
     function getTruckConfig() {
+        if (activeTruck === "diesel_beast") {
+            return {
+                reward: 200,
+                fixCost: 20,
+                stagnantImg: "images/truck_diesel_beast.png",
+                loopVideo: "videos/dieselbeast-loopvideo1.mp4"
+            };
+        }
         if (activeTruck === "iron_hauler") {
             return {
                 reward: 100,
@@ -354,8 +360,19 @@
     }
 
     function checkAndApplyTruckUpgrade() {
+        const ownsDieselBeast = localStorage.getItem(`owned_diesel_beast_${userId}`);
         const ownsIronHauler = localStorage.getItem(`owned_iron_hauler_${userId}`);
-        if (ownsIronHauler === "true") {
+
+        if (ownsDieselBeast === "true") {
+            activeTruck = "diesel_beast";
+            syncTruckAssets();
+
+            const dieselUsedBefore = localStorage.getItem(`diesel_beast_used_${userId}`);
+            if (!dieselUsedBefore) {
+                jobWaitingApproval = true;
+                if (jobBoardTitle) jobBoardTitle.innerText = "You have unlocked the Diesel Beast! Ready to hit the road?";
+            }
+        } else if (ownsIronHauler === "true") {
             activeTruck = "iron_hauler";
             syncTruckAssets();
 
@@ -405,54 +422,52 @@
     }
 
     function updateGameLoopView() {
-    syncTruckAssets();
+        syncTruckAssets();
 
-    const allUpgradesActive = speedsLevel > 0 && fuelLevel > 0 && engineLevel > 0;
+        const allUpgradesActive = speedsLevel > 0 && fuelLevel > 0 && engineLevel > 0;
 
-    if (allUpgradesActive && !isFuelOut && !isEngineDead && !jobWaitingApproval) {
-        isDriving = true;
-        if (jobBoardOverlay) jobBoardOverlay.style.display = 'none';
-        
-        if (videoEl) {
-            // Instantly hide static truck and show video container
-            if (stagnantEl) stagnantEl.style.display = 'none';
-            videoEl.style.display = 'block';
+        if (allUpgradesActive && !isFuelOut && !isEngineDead && !jobWaitingApproval) {
+            isDriving = true;
+            if (jobBoardOverlay) jobBoardOverlay.style.display = 'none';
+            
+            if (videoEl) {
+                if (stagnantEl) stagnantEl.style.display = 'none';
+                videoEl.style.display = 'block';
 
-            // Reset media buffer and force play immediately
-            videoEl.currentTime = 0;
-            videoEl.load();
-            videoEl.play().catch(e => console.log("Autoplay pending:", e));
+                videoEl.currentTime = 0;
+                videoEl.load();
+                videoEl.play().catch(e => console.log("Autoplay pending:", e));
+            }
+            
+            if (taskStartTime === 0) {
+                fetch(`${NGROK_URL}/start_task`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId })
+                })
+                .then(res => res.json())
+                .then(data => { 
+                    if(data.status === "success") {
+                        taskStartTime = data.task_start_time;
+                    } 
+                });
+            }
+            startCoreTimers();
+            if (speedHud) speedHud.innerText = `${20 + (speedsLevel * 10)} m/s`;
+        } else {
+            isDriving = false;
+            if (videoEl) {
+                videoEl.style.display = 'none';
+                videoEl.pause();
+            }
+            if (stagnantEl) stagnantEl.style.display = 'block';
+            if (jobWaitingApproval && jobBoardOverlay) {
+                jobBoardOverlay.style.display = 'flex';
+            }
+            clearInterval(gameInterval);
+            if (speedHud) speedHud.innerText = `0 m/s`;
         }
-        
-        if (taskStartTime === 0) {
-            fetch(`${NGROK_URL}/start_task`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: userId })
-            })
-            .then(res => res.json())
-            .then(data => { 
-                if(data.status === "success") {
-                    taskStartTime = data.task_start_time;
-                } 
-            });
-        }
-        startCoreTimers();
-        if (speedHud) speedHud.innerText = `${20 + (speedsLevel * 10)} m/s`;
-    } else {
-        isDriving = false;
-        if (videoEl) {
-            videoEl.style.display = 'none';
-            videoEl.pause();
-        }
-        if (stagnantEl) stagnantEl.style.display = 'block';
-        if (jobWaitingApproval && jobBoardOverlay) {
-            jobBoardOverlay.style.display = 'flex';
-        }
-        clearInterval(gameInterval);
-        if (speedHud) speedHud.innerText = `0 m/s`;
     }
-}
 
     function startCoreTimers() {
         clearInterval(gameInterval);
@@ -466,7 +481,6 @@
             currentTaskTimeLeft--;
             secondsWorkedThisJob++;
 
-            // Fuel depletion calculation scaled accurately to level
             let safeFuelLvl = Math.max(1, fuelLevel);
             let fuelBurnRate = 0.08 / safeFuelLvl; 
             
@@ -478,7 +492,6 @@
 
             if (fuelFill) fuelFill.style.width = `${fuelPercentage.toFixed(1)}%`;
 
-            // Trigger outage ONLY when fuel percentage genuinely reaches 0
             if (fuelPercentage <= 0) {
                 triggerFuelOutage();
                 return;
@@ -527,7 +540,7 @@
                         
                         checkAndApplyTruckUpgrade();
 
-                        if (jobBoardTitle && activeTruck !== "iron_hauler") {
+                        if (jobBoardTitle && activeTruck === "pickup") {
                             jobBoardTitle.innerText = "There's another job, let's hit the road!";
                         }
 
@@ -545,7 +558,9 @@
     }
 
     function acceptNewJobContract() {
-        if (activeTruck === "iron_hauler") {
+        if (activeTruck === "diesel_beast") {
+            localStorage.setItem(`diesel_beast_used_${userId}`, "true");
+        } else if (activeTruck === "iron_hauler") {
             localStorage.setItem(`iron_hauler_used_${userId}`, "true");
         }
         
@@ -653,7 +668,7 @@
 
                 syncPriceButtonLabels(data.fuel_cost, data.speed_cost, data.engine_cost);
 
-                if (isFirstRunDone === 1 || activeTruck === "iron_hauler") {
+                if (isFirstRunDone === 1 || activeTruck !== "pickup") {
                     totalTaskDuration = 1200; 
                 } else {
                     totalTaskDuration = 600;
@@ -699,7 +714,6 @@
 
                     syncPriceButtonLabels(data.fuel_cost, data.speed_cost, data.engine_cost);
                     
-                    // Force refresh profile state to keep drive loop active without requiring restart
                     loadUserData();
                 });
             } else {
