@@ -273,7 +273,9 @@
 
     // --- TRUCK SELECTION HIERARCHY ---
     let activeTruck = "pickup";
-    if (localStorage.getItem(`owned_diesel_beast_${userId}`) === "true") {
+    if (localStorage.getItem(`owned_titan_hypermax_${userId}`) === "true") {
+        activeTruck = "titan_hypermax";
+    } else if (localStorage.getItem(`owned_diesel_beast_${userId}`) === "true") {
         activeTruck = "diesel_beast";
     } else if (localStorage.getItem(`owned_iron_hauler_${userId}`) === "true") {
         activeTruck = "iron_hauler";
@@ -324,6 +326,14 @@
     const engineBtn = document.getElementById('engine-upgrade-btn');
 
     function getTruckConfig() {
+        if (activeTruck === "titan_hypermax") {
+            return {
+                reward: 500,
+                fixCost: 50,
+                stagnantImg: "images/truck_titan_hypermax.png",
+                loopVideo: "videos/titanhypermax-loopvideo1.mp4"
+            };
+        }
         if (activeTruck === "diesel_beast") {
             return {
                 reward: 200,
@@ -360,10 +370,20 @@
     }
 
     function checkAndApplyTruckUpgrade() {
+        const ownsTitanHypermax = localStorage.getItem(`owned_titan_hypermax_${userId}`);
         const ownsDieselBeast = localStorage.getItem(`owned_diesel_beast_${userId}`);
         const ownsIronHauler = localStorage.getItem(`owned_iron_hauler_${userId}`);
 
-        if (ownsDieselBeast === "true") {
+        if (ownsTitanHypermax === "true") {
+            activeTruck = "titan_hypermax";
+            syncTruckAssets();
+
+            const titanUsedBefore = localStorage.getItem(`titan_hypermax_used_${userId}`);
+            if (!titanUsedBefore) {
+                jobWaitingApproval = true;
+                if (jobBoardTitle) jobBoardTitle.innerText = "You have unlocked the Titan Hypermax! Ready to dominate the road?";
+            }
+        } else if (ownsDieselBeast === "true") {
             activeTruck = "diesel_beast";
             syncTruckAssets();
 
@@ -558,7 +578,9 @@
     }
 
     function acceptNewJobContract() {
-        if (activeTruck === "diesel_beast") {
+        if (activeTruck === "titan_hypermax") {
+            localStorage.setItem(`titan_hypermax_used_${userId}`, "true");
+        } else if (activeTruck === "diesel_beast") {
             localStorage.setItem(`diesel_beast_used_${userId}`, "true");
         } else if (activeTruck === "iron_hauler") {
             localStorage.setItem(`iron_hauler_used_${userId}`, "true");
@@ -729,6 +751,6 @@
 
     // Initialize application
     loadUserData();
-</script>   
+</script> 
 </body>
 </html>
