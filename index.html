@@ -146,15 +146,16 @@
         /* Floating down text for speed discount */
         .speed-discount-float {
             position: absolute;
-            top: 20%;
+            top: 45px; /* Positions it right under the top HUD timer */
             left: 50%;
             transform: translateX(-50%);
-            color: #e74c3c; /* Bright red or warning orange for subtracted time */
+            color: #f39c12; /* Vibrant Orange */
             font-weight: bold;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             pointer-events: none;
             z-index: 1000;
-            animation: floatDownFade 2s forwards ease-out;
+            text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.8); /* Ensures readability over video */
+            animation: floatDownFade 3s forwards ease-out;
         }
         
         @keyframes floatDownFade {
@@ -164,7 +165,7 @@
             }
             100% {
                 opacity: 0;
-                transform: translate(-50%, 40px); /* Moves downward as it fades */
+                transform: translate(-50%, 25px); /* Moves downward as it fades */
             }
         }
 
@@ -521,7 +522,6 @@
         if (canDrive) {
             isDriving = true;
             if (jobBoardOverlay) jobBoardOverlay.style.display = 'none';
-            showSpeedDiscountEffect();
             
             if (videoEl) {
                 if (stagnantEl) stagnantEl.style.display = 'none';
@@ -645,6 +645,7 @@
                         if (fuelLevel >= 10 && speedsLevel >= 10 && engineLevel >= 10) {
                             tg.showAlert(`Auto-Pilot: Delivery complete! ${currentConfig.reward} MTC added to wallet. Next run started!`);
                             jobWaitingApproval = false;
+                            showSpeedDiscountEffect();
                             updateGameLoopView();
                         } else {
                             isDriving = false;
@@ -694,7 +695,8 @@
         secondsWorkedThisJob = 0;
         fuelPercentage = 100;
         if (fuelFill) fuelFill.style.width = `100%`;
-
+        
+        showSpeedDiscountEffect();
         updateGameLoopView();
     }
 
@@ -833,7 +835,7 @@
             if(data.status === "success") {
                 openAppModal("Upgrade Complete!", data.message, "Awesome", () => {
                     if (statName === 'fuel') { fuelLevel++; if(fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel; }
-                    if (statName === 'speed') { speedsLevel++; if(speedLvlTxt) speedLvlTxt.innerText = speedsLevel; }
+                    if (statName === 'speed') { speedsLevel++; if(speedLvlTxt) speedLvlTxt.innerText = speedsLevel; showSpeedDiscountEffect();}
                     if (statName === 'engine') { engineLevel++; if(engineLvlTxt) engineLvlTxt.innerText = engineLevel; }
 
                     balance = data.new_balance;
