@@ -119,7 +119,7 @@
         .upgrade-card {
             background: var(--card-bg);
             border-radius: 12px;
-            padding: 15px 10px;
+            padding: 10px 10px;
             text-align: center;
             border: 1px solid #333;
             transition: transform 0.1s;
@@ -259,7 +259,7 @@
 </div>
 
 <!-- Main Scrollable Container Wrapper -->
-<div class="main-content-container" style="overflow-y: auto; max-height: 100vh; padding-bottom: 80px; box-sizing: border-box;">
+<div class="main-content-container" style="overflow-y: auto; max-height: 100vh; padding-bottom: 70px; box-sizing: border-box;">
 
     <!-- 1. Upgrades Container -->
     <div class="upgrades-container">
@@ -280,7 +280,7 @@
         </div>
     </div>
 
-    <div class="wallet-container" style="margin: 15px 10px 10px 10px;">
+    <div class="wallet-container" style="margin: 10px 10px 10px 10px;">
         <a href="wallet.html" class="wallet-btn">
             💳 Go to Driver Wallet
         </a>
@@ -329,8 +329,8 @@
     let fuelPercentage = 100;
     
     let isDriving = false;
-    let isFuelOut = false;
-    let isEngineDead = false;
+    let isFuelOut = localStorage.getItem(`is_fuel_out_${userId}`) === "true";
+    let isEngineDead = localStorage.getItem(`is_engine_dead_${userId}`) === "true";
     let isFirstRunDone = 0;
     let jobWaitingApproval = false;
 
@@ -526,9 +526,9 @@
             if (videoEl) {
                 if (stagnantEl) stagnantEl.style.display = 'none';
                 videoEl.style.display = 'block';
-                videoEl.currentTime = 0;
-                videoEl.load();
-                videoEl.play().catch(e => console.log("Autoplay pending:", e));
+                if (videoEl.paused) {
+                    videoEl.play().catch(e => console.log("Autoplay pending:", e));
+                }
             }
             
             if (taskStartTime === 0) {
@@ -578,7 +578,6 @@
             // Fuel Depletion Calculations
             let maxFuelSeconds = getFuelDurationSeconds(fuelLevel);
             
-            // TUTORIAL RULE: In 5-min tutorial job, force fuel outage around 120s
             if (isFirstRunDone === 0 && activeTruck === "pickup" && tutorialFuelOutagesOccurred === 0) {
                 if (secondsWorkedThisJob >= 120) {
                     triggerFuelOutage();
@@ -641,20 +640,22 @@
 
                         checkAndApplyTruckUpgrade();
 
-                        // AUTOMATION LOGIC: Auto collect and keep driving if all upgrades are level 10
+                        // AUTOMATION LOGIC: Custom Modal replaced native tg.showAlert
                         if (fuelLevel >= 10 && speedsLevel >= 10 && engineLevel >= 10) {
-                            tg.showAlert(`Auto-Pilot: Delivery complete! ${currentConfig.reward} MTC added to wallet. Next run started!`);
-                            jobWaitingApproval = false;
-                            showSpeedDiscountEffect();
-                            updateGameLoopView();
+                            openAppModal("Auto-Pilot Active", `Delivery complete! ${currentConfig.reward} MTC added to wallet. Next run started automatically!`, "Awesome", () => {
+                                jobWaitingApproval = false;
+                                showSpeedDiscountEffect();
+                                updateGameLoopView();
+                            });
                         } else {
                             isDriving = false;
                             jobWaitingApproval = true; 
-                            tg.showAlert(`Task Finished! Your delivery run earned you ${currentConfig.reward} MTC.`);
-                            if (jobBoardTitle && activeTruck === "pickup") {
-                                jobBoardTitle.innerText = "There's another job, let's hit the road!";
-                            }
-                            updateGameLoopView(); 
+                            openAppModal("Task Finished!", `Your delivery run earned you ${currentConfig.reward} MTC. Ready for the next run?`, "Claim Earnings", () => {
+                                if (jobBoardTitle && activeTruck === "pickup") {
+                                    jobBoardTitle.innerText = "There's another job, let's hit the road!";
+                                }
+                                updateGameLoopView(); 
+                            });
                         }
                     }
                 });
@@ -693,6 +694,9 @@
         currentTaskTimeLeft = totalTaskDuration;
         taskStartTime = 0;
         secondsWorkedThisJob = 0;
+        
+        isFuelOut = false;
+        localStorage.setItem(`is_fuel_out_${userId}`, "false");
         fuelPercentage = 100;
         if (fuelFill) fuelFill.style.width = `100%`;
         
@@ -702,6 +706,7 @@
 
     function triggerFuelOutage() {
         isFuelOut = true;
+        localStorage.setItem(`is_fuel_out_${userId}`, "true");
         updateGameLoopView();
         tutorialFuelOutagesOccurred++;
         
@@ -716,6 +721,7 @@
 
     function triggerEngineBreakdown() {
         isEngineDead = true;
+        localStorage.setItem(`is_engine_dead_${userId}`, "true");
         updateGameLoopView();
         tutorialEngineFailuresOccurred++;
         
@@ -747,12 +753,14 @@
                 
                 if (type === 'fuel') {
                     isFuelOut = false;
+                    localStorage.setItem(`is_fuel_out_${userId}`, "false");
                     secondsWorkedThisJob = 0; 
                     fuelPercentage = 100;
                     if (fuelFill) fuelFill.style.width = `100%`;
                 }
                 if (type === 'engine') {
                     isEngineDead = false;
+                    localStorage.setItem(`is_engine_dead_${userId}`, "false");
                 }
                 
                 openAppModal("System Restored", "Your truck has been fully serviced and ready to ride!", "Continue", () => {
@@ -796,8 +804,11 @@
                     let nowInSeconds = Math.floor(Date.now() / 1000);
                     let secondsPassed = nowInSeconds - Math.floor(taskStartTime);
                     currentTaskTimeLeft = Math.max(0, totalTaskDuration - secondsPassed);
-                    secondsWorkedThisJob = secondsPassed;
                     
+                    // Track runtime without overflowing max fuel capacity on navigation
+                    let maxFuelSecs = getFuelDurationSeconds(fuelLevel);
+                    secondsWorkedThisJob = secondsPassed % maxFuelSecs;
+
                     if (currentTaskTimeLeft <= 0) {
                         currentTaskTimeLeft = 0;
                         taskStartTime = 0;
@@ -808,7 +819,15 @@
                 }
 
                 checkAndApplyTruckUpgrade();
-                updateGameLoopView();
+                
+                // If fuel is marked as empty, display popup; otherwise resume normal driving
+                if (isFuelOut) {
+                    triggerFuelOutage();
+                } else if (isEngineDead) {
+                    triggerEngineBreakdown();
+                } else {
+                    updateGameLoopView();
+                }
             }
         });
     }
@@ -819,7 +838,6 @@
         if (statName === 'speed') currentLvl = speedsLevel;
         if (statName === 'engine') currentLvl = engineLevel;
 
-        // Level 10 Maximum Cap Check
         if (currentLvl >= 10) {
             openAppModal("Maximum Level Reached", `You have reached the maximum Level 10 for ${statName.toUpperCase()}!`, "Got it", null);
             return;
@@ -844,7 +862,7 @@
                     syncPriceButtonLabels(data.fuel_cost, data.speed_cost, data.engine_cost);
                     
                     totalTaskDuration = calculateTaskDuration();
-                    loadUserData();
+                    updateGameLoopView();
                 });
             } else {
                 openAppModal("Upgrade Locked", data.message, "Understood", () => {
@@ -858,7 +876,6 @@
     }
 
     function showSpeedDiscountEffect() {
-        // Only show if user has speed upgrades (Level 2+)
         const cutSeconds = getSpeedTimeCutSeconds(speedsLevel);
         if (cutSeconds <= 0) return;
     
@@ -878,7 +895,6 @@
     
         stage.appendChild(floatEl);
     
-        // Automatically remove node after animation finishes
         setTimeout(() => {
             if (floatEl && floatEl.parentNode) {
                 floatEl.parentNode.removeChild(floatEl);
@@ -888,6 +904,6 @@
 
     // Initialize application
     loadUserData();
-</script> 
+</script>
 </body>
 </html>
