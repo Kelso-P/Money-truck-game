@@ -232,33 +232,39 @@
     </div>
 </div>
 
-<div class="upgrades-container">
-    <div class="upgrade-card">
-        <span>Fuel Tank</span>
-        <strong>LVL <span id="fuel-lvl">0</span></strong>
-        <button id="fuel-upgrade-btn" onclick="upgrade('fuel')">20 MTC</button>
-    </div>
-    <div class="upgrade-card">
-        <span>Speed</span>
-        <strong>LVL <span id="speed-lvl">0</span></strong>
-        <button id="speed-upgrade-btn" onclick="upgrade('speed')">20 MTC</button>
-    </div>
-    <div class="upgrade-card">
-        <span>Engine</span>
-        <strong>LVL <span id="engine-lvl">0</span></strong>
-        <button id="engine-upgrade-btn" onclick="upgrade('engine')">20 MTC</button>
-    </div>
-</div>
+<!-- Main Scrollable Container Wrapper -->
+<div class="main-content-container" style="overflow-y: auto; max-height: 100vh; padding-bottom: 80px; box-sizing: border-box;">
 
-<!-- Level 10 Automation Enlightenment Banner -->
-<div style="background: #1e1e24; border: 1px solid #f39c12; border-radius: 10px; margin: 15px 10px; padding: 12px; text-align: center; color: #ccc; font-size: 0.85rem; line-height: 1.4;">
-    🚀 <strong style="color: #f39c12;">Pro Tip:</strong> Reach <span style="color: #fff; font-weight: bold;">Level 10</span> on all 3 upgrades to enable <strong style="color: #2ecc71;">Auto-Pilot Mode</strong>! Your truck will automatically claim earnings and continuous deliveries hands-free until fuel runs out or the engine needs repair.
-</div>
+    <!-- 1. Upgrades Container -->
+    <div class="upgrades-container">
+        <div class="upgrade-card">
+            <span>Fuel Tank</span>
+            <strong>LVL <span id="fuel-lvl">0</span></strong>
+            <button id="fuel-upgrade-btn" onclick="upgrade('fuel')">20 MTC</button>
+        </div>
+        <div class="upgrade-card">
+            <span>Speed</span>
+            <strong>LVL <span id="speed-lvl">0</span></strong>
+            <button id="speed-upgrade-btn" onclick="upgrade('speed')">20 MTC</button>
+        </div>
+        <div class="upgrade-card">
+            <span>Engine</span>
+            <strong>LVL <span id="engine-lvl">0</span></strong>
+            <button id="engine-upgrade-btn" onclick="upgrade('engine')">20 MTC</button>
+        </div>
+    </div>
 
-<div class="wallet-container">
-    <a href="wallet.html" class="wallet-btn">
-        💳 Go to Driver Wallet
-    </a>
+    <div class="wallet-container" style="margin: 15px 10px 10px 10px;">
+        <a href="wallet.html" class="wallet-btn">
+            💳 Go to Driver Wallet
+        </a>
+    </div>
+
+    <!-- 3. Shortened Pro Tip Banner (Placed BELOW Wallet Button) -->
+    <div style="background: #1e1e24; border: 1px solid #f39c12; border-radius: 10px; margin: 10px 10px 20px 10px; padding: 10px 12px; text-align: center; color: #ccc; font-size: 0.8rem; line-height: 1.35;">
+        🚀 <strong style="color: #f39c12;">Pro Tip:</strong> Reach level 10 on all 3 upgrades and enable auto-pilot mode! You won't have to start job manually, the system automatically collects earnings for you.
+    </div>
+
 </div>
 
 <div class="footer-nav">
