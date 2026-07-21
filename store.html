@@ -344,7 +344,7 @@
                 </div>
                 <div class="item-name">Diesel Beast</div>
                 <div class="item-price">10,000 MTC</div>
-                <button class="buy-btn" onclick="triggerPurchase('truck', 'diesel_beast', 10000)">Buy</button>
+                <button id="btn-diesel-beast" class="buy-btn" onclick="buyDieselBeast()">Buy</button>
             </div>
 
             <!-- Truck 3 -->
@@ -403,14 +403,14 @@
         </div>
     </div>
 
-    <!-- SHOWROOM CONGRATS MODAL -->
+       <!-- SHOWROOM CONGRATS MODAL -->
     <div class="modal-overlay" id="showroom-modal">
         <div class="modal-card">
             <button class="modal-close-btn" onclick="closeShowroomModal()">&times;</button>
             <div class="modal-image-frame">
-                <img src="images/ironhauler_showroom.png" alt="Iron Hauler Showroom">
+                <img id="showroom-img" src="images/ironhauler_showroom.png" alt="Showroom Truck">
             </div>
-            <p class="modal-congrats-text">Congratulations driver! The iron hauler is now yours!</p>
+            <p class="modal-congrats-text" id="showroom-text">Congratulations driver!</p>
         </div>
     </div>
 
@@ -422,120 +422,179 @@
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
 
-        const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev";
-        const userId = tg.initDataUnsafe?.user?.id || 12345;
-        let currentBalance = 0;
+    const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev";
+    const userId = tg.initDataUnsafe?.user?.id || 12345;
+    let currentBalance = 0;
 
-        function formatUsername(name) {
-            if (!name) return "Driver";
-            let rawName = name.startsWith('@') ? name.substring(1) : name;
-            if (rawName.length > 12) {
-                return `@${rawName.substring(0, 12)}...`;
-            }
-            return `@${rawName}`;
+    function formatUsername(name) {
+        if (!name) return "Driver";
+        let rawName = name.startsWith('@') ? name.substring(1) : name;
+        if (rawName.length > 12) {
+            return `@${rawName.substring(0, 12)}...`;
         }
+        return `@${rawName}`;
+    }
 
-        const usernameEl = document.getElementById('username');
-        if (usernameEl) {
-            const displayName = tg.initDataUnsafe?.user?.username || tg.initDataUnsafe?.user?.first_name || "Driver";
-            usernameEl.innerText = formatUsername(displayName);
-        }
+    const usernameEl = document.getElementById('username');
+    if (usernameEl) {
+        const displayName = tg.initDataUnsafe?.user?.username || tg.initDataUnsafe?.user?.first_name || "Driver";
+        usernameEl.innerText = formatUsername(displayName);
+    }
 
-        function loadBalanceDisplay() {
-            fetch(`${NGROK_URL}/get_profile`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: userId })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === "success") {
-                    currentBalance = data.balance;
-                    const balanceTextElement = document.getElementById('balance-display');
-                    if (balanceTextElement) {
-                        balanceTextElement.innerText = `${currentBalance} MTC`;
-                    }
+    function loadBalanceDisplay() {
+        fetch(`${NGROK_URL}/get_profile`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "success") {
+                currentBalance = data.balance;
+                const balanceTextElement = document.getElementById('balance-display');
+                if (balanceTextElement) {
+                    balanceTextElement.innerText = `${currentBalance} MTC`;
                 }
-            })
-            .catch(err => console.error("Failed to sync profile data:", err));
-        }
-
-        // Check ownership state on load
-        function checkTruckOwnership() {
-            const ownsIronHauler = localStorage.getItem(`owned_iron_hauler_${userId}`);
-            if (ownsIronHauler === "true") {
-                applyIronHaulerOwnedState();
             }
+        })
+        .catch(err => console.error("Failed to sync profile data:", err));
+    }
+
+    // --- TRUCK OWNERSHIP PERSISTENCE ---
+    function checkTruckOwnership() {
+        // Check Iron Hauler
+        const ownsIronHauler = localStorage.getItem(`owned_iron_hauler_${userId}`);
+        if (ownsIronHauler === "true") {
+            applyIronHaulerOwnedState();
         }
 
-        function applyIronHaulerOwnedState() {
-            const btn = document.getElementById('btn-iron-hauler');
-            if (btn) {
-                btn.innerText = "You own the iron hauler!";
-                btn.classList.add('owned');
-                btn.disabled = true;
-                btn.onclick = null;
-            }
+        // Check Diesel Beast
+        const ownsDieselBeast = localStorage.getItem(`owned_diesel_beast_${userId}`);
+        if (ownsDieselBeast === "true") {
+            applyDieselBeastOwnedState();
         }
+    }
 
-        function buyIronHauler() {
-            if (currentBalance < 1000) {
-                tg.showAlert("Insufficient funds! You need 1,000 MTC to purchase the Iron Hauler.");
-                return;
-            }
-
-            fetch(`${NGROK_URL}/buy_truck`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    user_id: userId,
-                    truck_id: "iron_hauler",
-                    price: 1000
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === "success") {
-                    // Update balance
-                    currentBalance = data.new_balance;
-                    document.getElementById('balance-display').innerText = `${currentBalance} MTC`;
-
-                    // Persist ownership
-                    localStorage.setItem(`owned_iron_hauler_${userId}`, "true");
-                    applyIronHaulerOwnedState();
-
-                    // Open Showroom Modal
-                    document.getElementById('showroom-modal').classList.add('active');
-                } else {
-                    tg.showAlert(data.message || "Purchase failed.");
-                }
-            })
-            .catch(err => {
-                console.error("Purchase error:", err);
-                tg.showAlert("Unable to complete transaction. Please check connection.");
-            });
+    function applyIronHaulerOwnedState() {
+        const btn = document.getElementById('btn-iron-hauler');
+        if (btn) {
+            btn.innerText = "You own the iron hauler!";
+            btn.classList.add('owned');
+            btn.disabled = true;
+            btn.onclick = null;
         }
+    }
 
-        function closeShowroomModal() {
-            document.getElementById('showroom-modal').classList.remove('active');
-            // Show follow-up message after exit
-            setTimeout(() => {
-                tg.showAlert("Your new truck will hit the road on the next job! Drive safely.");
-            }, 200);
+    function applyDieselBeastOwnedState() {
+        const btn = document.getElementById('btn-diesel-beast');
+        if (btn) {
+            btn.innerText = "You own the diesel beast!";
+            btn.classList.add('owned');
+            btn.disabled = true;
+            btn.onclick = null;
         }
+    }
 
-        function buyMTC(dollarAmount) {
-            // Redirect to wallet page carrying the amount in URL query params
-            window.location.href = `wallet.html?amount=${dollarAmount.toFixed(2)}`;
+    // --- BUY IRON HAULER (1,000 MTC) ---
+    function buyIronHauler() {
+    if (currentBalance < 1000) {
+        tg.showAlert("Insufficient funds! You need 1,000 MTC to purchase the Iron Hauler.");
+        return;
+    }
+
+    fetch(`${NGROK_URL}/buy_truck`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            user_id: userId,
+            truck_id: "iron_hauler",
+            price: 1000
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === "success") {
+            currentBalance = data.new_balance;
+            document.getElementById('balance-display').innerText = `${currentBalance} MTC`;
+
+            localStorage.setItem(`owned_iron_hauler_${userId}`, "true");
+            applyIronHaulerOwnedState();
+
+            // Set Iron Hauler details dynamically
+            document.getElementById('showroom-img').src = "images/ironhauler_showroom.png";
+            document.getElementById('showroom-text').innerText = "Congratulations driver! The iron hauler is now yours!";
+
+            // Open Modal
+            document.getElementById('showroom-modal').classList.add('active');
+        } else {
+            tg.showAlert(data.message || "Purchase failed.");
         }
+    })
+    .catch(err => {
+        console.error("Purchase error:", err);
+        tg.showAlert("Unable to complete transaction. Please check connection.");
+    });
+}
 
-        // Initialize page state
-        loadBalanceDisplay();
-        checkTruckOwnership();
-    </script>
+function buyDieselBeast() {
+    if (currentBalance < 10000) {
+        tg.showAlert("Insufficient funds! You need 10,000 MTC to purchase the Diesel Beast.");
+        return;
+    }
+
+    fetch(`${NGROK_URL}/buy_truck`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            user_id: userId,
+            truck_id: "diesel_beast",
+            price: 10000
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === "success") {
+            currentBalance = data.new_balance;
+            document.getElementById('balance-display').innerText = `${currentBalance} MTC`;
+
+            localStorage.setItem(`owned_diesel_beast_${userId}`, "true");
+            applyDieselBeastOwnedState();
+
+            // Set Diesel Beast details dynamically
+            // (Ensure your image filename matches what you have saved in your images folder)
+            document.getElementById('showroom-img').src = "images/dieselbeast_showroom.png";
+            document.getElementById('showroom-text').innerText = "Congratulations driver! The diesel beast is now yours!";
+
+            // Open Modal
+            document.getElementById('showroom-modal').classList.add('active');
+        } else {
+            tg.showAlert(data.message || "Purchase failed.");
+        }
+    })
+    .catch(err => {
+        console.error("Purchase error:", err);
+        tg.showAlert("Unable to complete transaction. Please check connection.");
+    });
+}
+
+    function closeShowroomModal() {
+        document.getElementById('showroom-modal').classList.remove('active');
+        setTimeout(() => {
+            tg.showAlert("Your new truck will hit the road on the next job! Drive safely.");
+        }, 200);
+    }
+
+    function buyMTC(dollarAmount) {
+        window.location.href = `wallet.html?amount=${dollarAmount.toFixed(2)}`;
+    }
+
+    // Initialize page state
+    loadBalanceDisplay();
+    checkTruckOwnership();
+</script>
 </body>
 </html>
