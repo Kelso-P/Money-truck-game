@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Money Trucks - Invite Friends</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
+        body { background-color: #0f1115; color: #ffffff; padding: 20px; display: flex; flex-direction: column; min-height: 100vh; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .user-info { font-weight: bold; font-size: 1.1rem; color: #e1e1e1; }
+        .balance { background: #1a1f26; border: 1px solid #00e5ff; color: #00e5ff; padding: 6px 14px; border-radius: 20px; font-weight: bold; }
+
+        .invite-card { background: #181c24; border: 1px solid #2a313d; border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 20px; }
+        .invite-card h2 { color: #00e5ff; margin-bottom: 8px; font-size: 1.4rem; }
+        .invite-card p { color: #9aa4b2; font-size: 0.9rem; margin-bottom: 18px; line-height: 1.4; }
+
+        .link-box { display: flex; gap: 8px; background: #0f1115; padding: 8px; border-radius: 10px; border: 1px solid #2a313d; margin-bottom: 15px; }
+        .link-input { background: transparent; border: none; color: #fff; width: 100%; outline: none; font-size: 0.85rem; padding-left: 8px; }
+        .copy-btn { background: #00e5ff; color: #000; border: none; padding: 8px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; white-space: nowrap; }
+
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .stat-card { background: #181c24; border: 1px solid #2a313d; border-radius: 12px; padding: 15px; text-align: center; }
+        .stat-card h3 { font-size: 1.5rem; color: #fff; margin-bottom: 4px; }
+        .stat-card p { font-size: 0.75rem; color: #8899a6; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .claim-card { background: linear-gradient(135deg, #181c24 0%, #1e2633 100%); border: 1px solid #00e5ff; border-radius: 16px; padding: 20px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 80px; }
+        .claim-info h4 { font-size: 1rem; color: #fff; margin-bottom: 4px; }
+        .claim-info p { font-size: 0.8rem; color: #00e5ff; font-weight: bold; }
+        .action-btn { background: #00e5ff; color: #000; border: none; padding: 10px 20px; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .action-btn:disabled { background: #2a313d; color: #666; cursor: not-allowed; }
+
+        .footer-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #12151c; border-top: 1px solid #222733; display: flex; justify-content: space-around; padding: 12px 0; }
+        .nav-item { color: #666; text-decoration: none; text-align: center; font-size: 0.75rem; }
+        .nav-item.active { color: #00e5ff; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="user-info">
+            <span id="username">Driver</span>
+        </div>
+        <span class="balance" id="balance-display">0 MTC</span>
+    </div>
+
+    <div class="invite-card">
+        <h2>Invite Drivers 🤝</h2>
+        <p>Earn <strong>+50 MTC</strong> for every friend you invite once they complete and claim their first job delivery!</p>
+        
+        <div class="link-box">
+            <input type="text" id="ref-link" class="link-input" readonly value="Generating link...">
+            <button class="copy-btn" onclick="copyReferralLink()">Copy</button>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3 id="total-referrals">0</h3>
+            <p>Total Invited</p>
+        </div>
+        <div class="stat-card">
+            <h3 id="unclaimed-count">0</h3>
+            <p>Jobs Completed</p>
+        </div>
+    </div>
+
+    <div class="claim-card">
+        <div class="claim-info">
+            <h4>Referral Bonuses</h4>
+            <p id="unclaimed-amount">+0 MTC Available</p>
+        </div>
+        <button id="claim-ref-btn" class="action-btn" onclick="claimReferralBonus()" disabled>Claim</button>
+    </div>
+
+    <div class="footer-nav">
+        <a href="index.html" class="nav-item">🏠<br>Home</a>
+        <a href="store.html" class="nav-item">🛒<br>Store</a>
+        <a href="friends.html" class="nav-item active">👥<br>Friends</a>
+        <a href="tasks.html" class="nav-item">📋<br>Tasks</a>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev";
+        const userId = tg.initDataUnsafe.user?.id || 12345;
+
+        // Format Username
+        if (tg.initDataUnsafe?.user) {
+            const user = tg.initDataUnsafe.user;
+            const displayName = user.username || user.first_name || "Driver";
+            document.getElementById('username').innerText = displayName.length > 12 ? `@${displayName.substring(0, 12)}...` : `@${displayName}`;
+        }
+
+        function loadReferralData() {
+            // Load user profile balance
+            fetch(`${NGROK_URL}/get_profile`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+                body: JSON.stringify({ user_id: userId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    document.getElementById('balance-display').innerText = `${data.balance} MTC`;
+                }
+            });
+
+            // Load referral info
+            fetch(`${NGROK_URL}/get_referral_info`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+                body: JSON.stringify({ user_id: userId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "success") {
+                    document.getElementById('ref-link').value = data.referral_link;
+                    document.getElementById('total-referrals').innerText = data.total_referrals;
+                    document.getElementById('unclaimed-count').innerText = data.unclaimed_count;
+                    document.getElementById('unclaimed-amount').innerText = `+${data.unclaimed_rewards} MTC Available`;
+
+                    const claimBtn = document.getElementById('claim-ref-btn');
+                    if (data.unclaimed_rewards > 0) {
+                        claimBtn.disabled = false;
+                    } else {
+                        claimBtn.disabled = true;
+                    }
+                }
+            })
+            .catch(err => console.error("Error loading referral data:", err));
+        }
+
+        function copyReferralLink() {
+            const linkInput = document.getElementById('ref-link');
+            navigator.clipboard.writeText(linkInput.value).then(() => {
+                tg.showAlert("Referral link copied to clipboard!");
+            }).catch(() => {
+                // Fallback selection
+                linkInput.select();
+                document.execCommand('copy');
+                tg.showAlert("Referral link copied!");
+            });
+        }
+
+        function claimReferralBonus() {
+            fetch(`${NGROK_URL}/claim_referral_rewards`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+                body: JSON.stringify({ user_id: userId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "success") {
+                    tg.showAlert(data.message);
+                    document.getElementById('balance-display').innerText = `${data.new_balance} MTC`;
+                    loadReferralData(); // Refresh metrics
+                } else {
+                    tg.showAlert(data.message);
+                }
+            })
+            .catch(err => {
+                console.error("Error claiming referral reward:", err);
+                tg.showAlert("Unable to connect to reward server.");
+            });
+        }
+
+        loadReferralData();
+    </script>
+</body>
+</html>
