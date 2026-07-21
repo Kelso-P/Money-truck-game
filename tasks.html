@@ -293,7 +293,7 @@
         <a href="tasks.html" class="nav-item active">📋<br>Tasks</a>
     </div>
 
-   <script>
+  <script>
     const tg = window.Telegram.WebApp;
     tg.ready();
     tg.expand();
@@ -438,8 +438,13 @@
                 balance = data.balance;
                 document.getElementById('balance-display').innerText = `${balance} MTC`;
                 
-                // Store list of owned trucks from response (handles trucks/owned_trucks keys)
-                ownedTrucks = data.trucks || data.owned_trucks || [];
+                // Store list of owned trucks from response
+                let rawTrucks = data.trucks || data.owned_trucks || [];
+                if (typeof rawTrucks === 'string') {
+                    ownedTrucks = rawTrucks.split(',').map(t => t.trim());
+                } else {
+                    ownedTrucks = rawTrucks;
+                }
 
                 syncTasksUI(
                     data.completed_tasks || [], 
@@ -451,14 +456,28 @@
         .catch(err => console.error("Error loading profile configuration:", err));
     }
 
+    // --- HELPER TO CHECK TRUCK OWNERSHIP (SERVER + LOCALSTORAGE) ---
+    function isTruckOwned(truckId) {
+        const userId = tg.initDataUnsafe.user?.id || 12345;
+
+        // Check backend list
+        const inServerList = ownedTrucks.includes(truckId) || 
+                             ownedTrucks.some(t => (t.id || t) === truckId);
+        
+        if (inServerList) return true;
+
+        // Check LocalStorage fallback
+        const localCheck = localStorage.getItem(`owned_${truckId}_${userId}`);
+        return localCheck === "true";
+    }
+
     // --- ACTION HANDLER WITH TRUCK OWNERSHIP CHECK ---
     function claimTask(taskId) {
         // Verification step for truck acquisition tasks
         if (TRUCK_TASK_MAP[taskId]) {
             const requiredTruck = TRUCK_TASK_MAP[taskId];
-            const isOwned = ownedTrucks.includes(requiredTruck) || ownedTrucks.some(t => (t.id || t) === requiredTruck);
 
-            if (!isOwned) {
+            if (!isTruckOwned(requiredTruck)) {
                 let truckName = "the required truck";
                 if (taskId === 'buy_iron') truckName = "Iron Hauler";
                 if (taskId === 'buy_diesel') truckName = "Diesel Beast";
@@ -488,7 +507,7 @@
                 // Trigger floating animation
                 triggerFloatAnimation(taskId);
                 
-                // Set button to disabled "Claimed ✓" state permanently for one-off tasks
+                // Set button state
                 if (taskId === 'daily_login' || taskId === 'buy_mtc') {
                     startCountdown(taskId, data.time_left || 86400);
                 } else {
