@@ -603,8 +603,31 @@
         };
     }
 
+    // --- AUTOPILOT INDICATOR DISPLAY ---
+    function updateAutopilotIndicator() {
+        const isMaxedOut = fuelLevel >= 10 && speedsLevel >= 10 && engineLevel >= 10;
+        let tag = document.getElementById('autopilot-tag');
+
+        if (isMaxedOut) {
+            if (!tag && speedHud) {
+                tag = document.createElement('div');
+                tag.id = 'autopilot-tag';
+                tag.innerText = 'Auto-pilot active';
+                tag.style.color = '#00FF66'; // Vibrant green
+                tag.style.fontSize = '12px';
+                tag.style.fontWeight = 'bold';
+                tag.style.marginTop = '2px';
+                tag.style.textShadow = '0px 0px 5px rgba(0,255,102,0.5)';
+                speedHud.parentNode.insertBefore(tag, speedHud.nextSibling);
+            }
+        } else if (tag) {
+            tag.remove();
+        }
+    }
+
     function updateGameLoopView() {
         syncTruckAssets();
+        updateAutopilotIndicator();
 
         const isMaxedOut = fuelLevel >= 10 && speedsLevel >= 10 && engineLevel >= 10;
         const canDrive = !isFuelOut && !isEngineDead && (!jobWaitingApproval || isMaxedOut);
@@ -730,12 +753,11 @@
 
                         checkAndApplyTruckUpgrade();
 
+                        // --- AUTOMATED JOB CONTINUATIONS IF AUTOPILOT IS ACTIVE ---
                         if (fuelLevel >= 10 && speedsLevel >= 10 && engineLevel >= 10) {
-                            openAppModal("Auto-Pilot Active", `Delivery complete! ${currentConfig.reward} MTC added to wallet. Next run started automatically!`, "Awesome", () => {
-                                jobWaitingApproval = false;
-                                showSpeedDiscountEffect();
-                                updateGameLoopView();
-                            });
+                            jobWaitingApproval = false;
+                            showSpeedDiscountEffect();
+                            acceptNewJobContract();
                         } else {
                             isDriving = false;
                             jobWaitingApproval = true; 
