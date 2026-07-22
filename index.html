@@ -259,7 +259,7 @@
 </div>
 
 <!-- Main Scrollable Container Wrapper -->
-<div class="main-content-container" style="overflow-y: auto; max-height: 100vh; padding-bottom: 70px; box-sizing: border-box;">
+<div class="main-content-container" style="overflow-y: auto; max-height: 100vh; padding-bottom: 20px; box-sizing: border-box;">
 
     <!-- 1. Upgrades Container -->
     <div class="upgrades-container">
@@ -286,7 +286,6 @@
         </a>
     </div>
 
-    <!-- 3. Shortened Pro Tip Banner (Placed BELOW Wallet Button) -->
     <div style="background: #1e1e24; border: 1px solid #f39c12; border-radius: 10px; margin: 10px 10px 20px 10px; padding: 10px 12px; text-align: center; color: #ccc; font-size: 0.8rem; line-height: 1.35;">
         🚀 <strong style="color: #f39c12;">Pro Tip:</strong> Reach level 10 on all 3 upgrades and enable auto-pilot mode! You won't have to start job manually, the system automatically collects earnings for you.
     </div>
@@ -362,6 +361,11 @@
     const speedBtn = document.getElementById('speed-upgrade-btn');
     const engineBtn = document.getElementById('engine-upgrade-btn');
 
+    // --- UPGRADE PRICING SCHEDULES (Multiples of 10) ---
+    const SPEED_COSTS  = [20, 50, 90, 140, 210, 310, 440, 600, 780, 1000];
+    const ENGINE_COSTS = [20, 50, 80, 130, 200, 300, 420, 560, 720, 900];
+    const FUEL_COSTS   = [20, 40, 70, 110, 170, 250, 350, 470, 620, 800];
+
     // --- DYNAMIC TRUCK CONFIGURATION ---
     function getTruckConfig() {
         if (activeTruck === "titan_hypermax") {
@@ -396,7 +400,18 @@
         };
     }
 
-    // --- LOOKUP TABLES FOR UPGRADES ---
+    // --- LOOKUP COST FOR FRONTEND DISPLAY ---
+    function getUpgradeCost(stat, currentLvl) {
+        if (currentLvl >= 10) return "MAX";
+        
+        let costTable = SPEED_COSTS;
+        if (stat === 'engine') costTable = ENGINE_COSTS;
+        if (stat === 'fuel') costTable = FUEL_COSTS;
+
+        return costTable[currentLvl] || "MAX";
+    }
+
+    // --- LOOKUP TABLES FOR STAT UPGRADES ---
     function getFuelDurationSeconds(lvl) {
         const minutesMap = {
             0: 10, 1: 10, 2: 20, 3: 30, 4: 45, 
@@ -490,9 +505,13 @@
     }
 
     function syncPriceButtonLabels(fCost, sCost, eCost) {
-        if (fuelBtn) fuelBtn.innerText = fuelLevel >= 10 ? "MAX" : `${fCost} MTC`;
-        if (speedBtn) speedBtn.innerText = speedsLevel >= 10 ? "MAX" : `${sCost} MTC`;
-        if (engineBtn) engineBtn.innerText = engineLevel >= 10 ? "MAX" : `${eCost} MTC`;
+        const fPrice = fuelLevel >= 10 ? "MAX" : `${fCost !== undefined ? fCost : getUpgradeCost('fuel', fuelLevel)} MTC`;
+        const sPrice = speedsLevel >= 10 ? "MAX" : `${sCost !== undefined ? sCost : getUpgradeCost('speed', speedsLevel)} MTC`;
+        const ePrice = engineLevel >= 10 ? "MAX" : `${eCost !== undefined ? eCost : getUpgradeCost('engine', engineLevel)} MTC`;
+
+        if (fuelBtn) fuelBtn.innerText = fPrice;
+        if (speedBtn) speedBtn.innerText = sPrice;
+        if (engineBtn) engineBtn.innerText = ePrice;
     }
 
     function openAppModal(title, message, btnText, actionCallback) {
@@ -640,7 +659,6 @@
 
                         checkAndApplyTruckUpgrade();
 
-                        // AUTOMATION LOGIC: Custom Modal replaced native tg.showAlert
                         if (fuelLevel >= 10 && speedsLevel >= 10 && engineLevel >= 10) {
                             openAppModal("Auto-Pilot Active", `Delivery complete! ${currentConfig.reward} MTC added to wallet. Next run started automatically!`, "Awesome", () => {
                                 jobWaitingApproval = false;
@@ -805,7 +823,6 @@
                     let secondsPassed = nowInSeconds - Math.floor(taskStartTime);
                     currentTaskTimeLeft = Math.max(0, totalTaskDuration - secondsPassed);
                     
-                    // Track runtime without overflowing max fuel capacity on navigation
                     let maxFuelSecs = getFuelDurationSeconds(fuelLevel);
                     secondsWorkedThisJob = secondsPassed % maxFuelSecs;
 
@@ -820,7 +837,6 @@
 
                 checkAndApplyTruckUpgrade();
                 
-                // If fuel is marked as empty, display popup; otherwise resume normal driving
                 if (isFuelOut) {
                     triggerFuelOutage();
                 } else if (isEngineDead) {
@@ -843,6 +859,8 @@
             return;
         }
 
+        const activeJobInProgress = isDriving;
+
         fetch(`${NGROK_URL}/upgrade`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -853,7 +871,7 @@
             if(data.status === "success") {
                 openAppModal("Upgrade Complete!", data.message, "Awesome", () => {
                     if (statName === 'fuel') { fuelLevel++; if(fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel; }
-                    if (statName === 'speed') { speedsLevel++; if(speedLvlTxt) speedLvlTxt.innerText = speedsLevel; showSpeedDiscountEffect();}
+                    if (statName === 'speed') { speedsLevel++; if(speedLvlTxt) speedLvlTxt.innerText = speedsLevel; }
                     if (statName === 'engine') { engineLevel++; if(engineLvlTxt) engineLvlTxt.innerText = engineLevel; }
 
                     balance = data.new_balance;
@@ -861,8 +879,20 @@
 
                     syncPriceButtonLabels(data.fuel_cost, data.speed_cost, data.engine_cost);
                     
-                    totalTaskDuration = calculateTaskDuration();
-                    updateGameLoopView();
+                    if (statName === 'speed' && activeJobInProgress) {
+                        openAppModal(
+                            "Speed Upgrade Queued",
+                            "Your speed upgrade was successful! The time reduction will apply starting from your next job.",
+                            "Understood",
+                            () => {
+                                updateGameLoopView();
+                            }
+                        );
+                    } else {
+                        if (statName === 'speed') showSpeedDiscountEffect();
+                        totalTaskDuration = calculateTaskDuration();
+                        updateGameLoopView();
+                    }
                 });
             } else {
                 openAppModal("Upgrade Locked", data.message, "Understood", () => {
