@@ -12,6 +12,7 @@
             --text-main: #ffffff;
             --accent-gold: #ffcc00;
             --orange-main: #f39c12;
+            --green-accent: #2ecc71;
         }
         body {
             margin: 0;
@@ -33,9 +34,24 @@
             color: var(--orange-main);
             font-weight: bold;
         }
-        .balance { color: var(--accent-gold); font-weight: bold; font-size: 1.1em; }
+        .balances-wrapper {
+            display: flex;
+            gap: 8px;
+        }
+        .balance-badge {
+            background: #23232e;
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--orange-main);
+            font-weight: bold;
+            font-size: 0.85rem;
+            color: #fff;
+        }
+        .mtd-badge {
+            border-color: var(--green-accent);
+        }
         .container { padding: 20px; margin-bottom: 140px; }
-        .title { font-size: 1.4rem; margin-bottom: 5px; font-weight: bold; }
+        .title { font-size: 1.4rem; margin-bottom: 15px; font-weight: bold; }
         .section-card {
             background: var(--card-bg);
             border-radius: 12px;
@@ -71,9 +87,10 @@
             border-radius: 0 8px 8px 0;
             font-size: 0.85rem;
             margin-bottom: 20px;
+            line-height: 1.4;
         }
 
-        /* Pulsing White Glow Highlight */
+        /* Pulsing Glow */
         .paypal-glow {
             animation: paypalPulse 1.2s ease-in-out infinite alternate !important;
             border: 2px solid #fff !important;
@@ -81,24 +98,12 @@
         }
         
         @keyframes paypalPulse {
-            0% {
-                transform: scale(1);
-                box-shadow: 0 0 0 0 rgba(243, 156, 18, 0.7);
-                border-color: #fff;
-            }
-            50% {
-                transform: scale(1.03); /* Subtle outward pulse */
-                box-shadow: 0 0 18px 6px rgba(243, 156, 18, 0.9);
-                border-color: #e67e22;
-            }
-            100% {
-                transform: scale(1);
-                box-shadow: 0 0 0 0 rgba(243, 156, 18, 0.7);
-                border-color: #fff;
-            }
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(243, 156, 18, 0.7); border-color: #fff; }
+            50% { transform: scale(1.03); box-shadow: 0 0 18px 6px rgba(243, 156, 18, 0.9); border-color: #e67e22; }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(243, 156, 18, 0.7); border-color: #fff; }
         }
         
-        /* Modal Popup System Styling */
+        /* Modal Popup System */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -122,7 +127,7 @@
             background: #161616;
             width: 100%;
             max-width: 500px;
-            max-height: 75vh;
+            max-height: 80vh;
             border-top-left-radius: 20px;
             border-top-right-radius: 20px;
             border-top: 2px solid var(--orange-main);
@@ -139,7 +144,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             border-bottom: 1px solid #333;
             padding-bottom: 10px;
         }
@@ -153,6 +158,23 @@
             font-weight: bold;
             cursor: pointer;
         }
+        
+        .modal-btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-confirm { background: var(--green-accent); color: #fff; }
+        .btn-cancel { background: #333; color: #ccc; }
+
         .history-section-title {
             font-size: 0.95rem;
             color: var(--accent-gold);
@@ -204,11 +226,15 @@
     <div class="user-profile">
         <span id="username-display" class="username-orange">Driver</span>
     </div>
-    <span class="balance" id="balance-display" style="background: #23232e; padding: 6px 12px; border-radius: 20px; border: 1px solid #f39c12; font-weight: bold; font-size: 0.9rem; color: #fff;">0 MTC</span>
+    <div class="balances-wrapper">
+        <span class="balance-badge" id="balance-display">0 MTC</span>
+        <span class="balance-badge mtd-badge" id="mtd-balance-display">0 MTD</span>
+    </div>
 </div>
 
 <div class="container">
     <div class="title">Transactions Terminal</div>
+    
     <!-- 📥 TOP UP SECTION -->
     <div class="section-card">
         <div class="section-title">📥 Top Up Account</div>
@@ -231,6 +257,31 @@
         </button>
     </div>
 
+    <!-- 💱 WITHDRAWAL WALLET (CONVERTER) SECTION -->
+    <div class="section-card">
+        <div class="section-title">💱 Withdrawal Wallet</div>
+        <p style="font-size: 0.85rem; color: #aaa; margin-top: -5px; margin-bottom: 15px;">
+            Convert your game earnings (MTC) to withdrawable balance (MTD).
+        </p>
+
+        <div class="form-group">
+            <label class="form-label">Amount of MTC to Convert</label>
+            <div class="input-wrapper">
+                <span class="input-symbol" style="left: 10px; font-size: 0.8rem; color: #f39c12;">MTC</span>
+                <input id="convert-mtc-amount" type="number" step="10" value="1000" class="form-input" style="padding-left: 50px;" oninput="calculateConversion()">
+            </div>
+        </div>
+
+        <div class="conversion-preview" style="background: rgba(255, 204, 0, 0.08); border-left-color: var(--accent-gold);">
+            Conversion Rate: <strong>1,000 MTC = 100 MTD</strong><br>
+            You will get: <strong id="mtd-conversion-preview" style="color: var(--green-accent);">100 MTD</strong>
+        </div>
+
+        <button id="convert-btn" class="form-btn" onclick="openConvertModal()" style="background: var(--accent-gold); color: #000; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+            Convert MTC to MTD
+        </button>
+    </div>
+
     <!-- 📤 WITHDRAW SECTION -->
     <div class="section-card">
         <div class="section-title">📤 Request Withdrawal</div>
@@ -243,16 +294,17 @@
         </div>
 
         <div class="form-group">
-            <label class="form-label">Amount to Withdraw (Minimum 500 MTC)</label>
+            <label class="form-label">Amount to Withdraw (Minimum 500 MTD)</label>
             <div class="input-wrapper">
-                <span class="input-symbol" style="left: 10px; font-size: 0.85rem; color: #f39c12;">MTC</span>
-                <input id="withdraw-amount" type="number" step="100" value="500" class="form-input" style="padding-left: 45px;" oninput="calculateUSDWithdrawal()">
+                <span class="input-symbol" style="left: 10px; font-size: 0.8rem; color: #2ecc71;">MTD</span>
+                <input id="withdraw-amount" type="number" step="10" value="500" class="form-input" style="padding-left: 50px;" oninput="calculateUSDWithdrawal()">
             </div>
         </div>
 
         <div class="conversion-preview" style="background: rgba(46, 204, 113, 0.1); border-left: 3px solid #2ecc71;">
-            Conversion Value: <strong>100 MTC = $1.00</strong><br>
-            You will receive roughly: <strong id="usd-withdraw-preview">$5.00 USD</strong>
+            Conversion Value: <strong>100 MTD = $1.00 USD</strong><br>
+            Withdrawal Fee: <strong>7%</strong><br>
+            You will receive roughly: <strong id="usd-withdraw-preview">$4.65 USD</strong>
         </div>
 
         <button id="custom-withdraw-btn" class="form-btn" onclick="submitWithdrawal()" style="background: #2ecc71; color: #fff; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
@@ -264,6 +316,27 @@
     <button onclick="openHistoryModal()" style="background: #222; color: #fff; border: 1px solid #444; width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px;">
         📜 View Transaction History
     </button>
+</div>
+
+<!-- ⚠️ CONVERSION CONFIRMATION MODAL -->
+<div class="modal-overlay" id="convertModal">
+    <div class="modal-content" style="border-top-color: var(--accent-gold);">
+        <div class="modal-header">
+            <h3 style="margin: 0; color: #fff;">Confirm Currency Conversion</h3>
+            <button class="modal-close" onclick="closeConvertModal()">×</button>
+        </div>
+        <p style="color: #ddd; font-size: 0.95rem; line-height: 1.5; margin-bottom: 10px;">
+            You're converting MTC to MTD, this cannot be reversed. Do you wish to proceed?
+        </p>
+        <div style="background: #222; padding: 12px; border-radius: 8px; font-size: 0.85rem; color: #aaa; margin-bottom: 15px;">
+            Converting: <strong id="modal-mtc-amt" style="color: #fff;">1000 MTC</strong><br>
+            Receiving: <strong id="modal-mtd-amt" style="color: var(--green-accent);">100 MTD</strong>
+        </div>
+        <div class="modal-btn-group">
+            <button class="modal-btn btn-cancel" onclick="closeConvertModal()">Cancel</button>
+            <button id="confirm-convert-btn" class="modal-btn btn-confirm" onclick="executeConversion()">Yes, Convert</button>
+        </div>
+    </div>
 </div>
 
 <!-- 📦 HISTORY MODAL CONTAINER OVERLAY -->
@@ -309,7 +382,9 @@
 
     const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev";
     const userId = tg.initDataUnsafe?.user?.id || 12345;
-    let currentBalance = 0;
+    
+    let currentBalanceMTC = 0;
+    let currentBalanceMTD = 0;
 
     function formatUsername(name) {
         if (!name) return "Driver";
@@ -336,22 +411,41 @@
             return 0;
         }
         const mtcEquivalent = Math.round(parseFloat(usdInput) * 100);
-        const mtcPreviewText = mtcEquivalent + " MTC";
-        mtcPreview.innerText = mtcPreviewText;
+        mtcPreview.innerText = mtcEquivalent + " MTC";
         return parseFloat(usdInput);
     }
 
+    function calculateConversion() {
+        const mtcInput = parseInt(document.getElementById('convert-mtc-amount').value);
+        const mtdPreview = document.getElementById('mtd-conversion-preview');
+        
+        if (isNaN(mtcInput) || mtcInput <= 0) {
+            mtdPreview.innerText = "0 MTD";
+            return 0;
+        }
+        
+        // 1000 MTC = 100 MTD (or 10 MTC = 1 MTD)
+        const mtdCalculated = Math.floor(mtcInput / 10);
+        mtdPreview.innerText = mtdCalculated + " MTD";
+        return mtdCalculated;
+    }
+
     function calculateUSDWithdrawal() {
-        const mtcInput = document.getElementById('withdraw-amount').value;
+        const mtdInput = parseInt(document.getElementById('withdraw-amount').value);
         const usdPreview = document.getElementById('usd-withdraw-preview');
-        if (!mtcInput || isNaN(mtcInput) || parseInt(mtcInput) <= 0) {
+        
+        if (isNaN(mtdInput) || mtdInput <= 0) {
             usdPreview.innerText = "$0.00 USD";
             return 0;
         }
-        const usdEquivalent = (parseInt(mtcInput) / 100).toFixed(2);
-        const usdPreviewText = "$" + usdEquivalent + " USD";
-        usdPreview.innerText = usdPreviewText;
-        return parseInt(mtcInput);
+        
+        // Rate: 100 MTD = $1.00 USD
+        // Fee: 7% -> Payout = MTD - (7% * MTD) = MTD * 0.93
+        const netMTD = mtdInput * 0.93;
+        const usdNetPayout = (netMTD / 100).toFixed(2);
+        
+        usdPreview.innerText = "$" + usdNetPayout + " USD";
+        return mtdInput;
     }
 
     function fetchBalance() {
@@ -366,15 +460,80 @@
         .then(res => res.json())
         .then(data => {
             if (data.status === "success") {
-                currentBalance = data.balance;
+                currentBalanceMTC = data.balance || 0;
+                currentBalanceMTD = data.mtd_balance || 0; // Backend property for MTD
+                
                 const balanceEl = document.getElementById('balance-display');
-                if (balanceEl) {
-                    const balanceText = data.balance + " MTC";
-                    balanceEl.innerText = balanceText;
-                }
+                const mtdBalanceEl = document.getElementById('mtd-balance-display');
+                
+                if (balanceEl) balanceEl.innerText = currentBalanceMTC + " MTC";
+                if (mtdBalanceEl) mtdBalanceEl.innerText = currentBalanceMTD + " MTD";
             }
         })
-        .catch(err => console.error("Error updating layout balances:", err));
+        .catch(err => console.error("Error updating balances:", err));
+    }
+
+    function openConvertModal() {
+        const mtcInput = parseInt(document.getElementById('convert-mtc-amount').value);
+        
+        if (isNaN(mtcInput) || mtcInput <= 0) {
+            tg.showAlert("Please enter a valid MTC amount to convert.");
+            return;
+        }
+        if (mtcInput > currentBalanceMTC) {
+            tg.showAlert("Insufficient MTC balance. You have " + currentBalanceMTC + " MTC.");
+            return;
+        }
+
+        const mtdCalculated = Math.floor(mtcInput / 10);
+        document.getElementById('modal-mtc-amt').innerText = mtcInput + " MTC";
+        document.getElementById('modal-mtd-amt').innerText = mtdCalculated + " MTD";
+        
+        document.getElementById('convertModal').classList.add('active');
+    }
+
+    function closeConvertModal() {
+        document.getElementById('convertModal').classList.remove('active');
+    }
+
+    function executeConversion() {
+        const mtcInput = parseInt(document.getElementById('convert-mtc-amount').value);
+        const confirmBtn = document.getElementById('confirm-convert-btn');
+
+        confirmBtn.innerText = "Converting...";
+        confirmBtn.disabled = true;
+
+        fetch(`${NGROK_URL}/convert-mtc-to-mtd`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true'
+            },
+            body: JSON.stringify({
+                user_id: userId,
+                amount_mtc: mtcInput
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            confirmBtn.innerText = "Yes, Convert";
+            confirmBtn.disabled = false;
+            closeConvertModal();
+
+            if (data.status === "success") {
+                tg.showAlert("Successfully converted MTC to MTD!");
+                fetchBalance();
+            } else {
+                tg.showAlert("Conversion failed: " + data.message);
+            }
+        })
+        .catch(err => {
+            confirmBtn.innerText = "Yes, Convert";
+            confirmBtn.disabled = false;
+            closeConvertModal();
+            console.error(err);
+            tg.showAlert("Network communication error.");
+        });
     }
 
     function startDirectCheckout() {
@@ -424,20 +583,19 @@
 
     function submitWithdrawal() {
         const email = document.getElementById('withdraw-email').value.trim();
-        const amountMTC = parseInt(document.getElementById('withdraw-amount').value);
+        const amountMTD = parseInt(document.getElementById('withdraw-amount').value);
         const button = document.getElementById('custom-withdraw-btn');
 
         if (!email || !email.includes('@')) {
             tg.showAlert("Please provide a valid PayPal email address.");
             return;
         }
-        if (isNaN(amountMTC) || amountMTC < 500) {
-            tg.showAlert("Minimum withdrawal amount is 500 MTC.");
+        if (isNaN(amountMTD) || amountMTD < 500) {
+            tg.showAlert("Minimum withdrawal amount is 500 MTD ($5.00 USD).");
             return;
         }
-        if (amountMTC > currentBalance) {
-            const insufficientText = "Insufficient funds. Your current balance is " + currentBalance + " MTC.";
-            tg.showAlert(insufficientText);
+        if (amountMTD > currentBalanceMTD) {
+            tg.showAlert("Insufficient funds. Your current balance is " + currentBalanceMTD + " MTD.");
             return;
         }
 
@@ -453,7 +611,7 @@
             body: JSON.stringify({
                 user_id: userId,
                 paypal_email: email,
-                amount_mtc: amountMTC
+                amount_mtd: amountMTD
             })
         })
         .then(res => res.json())
@@ -462,8 +620,7 @@
             button.disabled = false;
 
             if (data.status === "success") {
-                const loggedText = "Success! Your request to withdraw " + amountMTC + " MTC has been logged.";
-                tg.showAlert(loggedText);
+                tg.showAlert("Success! Your request to withdraw " + amountMTD + " MTD has been logged.");
                 fetchBalance();
             } else {
                 tg.showAlert("Withdrawal failed: " + data.message);
@@ -487,7 +644,6 @@
         loadingBox.style.display = 'block';
         dataBox.style.display = 'none';
 
-        // Fetch transaction records matching backend schema
         fetch(`${NGROK_URL}/get-user-history`, {
             method: 'POST',
             headers: {
@@ -519,7 +675,6 @@
         document.getElementById('historyModal').classList.remove('active');
     }
 
-    // Dynamic UI template parser building items
     function renderHistoryContent(withdrawals, deposits) {
         const pendingTarget = document.getElementById('pending-withdrawals-target');
         const completedTarget = document.getElementById('completed-withdrawals-target');
@@ -529,7 +684,6 @@
         let completedHTML = "";
         let depositsHTML = "";
 
-        // Filter and sort withdrawal arrays
         const pendingItems = withdrawals.filter(w => w.status === 'PENDING');
         const completedItems = withdrawals.filter(w => w.status !== 'PENDING');
 
@@ -537,9 +691,9 @@
             pendingHTML = '<div class="empty-history">No pending requests logged.</div>';
         } else {
             pendingItems.forEach(item => {
-                const itemAmt = item.amount_mtc || (item.amount_usd * 100);
+                const itemAmt = item.amount_mtd || item.amount_mtc || 0;
                 pendingHTML += '<div class="history-item pending">' +
-                    '<div class="history-row"><strong>' + itemAmt + ' MTC</strong><span style="color:#f39c12;">Pending</span></div>' +
+                    '<div class="history-row"><strong>' + itemAmt + ' MTD</strong><span style="color:#f39c12;">Pending</span></div>' +
                     '<div class="history-row"><span class="history-email">' + item.paypal_email + '</span><span class="history-date">' + item.timestamp + '</span></div>' +
                 '</div>';
             });
@@ -549,9 +703,9 @@
             completedHTML = '<div class="empty-history">No past processed payouts found.</div>';
         } else {
             completedItems.forEach(item => {
-                const itemAmt = item.amount_mtc || (item.amount_usd * 100);
+                const itemAmt = item.amount_mtd || item.amount_mtc || 0;
                 completedHTML += '<div class="history-item completed">' +
-                    '<div class="history-row"><strong>' + itemAmt + ' MTC</strong><span style="color:#2ecc71;">Paid</span></div>' +
+                    '<div class="history-row"><strong>' + itemAmt + ' MTD</strong><span style="color:#2ecc71;">Paid</span></div>' +
                     '<div class="history-row"><span class="history-email">' + item.paypal_email + '</span><span class="history-date">' + item.timestamp + '</span></div>' +
                 '</div>';
             });
@@ -574,42 +728,32 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-    // Extract query parameters from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const amountParam = urlParams.get('amount');
+        const urlParams = new URLSearchParams(window.location.search);
+        const amountParam = urlParams.get('amount');
 
-    if (amountParam) {
-        // 1. Target the correct input ID ('usd-amount')
-        const amountInput = document.getElementById('usd-amount') || document.querySelector('input[type="number"]');
-        if (amountInput) {
-            amountInput.value = parseFloat(amountParam).toFixed(2);
-            
-            // Explicitly run the calculation function so "200 MTC" updates right away
-            calculateMTC();
-            
-            // Trigger input event for any extra listeners
-            amountInput.dispatchEvent(new Event('input'));
+        if (amountParam) {
+            const amountInput = document.getElementById('usd-amount');
+            if (amountInput) {
+                amountInput.value = parseFloat(amountParam).toFixed(2);
+                calculateMTC();
+                amountInput.dispatchEvent(new Event('input'));
+            }
+
+            const paypalBtn = document.getElementById('custom-checkout-btn');
+            if (paypalBtn) {
+                paypalBtn.classList.add('paypal-glow');
+                paypalBtn.addEventListener('click', () => {
+                    paypalBtn.classList.remove('paypal-glow');
+                });
+            }
         }
-
-        // 2. Target the exact button ID ('custom-checkout-btn')
-        const paypalBtn = document.getElementById('custom-checkout-btn') || 
-                          document.getElementById('paypal-button-container') || 
-                          document.querySelector('.paypal-btn');
-
-        if (paypalBtn) {
-            paypalBtn.classList.add('paypal-glow');
-
-            // Remove glow when user clicks the button
-            paypalBtn.addEventListener('click', () => {
-                paypalBtn.classList.remove('paypal-glow');
-            });
-        }
-    }
-});
-
-    // Initialize layout profiles right as the window opens
-    initUserHeader();
-    fetchBalance();
+        
+        // Initial setup
+        calculateConversion();
+        calculateUSDWithdrawal();
+        initUserHeader();
+        fetchBalance();
+    });
 </script>
 </body>
 </html>
