@@ -20,6 +20,66 @@
             overflow: hidden;
         }
 
+        /* --- Splash / Loader Screen Styling --- */
+            #app-loader {
+              position: fixed;
+              top: 0;
+              left: 0;
+              width: 100vw;
+              height: 100vh;
+              background-color: #121212; /* Dark atmospheric background */
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              z-index: 9999; /* Keeps it above all other UI elements */
+              opacity: 1;
+              transition: opacity 0.5s ease, visibility 0.5s ease;
+            }
+            
+            #app-loader.hidden {
+              opacity: 0;
+              visibility: hidden;
+            }
+            
+            .loader-content {
+              text-align: center;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              gap: 20px;
+            }
+            
+            .loader-logo {
+              width: 120px;
+              height: 120px;
+              object-fit: contain;
+              /* Optional glow effect */
+              filter: drop-shadow(0 0 10px rgba(0, 230, 118, 0.4));
+            }
+            
+            .loader-text {
+              color: #E0E0E0;
+              font-family: sans-serif;
+              font-size: 16px;
+              font-weight: bold;
+              letter-spacing: 1px;
+            }
+            
+            /* Spinner Animation */
+            .spinner {
+              width: 36px;
+              height: 36px;
+              border: 4px solid #2D2D2D;
+              border-top: 4px solid #00e676; /* Accent color matching your theme */
+              border-radius: 50%;
+              animation: spin 1s linear infinite;
+            }
+            
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+
         .header {
             display: flex;
             justify-content: space-between;
@@ -216,6 +276,15 @@
     </style>
 </head>
 <body>
+
+    <!-- SPLASH / LOADING SCREEN -->
+<div id="app-loader">
+  <div class="loader-content">
+    <img src="logo.png" alt="Money Trucks Logo" class="loader-logo">
+    <div class="spinner"></div>
+    <p class="loader-text">Loading...</p>
+  </div>
+</div>
 
 <div class="header">
     <div class="user-info">
@@ -793,60 +862,75 @@
         });
     }
     
-    function loadUserData() {
-        fetch(`${NGROK_URL}/get_profile`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.status === "success") {
-                balance = data.balance;
-                fuelLevel = data.fuel_lvl || 0;
-                speedsLevel = data.speed_lvl || 0;
-                engineLevel = data.engine_lvl || 0;
-                taskStartTime = data.task_start_time;
-                isFirstRunDone = data.is_first_run_done;
-
-                if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
-                if (fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel;
-                if (speedLvlTxt) speedLvlTxt.innerText = speedsLevel;
-                if (engineLvlTxt) engineLvlTxt.innerText = engineLevel;
-
-                syncPriceButtonLabels(data.fuel_cost, data.speed_cost, data.engine_cost);
-
-                totalTaskDuration = calculateTaskDuration();
-
-                if (taskStartTime > 0) {
-                    let nowInSeconds = Math.floor(Date.now() / 1000);
-                    let secondsPassed = nowInSeconds - Math.floor(taskStartTime);
-                    currentTaskTimeLeft = Math.max(0, totalTaskDuration - secondsPassed);
-                    
-                    let maxFuelSecs = getFuelDurationSeconds(fuelLevel);
-                    secondsWorkedThisJob = secondsPassed % maxFuelSecs;
-
-                    if (currentTaskTimeLeft <= 0) {
-                        currentTaskTimeLeft = 0;
-                        taskStartTime = 0;
-                        secondsWorkedThisJob = 0;
-                    }
-                } else {
-                    currentTaskTimeLeft = totalTaskDuration;
-                }
-
-                checkAndApplyTruckUpgrade();
-                
-                if (isFuelOut) {
-                    triggerFuelOutage();
-                } else if (isEngineDead) {
-                    triggerEngineBreakdown();
-                } else {
-                    updateGameLoopView();
-                }
-            }
-        });
+   function hideLoader() {
+    const loader = document.getElementById('app-loader');
+    if (loader) {
+        // Adds the CSS class that triggers the smooth fade out
+        loader.classList.add('hidden');
     }
+}
+
+function loadUserData() {
+    fetch(`${NGROK_URL}/get_profile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === "success") {
+            balance = data.balance;
+            fuelLevel = data.fuel_lvl || 0;
+            speedsLevel = data.speed_lvl || 0;
+            engineLevel = data.engine_lvl || 0;
+            taskStartTime = data.task_start_time;
+            isFirstRunDone = data.is_first_run_done;
+
+            if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
+            if (fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel;
+            if (speedLvlTxt) speedLvlTxt.innerText = speedsLevel;
+            if (engineLvlTxt) engineLvlTxt.innerText = engineLevel;
+
+            syncPriceButtonLabels(data.fuel_cost, data.speed_cost, data.engine_cost);
+
+            totalTaskDuration = calculateTaskDuration();
+
+            if (taskStartTime > 0) {
+                let nowInSeconds = Math.floor(Date.now() / 1000);
+                let secondsPassed = nowInSeconds - Math.floor(taskStartTime);
+                currentTaskTimeLeft = Math.max(0, totalTaskDuration - secondsPassed);
+                
+                let maxFuelSecs = getFuelDurationSeconds(fuelLevel);
+                secondsWorkedThisJob = secondsPassed % maxFuelSecs;
+
+                if (currentTaskTimeLeft <= 0) {
+                    currentTaskTimeLeft = 0;
+                    taskStartTime = 0;
+                    secondsWorkedThisJob = 0;
+                }
+            } else {
+                currentTaskTimeLeft = totalTaskDuration;
+            }
+
+            checkAndApplyTruckUpgrade();
+            
+            if (isFuelOut) {
+                triggerFuelOutage();
+            } else if (isEngineDead) {
+                triggerEngineBreakdown();
+            } else {
+                updateGameLoopView();
+            }
+        }
+    })
+    .catch(err => {
+        console.error("Error loading user profile:", err);
+    })
+    .finally(() => {
+        // Small 300ms delay gives a smooth visual fade out
+        setTimeout(hideLoader, 300);
+    });
+}
 
     function upgrade(statName) {
         let currentLvl = 0;
