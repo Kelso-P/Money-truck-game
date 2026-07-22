@@ -676,77 +676,94 @@
     }
 
     function renderHistoryContent(withdrawals, deposits) {
-        const pendingTarget = document.getElementById('pending-withdrawals-target');
-        const completedTarget = document.getElementById('completed-withdrawals-target');
-        const depositsTarget = document.getElementById('deposits-target');
+    const pendingTarget = document.getElementById('pending-withdrawals-target');
+    const completedTarget = document.getElementById('completed-withdrawals-target');
+    const depositsTarget = document.getElementById('deposits-target');
 
-        let pendingHTML = "";
-        let completedHTML = "";
-        let depositsHTML = "";
+    // Ensure array structures are safe even if API returns null/undefined
+    const safeWithdrawals = Array.isArray(withdrawals) ? withdrawals : [];
+    const safeDeposits = Array.isArray(deposits) ? deposits : [];
 
-        const pendingItems = withdrawals.filter(w => w.status === 'PENDING');
-        const completedItems = withdrawals.filter(w => w.status !== 'PENDING');
+    let pendingHTML = "";
+    let completedHTML = "";
+    let depositsHTML = "";
 
-        if (pendingItems.length === 0) {
-            pendingHTML = '<div class="empty-history">No pending requests logged.</div>';
-        } else {
-            pendingItems.forEach(item => {
-                const itemAmt = item.amount_mtd || item.amount_mtc || 0;
-                pendingHTML += '<div class="history-item pending">' +
-                    '<div class="history-row"><strong>' + itemAmt + ' MTD</strong><span style="color:#f39c12;">Pending</span></div>' +
-                    '<div class="history-row"><span class="history-email">' + item.paypal_email + '</span><span class="history-date">' + item.timestamp + '</span></div>' +
-                '</div>';
-            });
-        }
+    const pendingItems = safeWithdrawals.filter(w => w && w.status === 'PENDING');
+    const completedItems = safeWithdrawals.filter(w => w && w.status !== 'PENDING');
 
-        if (completedItems.length === 0) {
-            completedHTML = '<div class="empty-history">No past processed payouts found.</div>';
-        } else {
-            completedItems.forEach(item => {
-                const itemAmt = item.amount_mtd || item.amount_mtc || 0;
-                completedHTML += '<div class="history-item completed">' +
-                    '<div class="history-row"><strong>' + itemAmt + ' MTD</strong><span style="color:#2ecc71;">Paid</span></div>' +
-                    '<div class="history-row"><span class="history-email">' + item.paypal_email + '</span><span class="history-date">' + item.timestamp + '</span></div>' +
-                '</div>';
-            });
-        }
+    if (pendingItems.length === 0) {
+        pendingHTML = '<div class="empty-history">No pending requests logged.</div>';
+    } else {
+        pendingItems.forEach(item => {
+            const itemAmt = (item.amount_mtd !== undefined && item.amount_mtd !== null) ? item.amount_mtd : (item.amount_mtc || 0);
+            const email = item.paypal_email || 'PayPal Account';
+            const date = item.timestamp || 'Recent';
 
-        if (deposits.length === 0) {
-            depositsHTML = '<div class="empty-history">No account deposits located.</div>';
-        } else {
-            deposits.forEach(item => {
-                depositsHTML += '<div class="history-item deposit">' +
-                    '<div class="history-row"><strong>+$' + parseFloat(item.amount_usd).toFixed(2) + ' USD</strong><span style="color:#0070ba;">Success</span></div>' +
-                    '<div class="history-row"><span class="history-email">' + (item.payer_email || 'PayPal Account') + '</span><span class="history-date">' + item.timestamp + '</span></div>' +
-                '</div>';
-            });
-        }
-
-        pendingTarget.innerHTML = pendingHTML;
-        completedTarget.innerHTML = completedHTML;
-        depositsTarget.innerHTML = depositsHTML;
+            pendingHTML += '<div class="history-item pending">' +
+                '<div class="history-row"><strong>' + itemAmt + ' MTD</strong><span style="color:#f39c12;">Pending</span></div>' +
+                '<div class="history-row"><span class="history-email">' + email + '</span><span class="history-date">' + date + '</span></div>' +
+            '</div>';
+        });
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const amountParam = urlParams.get('amount');
+    if (completedItems.length === 0) {
+        completedHTML = '<div class="empty-history">No past processed payouts found.</div>';
+    } else {
+        completedItems.forEach(item => {
+            const itemAmt = (item.amount_mtd !== undefined && item.amount_mtd !== null) ? item.amount_mtd : (item.amount_mtc || 0);
+            const email = item.paypal_email || 'PayPal Account';
+            const date = item.timestamp || 'Recent';
 
-        if (amountParam) {
-            const amountInput = document.getElementById('usd-amount');
-            if (amountInput) {
-                amountInput.value = parseFloat(amountParam).toFixed(2);
-                calculateMTC();
-                amountInput.dispatchEvent(new Event('input'));
+            completedHTML += '<div class="history-item completed">' +
+                '<div class="history-row"><strong>' + itemAmt + ' MTD</strong><span style="color:#2ecc71;">Paid</span></div>' +
+                '<div class="history-row"><span class="history-email">' + email + '</span><span class="history-date">' + date + '</span></div>' +
+            '</div>';
+        });
             }
-
-            const paypalBtn = document.getElementById('custom-checkout-btn');
-            if (paypalBtn) {
-                paypalBtn.classList.add('paypal-glow');
-                paypalBtn.addEventListener('click', () => {
-                    paypalBtn.classList.remove('paypal-glow');
+        
+            if (safeDeposits.length === 0) {
+                depositsHTML = '<div class="empty-history">No account deposits located.</div>';
+            } else {
+                safeDeposits.forEach(item => {
+                    const amountUsd = parseFloat(item.amount_usd || 0).toFixed(2);
+                    const email = item.payer_email || 'PayPal Account';
+                    const date = item.timestamp || 'Recent';
+        
+                    depositsHTML += '<div class="history-item deposit">' +
+                        '<div class="history-row"><strong>+$' + amountUsd + ' USD</strong><span style="color:#0070ba;">Success</span></div>' +
+                        '<div class="history-row"><span class="history-email">' + email + '</span><span class="history-date">' + date + '</span></div>' +
+                    '</div>';
                 });
             }
+        
+            if (pendingTarget) pendingTarget.innerHTML = pendingHTML;
+            if (completedTarget) completedTarget.innerHTML = completedHTML;
+            if (depositsTarget) depositsTarget.innerHTML = depositsHTML;
         }
+        
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const amountParam = urlParams.get('amount');
+        
+            if (amountParam) {
+                const amountInput = document.getElementById('usd-amount');
+                if (amountInput) {
+                    amountInput.value = parseFloat(amountParam).toFixed(2);
+                    if (typeof calculateMTC === 'function') {
+                        calculateMTC();
+                    }
+                    amountInput.dispatchEvent(new Event('input'));
+                }
+        
+                const paypalBtn = document.getElementById('custom-checkout-btn');
+                if (paypalBtn) {
+                    paypalBtn.classList.add('paypal-glow');
+                    paypalBtn.addEventListener('click', () => {
+                        paypalBtn.classList.remove('paypal-glow');
+                    });
+                }
+            }
+        });
         
         // Initial setup
         calculateConversion();
