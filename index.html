@@ -50,9 +50,11 @@
             }
             
             .loader-logo {
-              width: 120px;
-              height: 120px;
-              object-fit: contain;
+              max-width: 140px;     
+              max-height: 140px;    
+              width: auto;          
+              height: auto;         
+              object-fit: contain;   
               /* Optional glow effect */
               filter: drop-shadow(0 0 10px rgba(0, 230, 118, 0.4));
             }
@@ -862,75 +864,85 @@
         });
     }
     
-   function hideLoader() {
-    const loader = document.getElementById('app-loader');
-    if (loader) {
-        // Adds the CSS class that triggers the smooth fade out
-        loader.classList.add('hidden');
-    }
-}
-
-function loadUserData() {
-    fetch(`${NGROK_URL}/get_profile`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.status === "success") {
-            balance = data.balance;
-            fuelLevel = data.fuel_lvl || 0;
-            speedsLevel = data.speed_lvl || 0;
-            engineLevel = data.engine_lvl || 0;
-            taskStartTime = data.task_start_time;
-            isFirstRunDone = data.is_first_run_done;
-
-            if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
-            if (fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel;
-            if (speedLvlTxt) speedLvlTxt.innerText = speedsLevel;
-            if (engineLvlTxt) engineLvlTxt.innerText = engineLevel;
-
-            syncPriceButtonLabels(data.fuel_cost, data.speed_cost, data.engine_cost);
-
-            totalTaskDuration = calculateTaskDuration();
-
-            if (taskStartTime > 0) {
-                let nowInSeconds = Math.floor(Date.now() / 1000);
-                let secondsPassed = nowInSeconds - Math.floor(taskStartTime);
-                currentTaskTimeLeft = Math.max(0, totalTaskDuration - secondsPassed);
-                
-                let maxFuelSecs = getFuelDurationSeconds(fuelLevel);
-                secondsWorkedThisJob = secondsPassed % maxFuelSecs;
-
-                if (currentTaskTimeLeft <= 0) {
-                    currentTaskTimeLeft = 0;
-                    taskStartTime = 0;
-                    secondsWorkedThisJob = 0;
-                }
-            } else {
-                currentTaskTimeLeft = totalTaskDuration;
-            }
-
-            checkAndApplyTruckUpgrade();
-            
-            if (isFuelOut) {
-                triggerFuelOutage();
-            } else if (isEngineDead) {
-                triggerEngineBreakdown();
-            } else {
-                updateGameLoopView();
-            }
+    function hideLoader() {
+        const loader = document.getElementById('app-loader');
+        if (loader) {
+            loader.classList.add('hidden');
         }
-    })
-    .catch(err => {
-        console.error("Error loading user profile:", err);
-    })
-    .finally(() => {
-        // Small 300ms delay gives a smooth visual fade out
-        setTimeout(hideLoader, 300);
-    });
-}
+    }
+
+    function loadUserData() {
+        // --- SPLASH SCREEN NAVIGATION CHECK ---
+        const splashShown = sessionStorage.getItem(`splash_shown_${userId}`);
+        const loader = document.getElementById('app-loader');
+
+        if (splashShown === "true") {
+            if (loader) loader.style.display = 'none';
+        } else {
+            sessionStorage.setItem(`splash_shown_${userId}`, "true");
+        }
+
+        fetch(`${NGROK_URL}/get_profile`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "success") {
+                balance = data.balance;
+                fuelLevel = data.fuel_lvl || 0;
+                speedsLevel = data.speed_lvl || 0;
+                engineLevel = data.engine_lvl || 0;
+                taskStartTime = data.task_start_time;
+                isFirstRunDone = data.is_first_run_done;
+
+                if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
+                if (fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel;
+                if (speedLvlTxt) speedLvlTxt.innerText = speedsLevel;
+                if (engineLvlTxt) engineLvlTxt.innerText = engineLevel;
+
+                syncPriceButtonLabels(data.fuel_cost, data.speed_cost, data.engine_cost);
+
+                totalTaskDuration = calculateTaskDuration();
+
+                if (taskStartTime > 0) {
+                    let nowInSeconds = Math.floor(Date.now() / 1000);
+                    let secondsPassed = nowInSeconds - Math.floor(taskStartTime);
+                    currentTaskTimeLeft = Math.max(0, totalTaskDuration - secondsPassed);
+                    
+                    let maxFuelSecs = getFuelDurationSeconds(fuelLevel);
+                    secondsWorkedThisJob = secondsPassed % maxFuelSecs;
+
+                    if (currentTaskTimeLeft <= 0) {
+                        currentTaskTimeLeft = 0;
+                        taskStartTime = 0;
+                        secondsWorkedThisJob = 0;
+                    }
+                } else {
+                    currentTaskTimeLeft = totalTaskDuration;
+                }
+
+                checkAndApplyTruckUpgrade();
+                
+                if (isFuelOut) {
+                    triggerFuelOutage();
+                } else if (isEngineDead) {
+                    triggerEngineBreakdown();
+                } else {
+                    updateGameLoopView();
+                }
+            }
+        })
+        .catch(err => {
+            console.error("Error loading user profile:", err);
+        })
+        .finally(() => {
+            if (sessionStorage.getItem(`splash_shown_${userId}`) !== "true" || loader?.style.display !== 'none') {
+                setTimeout(hideLoader, 300);
+            }
+        });
+    }
 
     function upgrade(statName) {
         let currentLvl = 0;
