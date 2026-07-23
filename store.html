@@ -278,6 +278,61 @@
             margin: 0;
         }
 
+        .mini-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.75);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 3000;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
+
+    .mini-modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .mini-modal-card {
+        background: #16161f;
+        border: 1px solid #f39c12;
+        border-radius: 12px;
+        width: 80%;
+        max-width: 320px;
+        padding: 18px 20px;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    }
+
+    .mini-modal-text {
+        color: #e0e0e0;
+        font-size: 0.95rem;
+        margin: 0 0 15px 0;
+        line-height: 1.4;
+    }
+
+    .mini-modal-btn {
+        background: #f39c12;
+        color: #000;
+        border: none;
+        font-weight: bold;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        width: 100%;
+    }
+
+    .mini-modal-btn:hover {
+        background: #e67e22;
+    }
+
         /* --- FOOTER NAVIGATION STANDARDS --- */
         .footer-nav {
             position: fixed;
@@ -414,6 +469,13 @@
         </div>
     </div>
 
+    <div class="mini-modal-overlay" id="mini-alert-modal">
+        <div class="mini-modal-card">
+            <p class="mini-modal-text" id="mini-alert-text"></p>
+            <button class="mini-modal-btn" onclick="closeMiniAlert()">OK</button>
+        </div>
+    </div>
+
     <div class="footer-nav">
         <a href="index.html" class="nav-item">🏠<br>Home</a>
         <a href="store.html" class="nav-item active">🛒<br>Store</a>
@@ -421,7 +483,7 @@
         <a href="tasks.html" class="nav-item">📋<br>Tasks</a>
     </div>
 
-    <script>
+   <script>
     const tg = window.Telegram.WebApp;
     tg.ready();
     tg.expand();
@@ -430,16 +492,17 @@
     const userId = tg.initDataUnsafe?.user?.id || 12345;
     let currentBalance = 0;
 
-    // --- CUSTOM ALERT MODAL HELPER ---
-    function showCustomAlert(message, imagePath = null) {
-        const modal = document.getElementById('showroom-modal');
-        const textEl = document.getElementById('showroom-text');
-        const imgEl = document.getElementById('showroom-img');
-
+    // --- COMPACT MODAL CONTROLLERS ---
+    function showMiniAlert(message) {
+        const modal = document.getElementById('mini-alert-modal');
+        const textEl = document.getElementById('mini-alert-text');
         if (textEl) textEl.innerText = message;
-        if (imgEl && imagePath) imgEl.src = imagePath;
-
         if (modal) modal.classList.add('active');
+    }
+
+    function closeMiniAlert() {
+        const modal = document.getElementById('mini-alert-modal');
+        if (modal) modal.classList.remove('active');
     }
 
     function formatUsername(name) {
@@ -530,7 +593,7 @@
     // --- BUY IRON HAULER (1,000 MTC) ---
     function buyIronHauler() {
         if (currentBalance < 1000) {
-            showCustomAlert("Insufficient funds! You need 1,000 MTC to purchase the Iron Hauler.", "images/truck_iron_hauler.png");
+            showMiniAlert("Insufficient funds! You need 1,000 MTC to purchase the Iron Hauler.");
             return;
         }
 
@@ -552,21 +615,26 @@
                 localStorage.setItem(`owned_iron_hauler_${userId}`, "true");
                 applyIronHaulerOwnedState();
 
-                showCustomAlert("Congratulations driver! The iron hauler is now yours!", "images/ironhauler_showroom.png");
+                // Set Iron Hauler showroom details dynamic image & text
+                document.getElementById('showroom-img').src = "images/ironhauler_showroom.png";
+                document.getElementById('showroom-text').innerText = "Congratulations driver! The iron hauler is now yours!";
+
+                // Open Big Showroom Modal
+                document.getElementById('showroom-modal').classList.add('active');
             } else {
-                showCustomAlert(data.message || "Purchase failed.");
+                showMiniAlert(data.message || "Purchase failed.");
             }
         })
         .catch(err => {
             console.error("Purchase error:", err);
-            showCustomAlert("Unable to complete transaction. Please check connection.");
+            showMiniAlert("Unable to complete transaction. Please check connection.");
         });
     }
 
     // --- BUY DIESEL BEAST (10,000 MTC) ---
     function buyDieselBeast() {
         if (currentBalance < 10000) {
-            showCustomAlert("Insufficient funds! You need 10,000 MTC to purchase the Diesel Beast.", "images/truck_diesel_beast.png");
+            showMiniAlert("Insufficient funds! You need 10,000 MTC to purchase the Diesel Beast.");
             return;
         }
 
@@ -588,14 +656,19 @@
                 localStorage.setItem(`owned_diesel_beast_${userId}`, "true");
                 applyDieselBeastOwnedState();
 
-                showCustomAlert("Congratulations driver! The diesel beast is now yours!", "images/dieselbeast_showroom.png");
+                // Set Diesel Beast showroom details dynamic image & text
+                document.getElementById('showroom-img').src = "images/dieselbeast_showroom.png";
+                document.getElementById('showroom-text').innerText = "Congratulations driver! The diesel beast is now yours!";
+
+                // Open Big Showroom Modal
+                document.getElementById('showroom-modal').classList.add('active');
             } else {
-                showCustomAlert(data.message || "Purchase failed.");
+                showMiniAlert(data.message || "Purchase failed.");
             }
         })
         .catch(err => {
             console.error("Purchase error:", err);
-            showCustomAlert("Unable to complete transaction. Please check connection.");
+            showMiniAlert("Unable to complete transaction. Please check connection.");
         });
     }
 
@@ -603,7 +676,7 @@
     function buyTitanHypermax() {
         const price = 100000;
         if (currentBalance < price) {
-            showCustomAlert(`Insufficient funds! You need ${price.toLocaleString()} MTC to purchase the Titan Hypermax.`, "images/truck_titan_hypermax.png");
+            showMiniAlert(`Insufficient funds! You need ${price.toLocaleString()} MTC to purchase the Titan Hypermax.`);
             return;
         }
 
@@ -625,22 +698,25 @@
                 localStorage.setItem(`owned_titan_hypermax_${userId}`, "true");
                 applyTitanHypermaxOwnedState();
 
-                showCustomAlert("Congratulations driver! The Titan Hypermax is now yours!", "images/titanhypermax_showroom.png");
+                // Set Titan Hypermax showroom details dynamic image & text
+                document.getElementById('showroom-img').src = "images/titanhypermax_showroom.png";
+                document.getElementById('showroom-text').innerText = "Congratulations driver! The Titan Hypermax is now yours!";
+
+                // Open Big Showroom Modal
+                document.getElementById('showroom-modal').classList.add('active');
             } else {
-                showCustomAlert(data.message || "Purchase failed.");
+                showMiniAlert(data.message || "Purchase failed.");
             }
         })
         .catch(err => {
             console.error("Purchase error:", err);
-            showCustomAlert("Unable to complete transaction. Please check connection.");
+            showMiniAlert("Unable to complete transaction. Please check connection.");
         });
     }
 
     function closeShowroomModal() {
         document.getElementById('showroom-modal').classList.remove('active');
-        setTimeout(() => {
-            showCustomAlert("Your new truck will hit the road on the next job! Drive safely.");
-        }, 200);
+        // Cleanly close without chaining secondary modal alerts
     }
 
     function buyMTC(dollarAmount) {
