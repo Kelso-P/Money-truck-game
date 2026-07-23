@@ -388,7 +388,7 @@
         activeTruck = "iron_hauler";
     }
 
-        // --- STATE MANAGEMENT ---
+    // --- STATE MANAGEMENT ---
     let balance = 70;
     let speedsLevel = 0;
     let fuelLevel = 0;
@@ -404,18 +404,23 @@
     let isFirstRunDone = 0;
     let jobWaitingApproval = false;
     
-    // Remove secondsWorkedThisJob since we shifted to real-time timestamps
-    // let secondsWorkedThisJob = 0; 
-    
     let tutorialFuelOutagesOccurred = 0;
     let tutorialEngineFailuresOccurred = 0;
     
-    // Persistent timestamps (safe fallback parsing for new users)
+    // Persistent timestamps (Ensure it never defaults to Date.now() on every reload if null)
     let storedFuelTime = localStorage.getItem(`last_fuel_refill_${userId}`);
-    let lastFuelRefillTime = storedFuelTime ? parseInt(storedFuelTime, 10) : Date.now();
+    if (!storedFuelTime) {
+        storedFuelTime = Date.now().toString();
+        localStorage.setItem(`last_fuel_refill_${userId}`, storedFuelTime);
+    }
+    let lastFuelRefillTime = parseInt(storedFuelTime, 10);
     
     let storedEngineTime = localStorage.getItem(`last_engine_fix_${userId}`);
-    let lastEngineFixTime = storedEngineTime ? parseInt(storedEngineTime, 10) : Date.now();
+    if (!storedEngineTime) {
+        storedEngineTime = Date.now().toString();
+        localStorage.setItem(`last_engine_fix_${userId}`, storedEngineTime);
+    }
+    let lastEngineFixTime = parseInt(storedEngineTime, 10);
 
     let gameInterval = null;
     let taskStartTime = 0;
@@ -440,15 +445,38 @@
     const speedBtn = document.getElementById('speed-upgrade-btn');
     const engineBtn = document.getElementById('engine-upgrade-btn');
 
-    // --- UPGRADE PRICING SCHEDULES (Multiples of 10) ---
+    // --- UPGRADE PRICING SCHEDULES ---
     const SPEED_COSTS  = [20, 50, 90, 140, 210, 310, 440, 600, 780, 1000];
     const ENGINE_COSTS = [20, 50, 80, 130, 200, 300, 420, 560, 720, 900];
     const FUEL_COSTS   = [20, 40, 70, 110, 170, 250, 350, 470, 620, 800];
 
-    // --- AUDIO MANAGEMENT ---
-    const truckEngineSound = new Audio('sounds/truck_running.mp3'); // Replace with your audio file path
-    truckEngineSound.loop = true; // Keeps the sound going while driving
-    truckEngineSound.volume = 0.5; // Adjust volume (0.0 to 1.0)
+    // --- GLOBAL AUDIO MANAGEMENT ---
+    const truckEngineSound = new Audio('sounds/truck_running.mp3');
+    truckEngineSound.loop = true;
+    truckEngineSound.volume = 0.5;
+
+    let audioInitialized = false;
+    function initGlobalAudio() {
+        if (audioInitialized) return;
+        truckEngineSound.play().then(() => {
+            audioInitialized = true;
+        }).catch(err => {
+            console.warn("Autoplay waiting for user gesture:", err);
+        });
+    }
+
+    // Play audio immediately upon any user interaction if autoplay was blocked
+    document.addEventListener('click', initGlobalAudio, { once: true });
+    document.addEventListener('touchstart', initGlobalAudio, { once: true });
+
+    // Handle App Exit / Visibility Loss (Stop audio on exit, resume on return)
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            truckEngineSound.pause();
+        } else if (audioInitialized) {
+            truckEngineSound.play().catch(() => {});
+        }
+    });
 
     // --- DYNAMIC TRUCK CONFIGURATION ---
     function getTruckConfig() {
@@ -487,11 +515,9 @@
     // --- LOOKUP COST FOR FRONTEND DISPLAY ---
     function getUpgradeCost(stat, currentLvl) {
         if (currentLvl >= 10) return "MAX";
-        
         let costTable = SPEED_COSTS;
         if (stat === 'engine') costTable = ENGINE_COSTS;
         if (stat === 'fuel') costTable = FUEL_COSTS;
-
         return costTable[currentLvl] || "MAX";
     }
 
@@ -527,9 +553,9 @@
         if (isFirstRunDone === 0 && activeTruck === "pickup") {
             return 300; // First job tutorial duration: 5 minutes (300s)
         }
-        const baseDuration = 14400; // Standard job duration: 4 hours (14,400s)
+        const baseDuration = 14400; // Standard job duration: 4 hours
         const timeCut = getSpeedTimeCutSeconds(speedsLevel);
-        return Math.max(300, baseDuration - timeCut); // Cap minimum task time at 5 mins
+        return Math.max(300, baseDuration - timeCut);
     }
 
     function syncTruckAssets() {
@@ -543,18 +569,6 @@
         }
     }
 
-    function startTruckAudio() {
-    // Web browsers require user interaction before playing audio
-    truckEngineSound.play().catch(err => {
-        console.warn("Audio autoplay blocked or failed:", err);
-    });
-    }
-    
-    function stopTruckAudio() {
-        truckEngineSound.pause();
-        truckEngineSound.currentTime = 0; // Resets sound back to the beginning
-    }
-
     function checkAndApplyTruckUpgrade() {
         const ownsTitanHypermax = localStorage.getItem(`owned_titan_hypermax_${userId}`);
         const ownsDieselBeast = localStorage.getItem(`owned_diesel_beast_${userId}`);
@@ -563,24 +577,21 @@
         if (ownsTitanHypermax === "true") {
             activeTruck = "titan_hypermax";
             syncTruckAssets();
-            const titanUsedBefore = localStorage.getItem(`titan_hypermax_used_${userId}`);
-            if (!titanUsedBefore) {
+            if (!localStorage.getItem(`titan_hypermax_used_${userId}`)) {
                 jobWaitingApproval = true;
                 if (jobBoardTitle) jobBoardTitle.innerText = "You have unlocked the Titan Hypermax! Ready to dominate the road?";
             }
         } else if (ownsDieselBeast === "true") {
             activeTruck = "diesel_beast";
             syncTruckAssets();
-            const dieselUsedBefore = localStorage.getItem(`diesel_beast_used_${userId}`);
-            if (!dieselUsedBefore) {
+            if (!localStorage.getItem(`diesel_beast_used_${userId}`)) {
                 jobWaitingApproval = true;
                 if (jobBoardTitle) jobBoardTitle.innerText = "You have unlocked the Diesel Beast! Ready to hit the road?";
             }
         } else if (ownsIronHauler === "true") {
             activeTruck = "iron_hauler";
             syncTruckAssets();
-            const ironHaulerUsedBefore = localStorage.getItem(`iron_hauler_used_${userId}`);
-            if (!ironHaulerUsedBefore) {
+            if (!localStorage.getItem(`iron_hauler_used_${userId}`)) {
                 jobWaitingApproval = true;
                 if (jobBoardTitle) jobBoardTitle.innerText = "You have a new truck, let's see it hit the road!";
             }
@@ -628,7 +639,6 @@
         };
     }
 
-    // --- AUTOPILOT INDICATOR DISPLAY ---
     function updateAutopilotIndicator() {
         const isMaxedOut = fuelLevel >= 10 && speedsLevel >= 10 && engineLevel >= 10;
         let tag = document.getElementById('autopilot-tag');
@@ -638,7 +648,7 @@
                 tag = document.createElement('div');
                 tag.id = 'autopilot-tag';
                 tag.innerText = 'Auto-pilot active';
-                tag.style.color = '#00FF66'; // Vibrant green
+                tag.style.color = '#00FF66';
                 tag.style.fontSize = '12px';
                 tag.style.fontWeight = 'bold';
                 tag.style.marginTop = '2px';
@@ -653,6 +663,7 @@
     function updateGameLoopView() {
         syncTruckAssets();
         updateAutopilotIndicator();
+        initGlobalAudio(); // Attempt audio start on view update
 
         const isMaxedOut = fuelLevel >= 10 && speedsLevel >= 10 && engineLevel >= 10;
         const canDrive = !isFuelOut && !isEngineDead && (!jobWaitingApproval || isMaxedOut);
@@ -668,7 +679,6 @@
                     videoEl.play().catch(e => console.log("Autoplay pending:", e));
                 }
             }
-             startTruckAudio();
             
             if (taskStartTime === 0) {
                 fetch(`${NGROK_URL}/start_task`, {
@@ -697,11 +707,10 @@
             }
             clearInterval(gameInterval);
             if (speedHud) speedHud.innerText = `0 m/s`;
-            stopTruckAudio();
         }
     }
 
-   function startCoreTimers() {
+    function startCoreTimers() {
         clearInterval(gameInterval);
         
         gameInterval = setInterval(() => {
@@ -831,8 +840,6 @@
         currentTaskTimeLeft = totalTaskDuration;
         taskStartTime = 0;
         
-        // NOTE: Fuel & engine states are untouched here so fuel level persists into the new job!
-
         showSpeedDiscountEffect();
         updateGameLoopView();
     }
@@ -890,9 +897,8 @@
                     isFuelOut = false;
                     localStorage.setItem(`is_fuel_out_${userId}`, "false");
                     
-                    // Reset fuel timestamp in local storage
                     lastFuelRefillTime = now;
-                    localStorage.setItem(`last_fuel_refill_${userId}`, lastFuelRefillTime);
+                    localStorage.setItem(`last_fuel_refill_${userId}`, lastFuelRefillTime.toString());
 
                     fuelPercentage = 100;
                     if (fuelFill) fuelFill.style.width = `100%`;
@@ -901,9 +907,8 @@
                     isEngineDead = false;
                     localStorage.setItem(`is_engine_dead_${userId}`, "false");
 
-                    // Reset engine fix timestamp in local storage
                     lastEngineFixTime = now;
-                    localStorage.setItem(`last_engine_fix_${userId}`, lastEngineFixTime);
+                    localStorage.setItem(`last_engine_fix_${userId}`, lastEngineFixTime.toString());
                 }
                 
                 openAppModal("System Restored", "Your truck has been fully serviced and ready to ride!", "Continue", () => {
@@ -926,92 +931,91 @@
     }
 
     function loadUserData() {
-    // --- SPLASH SCREEN NAVIGATION CHECK ---
-    const splashShown = sessionStorage.getItem(`splash_shown_${userId}`);
-    const loader = document.getElementById('app-loader');
+        const splashShown = sessionStorage.getItem(`splash_shown_${userId}`);
+        const loader = document.getElementById('app-loader');
 
-    if (splashShown === "true") {
-        if (loader) loader.style.display = 'none';
-    } else {
-        sessionStorage.setItem(`splash_shown_${userId}`, "true");
+        if (splashShown === "true") {
+            if (loader) loader.style.display = 'none';
+        } else {
+            sessionStorage.setItem(`splash_shown_${userId}`, "true");
+        }
+
+        fetch(`${NGROK_URL}/get_profile`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "success") {
+                balance = data.balance;
+                fuelLevel = data.fuel_lvl || 0;
+                speedsLevel = data.speed_lvl || 0;
+                engineLevel = data.engine_lvl || 0;
+                taskStartTime = data.task_start_time;
+                isFirstRunDone = data.is_first_run_done;
+
+                if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
+                if (fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel;
+                if (speedLvlTxt) speedLvlTxt.innerText = speedsLevel;
+                if (engineLvlTxt) engineLvlTxt.innerText = engineLevel;
+
+                syncPriceButtonLabels(data.fuel_cost, data.speed_cost, data.engine_cost);
+
+                totalTaskDuration = calculateTaskDuration();
+
+                if (taskStartTime > 0) {
+                    let nowInSeconds = Math.floor(Date.now() / 1000);
+                    let secondsPassed = nowInSeconds - Math.floor(taskStartTime);
+                    currentTaskTimeLeft = Math.max(0, totalTaskDuration - secondsPassed);
+
+                    if (currentTaskTimeLeft <= 0) {
+                        currentTaskTimeLeft = 0;
+                        taskStartTime = 0;
+                    }
+                } else {
+                    currentTaskTimeLeft = totalTaskDuration;
+                }
+
+                // Strictly recalculate fuel from persistent timestamp
+                let nowMs = Date.now();
+                let secondsSinceRefill = Math.floor((nowMs - lastFuelRefillTime) / 1000);
+                let maxFuelSecs = getFuelDurationSeconds(fuelLevel);
+
+                if (isFirstRunDone === 0 && activeTruck === "pickup" && tutorialFuelOutagesOccurred === 0) {
+                    fuelPercentage = Math.max(0, 100 - ((secondsSinceRefill / 120) * 100));
+                } else {
+                    fuelPercentage = Math.max(0, 100 - ((secondsSinceRefill / maxFuelSecs) * 100));
+                }
+
+                if (fuelFill) fuelFill.style.width = `${fuelPercentage.toFixed(1)}%`;
+
+                if (fuelPercentage <= 0) {
+                    isFuelOut = true;
+                    localStorage.setItem(`is_fuel_out_${userId}`, "true");
+                }
+
+                checkAndApplyTruckUpgrade();
+                
+                if (isFuelOut) {
+                    triggerFuelOutage();
+                } else if (isEngineDead) {
+                    triggerEngineBreakdown();
+                } else {
+                    updateGameLoopView();
+                }
+            }
+        })
+        .catch(err => {
+            console.error("Error loading user profile:", err);
+        })
+        .finally(() => {
+            if (sessionStorage.getItem(`splash_shown_${userId}`) !== "true" || loader?.style.display !== 'none') {
+                setTimeout(hideLoader, 300);
+            }
+        });
     }
 
-    fetch(`${NGROK_URL}/get_profile`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.status === "success") {
-            balance = data.balance;
-            fuelLevel = data.fuel_lvl || 0;
-            speedsLevel = data.speed_lvl || 0;
-            engineLevel = data.engine_lvl || 0;
-            taskStartTime = data.task_start_time;
-            isFirstRunDone = data.is_first_run_done;
-
-            if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
-            if (fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel;
-            if (speedLvlTxt) speedLvlTxt.innerText = speedsLevel;
-            if (engineLvlTxt) engineLvlTxt.innerText = engineLevel;
-
-            syncPriceButtonLabels(data.fuel_cost, data.speed_cost, data.engine_cost);
-
-            totalTaskDuration = calculateTaskDuration();
-
-            // --- JOB TIMER CALCULATION ---
-            if (taskStartTime > 0) {
-                let nowInSeconds = Math.floor(Date.now() / 1000);
-                let secondsPassed = nowInSeconds - Math.floor(taskStartTime);
-                currentTaskTimeLeft = Math.max(0, totalTaskDuration - secondsPassed);
-
-                if (currentTaskTimeLeft <= 0) {
-                    currentTaskTimeLeft = 0;
-                    taskStartTime = 0;
-                }
-            } else {
-                currentTaskTimeLeft = totalTaskDuration;
-            }
-
-            // --- REAL-TIME FUEL CALCULATION ---
-            let nowMs = Date.now();
-            let secondsSinceRefill = Math.floor((nowMs - lastFuelRefillTime) / 1000);
-            let maxFuelSecs = getFuelDurationSeconds(fuelLevel);
-
-            if (isFirstRunDone === 0 && activeTruck === "pickup" && tutorialFuelOutagesOccurred === 0) {
-                fuelPercentage = Math.max(0, 100 - ((secondsSinceRefill / 120) * 100));
-            } else {
-                fuelPercentage = Math.max(0, 100 - ((secondsSinceRefill / maxFuelSecs) * 100));
-            }
-
-            if (fuelFill) fuelFill.style.width = `${fuelPercentage.toFixed(1)}%`;
-
-            if (fuelPercentage <= 0) {
-                isFuelOut = true;
-                localStorage.setItem(`is_fuel_out_${userId}`, "true");
-            }
-
-            checkAndApplyTruckUpgrade();
-            
-            if (isFuelOut) {
-                triggerFuelOutage();
-            } else if (isEngineDead) {
-                triggerEngineBreakdown();
-            } else {
-                updateGameLoopView();
-            }
-        }
-    })
-    .catch(err => {
-        console.error("Error loading user profile:", err);
-    })
-    .finally(() => {
-        if (sessionStorage.getItem(`splash_shown_${userId}`) !== "true" || loader?.style.display !== 'none') {
-            setTimeout(hideLoader, 300);
-        }
-    });
-}
     function upgrade(statName) {
         let currentLvl = 0;
         if (statName === 'fuel') currentLvl = fuelLevel;
