@@ -169,6 +169,61 @@
             }
         }
 
+        .mini-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.75);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 3000;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
+
+    .mini-modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .mini-modal-card {
+        background: #16161f;
+        border: 1px solid #f39c12;
+        border-radius: 12px;
+        width: 80%;
+        max-width: 320px;
+        padding: 18px 20px;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    }
+
+    .mini-modal-text {
+        color: #e0e0e0;
+        font-size: 0.95rem;
+        margin: 0 0 15px 0;
+        line-height: 1.4;
+    }
+
+    .mini-modal-btn {
+        background: #f39c12;
+        color: #000;
+        border: none;
+        font-weight: bold;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        width: 100%;
+    }
+
+    .mini-modal-btn:hover {
+        background: #e67e22;
+    }
+
         /* --- FOOTER NAVIGATION --- */
         .footer-nav {
             position: fixed;
@@ -286,6 +341,13 @@
 
     </div>
 
+    <div class="mini-modal-overlay" id="mini-alert-modal">
+        <div class="mini-modal-card">
+            <p class="mini-modal-text" id="mini-alert-text"></p>
+            <button class="mini-modal-btn" onclick="closeMiniAlert()">OK</button>
+        </div>
+    </div>
+
     <div class="footer-nav">
         <a href="index.html" class="nav-item">🏠<br>Home</a>
         <a href="store.html" class="nav-item">🛒<br>Store</a>
@@ -309,6 +371,19 @@
         'buy_diesel': 'diesel_beast',
         'buy_titan': 'titan_hypermax'
     };
+
+    // --- COMPACT MODAL CONTROLLERS ---
+    function showMiniAlert(message) {
+        const modal = document.getElementById('mini-alert-modal');
+        const textEl = document.getElementById('mini-alert-text');
+        if (textEl) textEl.innerText = message;
+        if (modal) modal.classList.add('active');
+    }
+
+    function closeMiniAlert() {
+        const modal = document.getElementById('mini-alert-modal');
+        if (modal) modal.classList.remove('active');
+    }
 
     // --- DYNAMIC USERNAME FORMATTING ---
     function formatUsername(name) {
@@ -483,7 +558,7 @@
                 if (taskId === 'buy_diesel') truckName = "Diesel Beast";
                 if (taskId === 'buy_titan') truckName = "Titan Hypermax";
 
-                tg.showAlert(`You must purchase the ${truckName} in the Store to claim this reward!`);
+                showMiniAlert(`You must purchase the ${truckName} in the Store to claim this reward!`);
                 return;
             }
         }
@@ -514,12 +589,12 @@
                     syncTasksUI(data.completed_tasks || [], 0, 0);
                 }
             } else {
-                tg.showAlert(data.message);
+                showMiniAlert(data.message || "Unable to claim task.");
             }
         })
         .catch(err => {
             console.error("Transmission error claiming task:", err);
-            tg.showAlert("Unable to connect to service registry.");
+            showMiniAlert("Unable to connect to service registry.");
         });
     }
 
