@@ -430,30 +430,16 @@
     const userId = tg.initDataUnsafe?.user?.id || 12345;
     let currentBalance = 0;
 
-    // --- CUSTOM APP MODAL HELPER ---
-    function openAppModal(title, message, btnText = "OK", actionCallback = null) {
-        const modalEl = document.getElementById('game-modal');
-        const titleEl = document.getElementById('modal-title');
-        const msgEl = document.getElementById('modal-message');
-        const actionBtn = document.getElementById('modal-action-btn');
+    // --- CUSTOM ALERT MODAL HELPER ---
+    function showCustomAlert(message, imagePath = null) {
+        const modal = document.getElementById('showroom-modal');
+        const textEl = document.getElementById('showroom-text');
+        const imgEl = document.getElementById('showroom-img');
 
-        if (!modalEl) {
-            console.warn("Custom modal structure ('#game-modal') not found in DOM.");
-            return;
-        }
+        if (textEl) textEl.innerText = message;
+        if (imgEl && imagePath) imgEl.src = imagePath;
 
-        if (titleEl) titleEl.innerText = title;
-        if (msgEl) msgEl.innerText = message;
-        if (actionBtn) actionBtn.innerText = btnText;
-
-        modalEl.style.display = 'flex';
-
-        if (actionBtn) {
-            actionBtn.onclick = function() {
-                modalEl.style.display = 'none';
-                if (actionCallback) actionCallback();
-            };
-        }
+        if (modal) modal.classList.add('active');
     }
 
     function formatUsername(name) {
@@ -544,7 +530,7 @@
     // --- BUY IRON HAULER (1,000 MTC) ---
     function buyIronHauler() {
         if (currentBalance < 1000) {
-            openAppModal("Insufficient Funds", "You need 1,000 MTC to purchase the Iron Hauler.", "Got it");
+            showCustomAlert("Insufficient funds! You need 1,000 MTC to purchase the Iron Hauler.", "images/truck_iron_hauler.png");
             return;
         }
 
@@ -566,26 +552,21 @@
                 localStorage.setItem(`owned_iron_hauler_${userId}`, "true");
                 applyIronHaulerOwnedState();
 
-                // Set Iron Hauler details dynamically
-                document.getElementById('showroom-img').src = "images/ironhauler_showroom.png";
-                document.getElementById('showroom-text').innerText = "Congratulations driver! The iron hauler is now yours!";
-
-                // Open Modal
-                document.getElementById('showroom-modal').classList.add('active');
+                showCustomAlert("Congratulations driver! The iron hauler is now yours!", "images/ironhauler_showroom.png");
             } else {
-                openAppModal("Purchase Failed", data.message || "Unable to complete truck purchase.", "Try Again");
+                showCustomAlert(data.message || "Purchase failed.");
             }
         })
         .catch(err => {
             console.error("Purchase error:", err);
-            openAppModal("Connection Error", "Unable to complete transaction. Please check your network connection.", "Dismiss");
+            showCustomAlert("Unable to complete transaction. Please check connection.");
         });
     }
 
     // --- BUY DIESEL BEAST (10,000 MTC) ---
     function buyDieselBeast() {
         if (currentBalance < 10000) {
-            openAppModal("Insufficient Funds", "You need 10,000 MTC to purchase the Diesel Beast.", "Got it");
+            showCustomAlert("Insufficient funds! You need 10,000 MTC to purchase the Diesel Beast.", "images/truck_diesel_beast.png");
             return;
         }
 
@@ -607,19 +588,14 @@
                 localStorage.setItem(`owned_diesel_beast_${userId}`, "true");
                 applyDieselBeastOwnedState();
 
-                // Set Diesel Beast details dynamically
-                document.getElementById('showroom-img').src = "images/dieselbeast_showroom.png";
-                document.getElementById('showroom-text').innerText = "Congratulations driver! The diesel beast is now yours!";
-
-                // Open Modal
-                document.getElementById('showroom-modal').classList.add('active');
+                showCustomAlert("Congratulations driver! The diesel beast is now yours!", "images/dieselbeast_showroom.png");
             } else {
-                openAppModal("Purchase Failed", data.message || "Unable to complete truck purchase.", "Try Again");
+                showCustomAlert(data.message || "Purchase failed.");
             }
         })
         .catch(err => {
             console.error("Purchase error:", err);
-            openAppModal("Connection Error", "Unable to complete transaction. Please check your network connection.", "Dismiss");
+            showCustomAlert("Unable to complete transaction. Please check connection.");
         });
     }
 
@@ -627,7 +603,7 @@
     function buyTitanHypermax() {
         const price = 100000;
         if (currentBalance < price) {
-            openAppModal("Insufficient Funds", `You need ${price.toLocaleString()} MTC to purchase the Titan Hypermax.`, "Got it");
+            showCustomAlert(`Insufficient funds! You need ${price.toLocaleString()} MTC to purchase the Titan Hypermax.`, "images/truck_titan_hypermax.png");
             return;
         }
 
@@ -649,26 +625,21 @@
                 localStorage.setItem(`owned_titan_hypermax_${userId}`, "true");
                 applyTitanHypermaxOwnedState();
 
-                // Set Titan Hypermax showroom details dynamically
-                document.getElementById('showroom-img').src = "images/titanhypermax_showroom.png";
-                document.getElementById('showroom-text').innerText = "Congratulations driver! The Titan Hypermax is now yours!";
-
-                // Open Modal
-                document.getElementById('showroom-modal').classList.add('active');
+                showCustomAlert("Congratulations driver! The Titan Hypermax is now yours!", "images/titanhypermax_showroom.png");
             } else {
-                openAppModal("Purchase Failed", data.message || "Unable to complete truck purchase.", "Try Again");
+                showCustomAlert(data.message || "Purchase failed.");
             }
         })
         .catch(err => {
             console.error("Purchase error:", err);
-            openAppModal("Connection Error", "Unable to complete transaction. Please check your network connection.", "Dismiss");
+            showCustomAlert("Unable to complete transaction. Please check connection.");
         });
     }
 
     function closeShowroomModal() {
         document.getElementById('showroom-modal').classList.remove('active');
         setTimeout(() => {
-            openAppModal("Truck Dispatched", "Your new truck will hit the road on the next job! Drive safely.", "Let's Go");
+            showCustomAlert("Your new truck will hit the road on the next job! Drive safely.");
         }, 200);
     }
 
