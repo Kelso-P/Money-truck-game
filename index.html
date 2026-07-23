@@ -445,6 +445,11 @@
     const ENGINE_COSTS = [20, 50, 80, 130, 200, 300, 420, 560, 720, 900];
     const FUEL_COSTS   = [20, 40, 70, 110, 170, 250, 350, 470, 620, 800];
 
+    // --- AUDIO MANAGEMENT ---
+    const truckEngineSound = new Audio('sounds/truck_running.mp3'); // Replace with your audio file path
+    truckEngineSound.loop = true; // Keeps the sound going while driving
+    truckEngineSound.volume = 0.5; // Adjust volume (0.0 to 1.0)
+
     // --- DYNAMIC TRUCK CONFIGURATION ---
     function getTruckConfig() {
         if (activeTruck === "titan_hypermax") {
@@ -536,6 +541,18 @@
             videoSource.src = config.loopVideo;
             videoEl.load();
         }
+    }
+
+    function startTruckAudio() {
+    // Web browsers require user interaction before playing audio
+    truckEngineSound.play().catch(err => {
+        console.warn("Audio autoplay blocked or failed:", err);
+    });
+    }
+    
+    function stopTruckAudio() {
+        truckEngineSound.pause();
+        truckEngineSound.currentTime = 0; // Resets sound back to the beginning
     }
 
     function checkAndApplyTruckUpgrade() {
@@ -651,6 +668,7 @@
                     videoEl.play().catch(e => console.log("Autoplay pending:", e));
                 }
             }
+             startTruckAudio();
             
             if (taskStartTime === 0) {
                 fetch(`${NGROK_URL}/start_task`, {
@@ -679,6 +697,7 @@
             }
             clearInterval(gameInterval);
             if (speedHud) speedHud.innerText = `0 m/s`;
+            stopTruckAudio();
         }
     }
 
