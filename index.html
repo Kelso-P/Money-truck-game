@@ -299,14 +299,14 @@
 
 <div id="game-stage" style="position: relative; overflow: hidden; border-radius: 12px; margin: 0 10px;">
    <video id="road-video" autoplay loop muted playsinline preload="auto" style="display: none; width: 100%; height: 100%; object-fit: cover;">
-        <source id="video-source" src="videos/Pickuptruck-loopvideo1.mp4" type="video/mp4">
+        <source id="video-source" src="videos/pickuptruck-newmodel.mp4" type="video/mp4">
     </video>
 
-    <img id="stagnant-truck" src="images/stagnant_pickuptruck.jpg" alt="Truck Engine Off" style="display: block;">
+    <img id="stagnant-truck" src="images/pickuptruck_newstagnant" alt="Truck Engine Off" style="display: block;">
 
     <div id="job-board-overlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 500; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; box-sizing: border-box;">
         <h2 id="job-board-title" style="color: #fff; font-size: 1.2rem; margin-bottom: 15px;">There's another job, let's hit the road!</h2>
-        <button id="start-job-btn" onclick="acceptNewJobContract()" style="background: #2ecc71; color: #fff; font-weight: bold; padding: 12px 30px; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">Start Job</button>
+        <button id="start-job-btn" onclick="acceptNewJobContract()" style="background: #f39c12; color: #fff; font-weight: bold; padding: 12px 30px; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">Start Job</button>
     </div>
 
     <div id="game-modal" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 999; justify-content: center; align-items: center; box-sizing: border-box; padding: 15px;">
@@ -443,31 +443,31 @@
             return {
                 reward: 500,
                 fixCost: 50,
-                stagnantImg: "images/truck_titan_hypermax.png",
-                loopVideo: "videos/titanhypermax-loopvideo1.mp4"
+                stagnantImg: "images/titanhypermax_newstagnant.png",
+                loopVideo: "videos/titanhypermax-newmodel.mp4"
             };
         }
         if (activeTruck === "diesel_beast") {
             return {
                 reward: 200,
                 fixCost: 20,
-                stagnantImg: "images/truck_diesel_beast.png",
-                loopVideo: "videos/dieselbeast-loopvideo1.mp4"
+                stagnantImg: "images/dieselbeast_newstagnant.png",
+                loopVideo: "videos/dieselbeast-newmodel.mp4"
             };
         }
         if (activeTruck === "iron_hauler") {
             return {
                 reward: 100,
                 fixCost: 5,
-                stagnantImg: "images/truck_iron_hauler.png",
-                loopVideo: "videos/Ironhauler-loopvideo1.mp4"
+                stagnantImg: "images/ironhauler_newstagnant.png",
+                loopVideo: "videos/ironhauler-newmodel.mp4"
             };
         }
         return {
             reward: 50,
             fixCost: 1,
-            stagnantImg: "images/stagnant_pickuptruck.jpg",
-            loopVideo: "videos/Pickuptruck-loopvideo1.mp4"
+            stagnantImg: "images/pickuptruck_newstagnant.png",
+            loopVideo: "videos/pickuptruck-newmodel.mp4"
         };
     }
 
