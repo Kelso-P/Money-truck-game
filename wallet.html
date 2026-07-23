@@ -175,6 +175,61 @@
         .btn-confirm { background: var(--green-accent); color: #fff; }
         .btn-cancel { background: #333; color: #ccc; }
 
+        .mini-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.75);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 3000;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.2s ease, visibility 0.2s ease;
+        }
+    
+        .mini-modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+    
+        .mini-modal-card {
+            background: #16161f;
+            border: 1px solid #f39c12;
+            border-radius: 12px;
+            width: 80%;
+            max-width: 320px;
+            padding: 18px 20px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+    
+        .mini-modal-text {
+            color: #e0e0e0;
+            font-size: 0.95rem;
+            margin: 0 0 15px 0;
+            line-height: 1.4;
+        }
+    
+        .mini-modal-btn {
+            background: #f39c12;
+            color: #000;
+            border: none;
+            font-weight: bold;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            width: 100%;
+        }
+    
+        .mini-modal-btn:hover {
+            background: #e67e22;
+        }
+
         .history-section-title {
             font-size: 0.95rem;
             color: var(--accent-gold);
@@ -338,7 +393,14 @@
         </div>
     </div>
 </div>
-
+    
+    <div class="mini-modal-overlay" id="mini-alert-modal">
+        <div class="mini-modal-card">
+            <p class="mini-modal-text" id="mini-alert-text"></p>
+            <button class="mini-modal-btn" onclick="closeMiniAlert()">OK</button>
+        </div>
+    </div>
+    
 <!-- 📦 HISTORY MODAL CONTAINER OVERLAY -->
 <div class="modal-overlay" id="historyModal">
     <div class="modal-content">
@@ -385,6 +447,19 @@
     
     let currentBalanceMTC = 0;
     let currentBalanceMTD = 0;
+
+    // --- COMPACT MODAL CONTROLLERS ---
+    function showMiniAlert(message) {
+        const modal = document.getElementById('mini-alert-modal');
+        const textEl = document.getElementById('mini-alert-text');
+        if (textEl) textEl.innerText = message;
+        if (modal) modal.classList.add('active');
+    }
+
+    function closeMiniAlert() {
+        const modal = document.getElementById('mini-alert-modal');
+        if (modal) modal.classList.remove('active');
+    }
 
     function formatUsername(name) {
         if (!name) return "Driver";
@@ -477,11 +552,11 @@
         const mtcInput = parseInt(document.getElementById('convert-mtc-amount').value);
         
         if (isNaN(mtcInput) || mtcInput <= 0) {
-            tg.showAlert("Please enter a valid MTC amount to convert.");
+            showMiniAlert("Please enter a valid MTC amount to convert.");
             return;
         }
         if (mtcInput > currentBalanceMTC) {
-            tg.showAlert("Insufficient MTC balance. You have " + currentBalanceMTC + " MTC.");
+            showMiniAlert("Insufficient MTC balance. You have " + currentBalanceMTC + " MTC.");
             return;
         }
 
@@ -521,10 +596,10 @@
             closeConvertModal();
 
             if (data.status === "success") {
-                tg.showAlert("Successfully converted MTC to MTD!");
+                showMiniAlert("Successfully converted MTC to MTD!");
                 fetchBalance();
             } else {
-                tg.showAlert("Conversion failed: " + data.message);
+                showMiniAlert("Conversion failed: " + data.message);
             }
         })
         .catch(err => {
@@ -532,14 +607,14 @@
             confirmBtn.disabled = false;
             closeConvertModal();
             console.error(err);
-            tg.showAlert("Network communication error.");
+            showMiniAlert("Network communication error.");
         });
     }
 
     function startDirectCheckout() {
         const amount = calculateMTC();
         if (amount < 0.10) {
-            tg.showAlert("Minimum deposit is $0.10");
+            showMiniAlert("Minimum deposit is $0.10");
             return;
         }
         
@@ -570,14 +645,14 @@
                     window.location.href = data.checkout_url;
                 }
             } else {
-                tg.showAlert("Error setting up payment link: " + data.message);
+                showMiniAlert("Error setting up payment link: " + data.message);
             }
         })
         .catch(err => {
             button.innerText = "Pay with PayPal";
             button.disabled = false;
             console.error(err);
-            tg.showAlert("Network communication error.");
+            showMiniAlert("Network communication error.");
         });
     }
 
@@ -587,15 +662,15 @@
         const button = document.getElementById('custom-withdraw-btn');
 
         if (!email || !email.includes('@')) {
-            tg.showAlert("Please provide a valid PayPal email address.");
+            showMiniAlert("Please provide a valid PayPal email address.");
             return;
         }
         if (isNaN(amountMTD) || amountMTD < 500) {
-            tg.showAlert("Minimum withdrawal amount is 500 MTD ($5.00 USD).");
+            showMiniAlert("Minimum withdrawal amount is 500 MTD ($5.00 USD).");
             return;
         }
         if (amountMTD > currentBalanceMTD) {
-            tg.showAlert("Insufficient funds. Your current balance is " + currentBalanceMTD + " MTD.");
+            showMiniAlert("Insufficient funds. Your current balance is " + currentBalanceMTD + " MTD.");
             return;
         }
 
@@ -620,17 +695,17 @@
             button.disabled = false;
 
             if (data.status === "success") {
-                tg.showAlert("Success! Your request to withdraw " + amountMTD + " MTD has been logged.");
+                showMiniAlert("Success! Your request to withdraw " + amountMTD + " MTD has been logged.");
                 fetchBalance();
             } else {
-                tg.showAlert("Withdrawal failed: " + data.message);
+                showMiniAlert("Withdrawal failed: " + data.message);
             }
         })
         .catch(err => {
             button.innerText = "Confirm Withdrawal Request";
             button.disabled = false;
             console.error(err);
-            tg.showAlert("Network communication error.");
+            showMiniAlert("Network communication error.");
         });
     }
 
@@ -676,100 +751,99 @@
     }
 
     function renderHistoryContent(withdrawals, deposits) {
-    const pendingTarget = document.getElementById('pending-withdrawals-target');
-    const completedTarget = document.getElementById('completed-withdrawals-target');
-    const depositsTarget = document.getElementById('deposits-target');
+        const pendingTarget = document.getElementById('pending-withdrawals-target');
+        const completedTarget = document.getElementById('completed-withdrawals-target');
+        const depositsTarget = document.getElementById('deposits-target');
 
-    // Ensure array structures are safe even if API returns null/undefined
-    const safeWithdrawals = Array.isArray(withdrawals) ? withdrawals : [];
-    const safeDeposits = Array.isArray(deposits) ? deposits : [];
+        const safeWithdrawals = Array.isArray(withdrawals) ? withdrawals : [];
+        const safeDeposits = Array.isArray(deposits) ? deposits : [];
 
-    let pendingHTML = "";
-    let completedHTML = "";
-    let depositsHTML = "";
+        let pendingHTML = "";
+        let completedHTML = "";
+        let depositsHTML = "";
 
-    const pendingItems = safeWithdrawals.filter(w => w && w.status === 'PENDING');
-    const completedItems = safeWithdrawals.filter(w => w && w.status !== 'PENDING');
+        const pendingItems = safeWithdrawals.filter(w => w && w.status === 'PENDING');
+        const completedItems = safeWithdrawals.filter(w => w && w.status !== 'PENDING');
 
-    if (pendingItems.length === 0) {
-        pendingHTML = '<div class="empty-history">No pending requests logged.</div>';
-    } else {
-        pendingItems.forEach(item => {
-            const itemAmt = (item.amount_mtd !== undefined && item.amount_mtd !== null) ? item.amount_mtd : (item.amount_mtc || 0);
-            const email = item.paypal_email || 'PayPal Account';
-            const date = item.timestamp || 'Recent';
+        if (pendingItems.length === 0) {
+            pendingHTML = '<div class="empty-history">No pending requests logged.</div>';
+        } else {
+            pendingItems.forEach(item => {
+                const itemAmt = (item.amount_mtd !== undefined && item.amount_mtd !== null) ? item.amount_mtd : (item.amount_mtc || 0);
+                const email = item.paypal_email || 'PayPal Account';
+                const date = item.timestamp || 'Recent';
 
-            pendingHTML += '<div class="history-item pending">' +
-                '<div class="history-row"><strong>' + itemAmt + ' MTD</strong><span style="color:#f39c12;">Pending</span></div>' +
-                '<div class="history-row"><span class="history-email">' + email + '</span><span class="history-date">' + date + '</span></div>' +
-            '</div>';
-        });
-    }
+                pendingHTML += '<div class="history-item pending">' +
+                    '<div class="history-row"><strong>' + itemAmt + ' MTD</strong><span style="color:#f39c12;">Pending</span></div>' +
+                    '<div class="history-row"><span class="history-email">' + email + '</span><span class="history-date">' + date + '</span></div>' +
+                '</div>';
+            });
+        }
 
-    if (completedItems.length === 0) {
-        completedHTML = '<div class="empty-history">No past processed payouts found.</div>';
-    } else {
-        completedItems.forEach(item => {
-            const itemAmt = (item.amount_mtd !== undefined && item.amount_mtd !== null) ? item.amount_mtd : (item.amount_mtc || 0);
-            const email = item.paypal_email || 'PayPal Account';
-            const date = item.timestamp || 'Recent';
+        if (completedItems.length === 0) {
+            completedHTML = '<div class="empty-history">No past processed payouts found.</div>';
+        } else {
+            completedItems.forEach(item => {
+                const itemAmt = (item.amount_mtd !== undefined && item.amount_mtd !== null) ? item.amount_mtd : (item.amount_mtc || 0);
+                const email = item.paypal_email || 'PayPal Account';
+                const date = item.timestamp || 'Recent';
 
-            completedHTML += '<div class="history-item completed">' +
-                '<div class="history-row"><strong>' + itemAmt + ' MTD</strong><span style="color:#2ecc71;">Paid</span></div>' +
-                '<div class="history-row"><span class="history-email">' + email + '</span><span class="history-date">' + date + '</span></div>' +
-            '</div>';
-        });
-            }
-        
-            if (safeDeposits.length === 0) {
-                depositsHTML = '<div class="empty-history">No account deposits located.</div>';
-            } else {
-                safeDeposits.forEach(item => {
-                    const amountUsd = parseFloat(item.amount_usd || 0).toFixed(2);
-                    const email = item.payer_email || 'PayPal Account';
-                    const date = item.timestamp || 'Recent';
-        
-                    depositsHTML += '<div class="history-item deposit">' +
-                        '<div class="history-row"><strong>+$' + amountUsd + ' USD</strong><span style="color:#0070ba;">Success</span></div>' +
-                        '<div class="history-row"><span class="history-email">' + email + '</span><span class="history-date">' + date + '</span></div>' +
-                    '</div>';
-                });
-            }
-        
-            if (pendingTarget) pendingTarget.innerHTML = pendingHTML;
-            if (completedTarget) completedTarget.innerHTML = completedHTML;
-            if (depositsTarget) depositsTarget.innerHTML = depositsHTML;
+                completedHTML += '<div class="history-item completed">' +
+                    '<div class="history-row"><strong>' + itemAmt + ' MTD</strong><span style="color:#2ecc71;">Paid</span></div>' +
+                    '<div class="history-row"><span class="history-email">' + email + '</span><span class="history-date">' + date + '</span></div>' +
+                '</div>';
+            });
         }
         
-        window.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const amountParam = urlParams.get('amount');
+        if (safeDeposits.length === 0) {
+            depositsHTML = '<div class="empty-history">No account deposits located.</div>';
+        } else {
+            safeDeposits.forEach(item => {
+                const amountUsd = parseFloat(item.amount_usd || 0).toFixed(2);
+                const email = item.payer_email || 'PayPal Account';
+                const date = item.timestamp || 'Recent';
         
-            if (amountParam) {
-                const amountInput = document.getElementById('usd-amount');
-                if (amountInput) {
-                    amountInput.value = parseFloat(amountParam).toFixed(2);
-                    if (typeof calculateMTC === 'function') {
-                        calculateMTC();
-                    }
-                    amountInput.dispatchEvent(new Event('input'));
-                }
+                depositsHTML += '<div class="history-item deposit">' +
+                    '<div class="history-row"><strong>+$' + amountUsd + ' USD</strong><span style="color:#0070ba;">Success</span></div>' +
+                    '<div class="history-row"><span class="history-email">' + email + '</span><span class="history-date">' + date + '</span></div>' +
+                '</div>';
+            });
+        }
         
-                const paypalBtn = document.getElementById('custom-checkout-btn');
-                if (paypalBtn) {
-                    paypalBtn.classList.add('paypal-glow');
-                    paypalBtn.addEventListener('click', () => {
-                        paypalBtn.classList.remove('paypal-glow');
-                    });
+        if (pendingTarget) pendingTarget.innerHTML = pendingHTML;
+        if (completedTarget) completedTarget.innerHTML = completedHTML;
+        if (depositsTarget) depositsTarget.innerHTML = depositsHTML;
+    }
+        
+    window.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const amountParam = urlParams.get('amount');
+        
+        if (amountParam) {
+            const amountInput = document.getElementById('usd-amount');
+            if (amountInput) {
+                amountInput.value = parseFloat(amountParam).toFixed(2);
+                if (typeof calculateMTC === 'function') {
+                    calculateMTC();
                 }
+                amountInput.dispatchEvent(new Event('input'));
             }
-        });
         
-        // Initial setup
-        calculateConversion();
-        calculateUSDWithdrawal();
-        initUserHeader();
-        fetchBalance();
+            const paypalBtn = document.getElementById('custom-checkout-btn');
+            if (paypalBtn) {
+                paypalBtn.classList.add('paypal-glow');
+                paypalBtn.addEventListener('click', () => {
+                    paypalBtn.classList.remove('paypal-glow');
+                });
+            }
+        }
+    });
+        
+    // Initial setup
+    calculateConversion();
+    calculateUSDWithdrawal();
+    initUserHeader();
+    fetchBalance();
 </script>
 </body>
 </html>
