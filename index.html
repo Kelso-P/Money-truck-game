@@ -407,7 +407,7 @@
     let tutorialFuelOutagesOccurred = 0;
     let tutorialEngineFailuresOccurred = 0;
     
-    // Persistent timestamps (Ensure it never defaults to Date.now() on every reload if null)
+    // Persistent timestamps
     let storedFuelTime = localStorage.getItem(`last_fuel_refill_${userId}`);
     if (!storedFuelTime) {
         storedFuelTime = Date.now().toString();
@@ -465,15 +465,13 @@
         });
     }
 
-    // Play audio immediately upon any user interaction if autoplay was blocked
     document.addEventListener('click', initGlobalAudio, { once: true });
     document.addEventListener('touchstart', initGlobalAudio, { once: true });
 
-    // Handle App Exit / Visibility Loss (Stop audio on exit, resume on return)
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
             truckEngineSound.pause();
-        } else if (audioInitialized) {
+        } else if (audioInitialized && isDriving) {
             truckEngineSound.play().catch(() => {});
         }
     });
@@ -512,7 +510,6 @@
         };
     }
 
-    // --- LOOKUP COST FOR FRONTEND DISPLAY ---
     function getUpgradeCost(stat, currentLvl) {
         if (currentLvl >= 10) return "MAX";
         let costTable = SPEED_COSTS;
@@ -521,7 +518,6 @@
         return costTable[currentLvl] || "MAX";
     }
 
-    // --- LOOKUP TABLES FOR STAT UPGRADES ---
     function getFuelDurationSeconds(lvl) {
         const minutesMap = {
             0: 10, 1: 10, 2: 20, 3: 30, 4: 45, 
@@ -545,15 +541,14 @@
             0: 15, 1: 15, 2: 30, 3: 45, 4: 60, 
             5: 90, 6: 120, 7: 150, 8: 180, 9: 210, 10: 240
         };
-        const safeLvl = Math.min(Math.max(lvl, 0), 10);
-        return (minutesMap[safeLvl] || 15) * 60;
+        const safeLvl = Math.min(Math.max(lvl, 0), 15) * 60;
     }
 
     function calculateTaskDuration() {
         if (isFirstRunDone === 0 && activeTruck === "pickup") {
-            return 300; // First job tutorial duration: 5 minutes (300s)
+            return 300; // 5 minutes
         }
-        const baseDuration = 14400; // Standard job duration: 4 hours
+        const baseDuration = 14400; // 4 hours
         const timeCut = getSpeedTimeCutSeconds(speedsLevel);
         return Math.max(300, baseDuration - timeCut);
     }
@@ -660,16 +655,24 @@
         }
     }
 
+    // Helper: Determines if new player hasn't upgraded all three stats yet
+    function isInitialOnboardingPending() {
+        return isFirstRunDone === 0 && (fuelLevel < 1 || speedsLevel < 1 || engineLevel < 1);
+    }
+
     function updateGameLoopView() {
         syncTruckAssets();
         updateAutopilotIndicator();
-        initGlobalAudio(); // Attempt audio start on view update
 
         const isMaxedOut = fuelLevel >= 10 && speedsLevel >= 10 && engineLevel >= 10;
-        const canDrive = !isFuelOut && !isEngineDead && (!jobWaitingApproval || isMaxedOut);
+        
+        // Block driving if onboarding is pending
+        const onboardingPending = isInitialOnboardingPending();
+        const canDrive = !onboardingPending && !isFuelOut && !isEngineDead && (!jobWaitingApproval || isMaxedOut);
 
         if (canDrive) {
             isDriving = true;
+            initGlobalAudio();
             if (jobBoardOverlay) jobBoardOverlay.style.display = 'none';
             
             if (videoEl) {
@@ -697,14 +700,24 @@
             if (speedHud) speedHud.innerText = `${20 + (speedsLevel * 10)} m/s`;
         } else {
             isDriving = false;
+            truckEngineSound.pause(); // Pause engine audio when truck stops
+            
             if (videoEl) {
                 videoEl.style.display = 'none';
                 videoEl.pause();
             }
             if (stagnantEl) stagnantEl.style.display = 'block';
-            if (jobWaitingApproval && jobBoardOverlay && !isMaxedOut) {
+            
+            // Show Onboarding Message overlay / title if new user
+            if (onboardingPending) {
+                if (jobBoardTitle) {
+                    jobBoardTitle.innerText = "Hello Driver! Please upgrade fuel, speed and engine to get started.";
+                }
+                if (jobBoardOverlay) jobBoardOverlay.style.display = 'flex';
+            } else if (jobWaitingApproval && jobBoardOverlay && !isMaxedOut) {
                 jobBoardOverlay.style.display = 'flex';
             }
+            
             clearInterval(gameInterval);
             if (speedHud) speedHud.innerText = `0 m/s`;
         }
@@ -716,7 +729,7 @@
         gameInterval = setInterval(() => {
             const isMaxedOut = fuelLevel >= 10 && speedsLevel >= 10 && engineLevel >= 10;
 
-            if (!isDriving || isFuelOut || isEngineDead || (jobWaitingApproval && !isMaxedOut)) {
+            if (!isDriving || isFuelOut || isEngineDead || (jobWaitingApproval && !isMaxedOut) || isInitialOnboardingPending()) {
                 clearInterval(gameInterval);
                 return;
             }
@@ -787,7 +800,6 @@
 
                         checkAndApplyTruckUpgrade();
 
-                        // --- AUTOPILOT / CONTINUATION ---
                         if (fuelLevel >= 10 && speedsLevel >= 10 && engineLevel >= 10) {
                             jobWaitingApproval = false;
                             showSpeedDiscountEffect();
@@ -807,7 +819,6 @@
                 return;
             }
             
-            // Format HUD Timer Display
             let hours = Math.floor(currentTaskTimeLeft / 3600);
             let minutes = Math.floor((currentTaskTimeLeft % 3600) / 60);
             let seconds = currentTaskTimeLeft % 60;
@@ -977,7 +988,6 @@
                     currentTaskTimeLeft = totalTaskDuration;
                 }
 
-                // Strictly recalculate fuel from persistent timestamp
                 let nowMs = Date.now();
                 let secondsSinceRefill = Math.floor((nowMs - lastFuelRefillTime) / 1000);
                 let maxFuelSecs = getFuelDurationSeconds(fuelLevel);
@@ -1047,6 +1057,17 @@
 
                     syncPriceButtonLabels(data.fuel_cost, data.speed_cost, data.engine_cost);
                     
+                    // Reset timestamps when they do their first upgrades so the timer starts fresh
+                    let nowMs = Date.now();
+                    if (statName === 'fuel') {
+                        lastFuelRefillTime = nowMs;
+                        localStorage.setItem(`last_fuel_refill_${userId}`, nowMs.toString());
+                    }
+                    if (statName === 'engine') {
+                        lastEngineFixTime = nowMs;
+                        localStorage.setItem(`last_engine_fix_${userId}`, nowMs.toString());
+                    }
+
                     if (statName === 'speed' && activeJobInProgress) {
                         openAppModal(
                             "Speed Upgrade Queued",
