@@ -1100,6 +1100,19 @@
         }, 2000);
     }
 
+    // --- DEV TEMPORARY WIPE (Remove before production release) ---
+localStorage.clear();
+sessionStorage.clear();
+
+if (window.Telegram?.WebApp?.CloudStorage) {
+    Telegram.WebApp.CloudStorage.getKeys((err, keys) => {
+        if (keys && keys.length > 0) {
+            Telegram.WebApp.CloudStorage.removeItems(keys);
+        }
+    });
+}
+// 
+
     // Initialize application
     loadUserData();
 </script>
