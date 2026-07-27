@@ -375,7 +375,7 @@
     tg.ready();
     tg.expand();
 
-    const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev"; 
+    const BACKEND_URL = "https://MoneyTrucks.pythonanywhere.com";
     const userId = tg.initDataUnsafe.user?.id || 12345;
 
     // --- TRUCK SELECTION HIERARCHY ---
@@ -548,7 +548,8 @@
             0: 15, 1: 15, 2: 30, 3: 45, 4: 60, 
             5: 90, 6: 120, 7: 150, 8: 180, 9: 210, 10: 240
         };
-        const safeLvl = Math.min(Math.max(lvl, 0), 15) * 60;
+        const safeLvl = Math.min(Math.max(lvl, 0), 10);
+        return (minutesMap[safeLvl] || 15) * 60;
     }
 
     function calculateTaskDuration() {
@@ -785,7 +786,7 @@
                 
                 const currentConfig = getTruckConfig();
 
-                fetch(`${NGROK_URL}/complete_task`, {
+                fetch(`${BACKEND_URL}/complete_task`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
@@ -897,7 +898,7 @@
     function processQuickFix(type) {
         const config = getTruckConfig();
         
-        fetch(`${NGROK_URL}/deduct_fix`, {
+        fetch(`${BACKEND_URL}/deduct_fix`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -960,7 +961,7 @@
             sessionStorage.setItem(`splash_shown_${userId}`, "true");
         }
 
-        fetch(`${NGROK_URL}/get_profile`, {
+        fetch(`${BACKEND_URL}/get_profile`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ user_id: userId })
@@ -1048,7 +1049,7 @@
 
         const activeJobInProgress = isDriving;
 
-        fetch(`${NGROK_URL}/upgrade`, {
+        fetch(`${BACKEND_URL}/upgrade`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ user_id: userId, stat: statName })
