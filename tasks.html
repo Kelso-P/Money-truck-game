@@ -566,33 +566,42 @@ function watchAd() {
     }
 
           // Intercept claimTask response for 'watch_ad' to run local cooldown timer
-    const originalClaimTask = window.claimTask;
     window.claimTask = function(taskId) {
-        // If you already have a claimTask function, append this handling inside it:
-        fetch('/claim_task', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: telegramUserId, task_id: taskId })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.status === 'success') {
-                showMiniAlert(`+${data.reward} MTC Claimed!`);
-                
-                // Handle Ad progress & Cooldowns
-                if (taskId === 'watch_ad') {
-                    const counter = document.getElementById('ad-counter');
-                    if (counter) counter.innerText = `${data.ads_watched}/30`;
-                    
-                    if (data.time_left) {
-                        startAdCooldown(data.time_left);
-                    }
-                }
-            } else {
-                showMiniAlert(data.message);
-                if (taskId === 'watch_ad' && data.time_left) {
+    const btn = document.getElementById('btn-watch_ad');
+
+    fetch('/claim_task', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: telegramUserId, task_id: taskId })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showMiniAlert(`+${data.reward} MTC Claimed!`);
+            
+            if (taskId === 'watch_ad') {
+                const counter = document.getElementById('ad-counter');
+                if (counter) counter.innerText = `${data.ads_watched}/30`;
+                if (data.time_left) startAdCooldown(data.time_left);
+            }
+        } else {
+            showMiniAlert(data.message);
+            if (taskId === 'watch_ad') {
+                if (data.time_left) {
                     startAdCooldown(data.time_left);
+                } else if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = "Watch";
                 }
+            }
+        }
+    })
+    .catch(err => {
+        console.error("Network or server error:", err);
+        showMiniAlert("Server error. Please try again.");
+        if (taskId === 'watch_ad' && btn) {
+            btn.disabled = false;
+            btn.innerText = "Watch";
             }
         });
     };
