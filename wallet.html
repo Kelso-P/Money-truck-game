@@ -442,7 +442,7 @@
     tg.ready();
     tg.expand();
 
-    const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev";
+    const BACKEND_URL = "https://MoneyTrucks.pythonanywhere.com";
     const userId = tg.initDataUnsafe?.user?.id || 12345;
     
     let currentBalanceMTC = 0;
@@ -524,11 +524,10 @@
     }
 
     function fetchBalance() {
-        fetch(`${NGROK_URL}/get_profile`, {
+        fetch(`${BACKEND_URL}/get_profile`, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                'ngrok-skip-browser-warning': 'true' 
             },
             body: JSON.stringify({ user_id: userId })
         })
@@ -578,11 +577,10 @@
         confirmBtn.innerText = "Converting...";
         confirmBtn.disabled = true;
 
-        fetch(`${NGROK_URL}/convert-mtc-to-mtd`, {
+        fetch(`${BACKEND_URL}/convert-mtc-to-mtd`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'ngrok-skip-browser-warning': 'true'
             },
             body: JSON.stringify({
                 user_id: userId,
@@ -622,11 +620,10 @@
         button.innerText = "Generating checkout link...";
         button.disabled = true;
 
-        fetch(`${NGROK_URL}/create-paypal-order`, {
+        fetch(`${BACKEND_URL}/create-paypal-order`, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                'ngrok-skip-browser-warning': 'true'
             },
             body: JSON.stringify({ 
                 amount_usd: amount,
@@ -677,11 +674,10 @@
         button.innerText = "Processing Request...";
         button.disabled = true;
 
-        fetch(`${NGROK_URL}/request-withdrawal`, {
+        fetch(`${BACKEND_URL}/request-withdrawal`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'ngrok-skip-browser-warning': 'true'
             },
             body: JSON.stringify({
                 user_id: userId,
@@ -719,11 +715,10 @@
         loadingBox.style.display = 'block';
         dataBox.style.display = 'none';
 
-        fetch(`${NGROK_URL}/get-user-history`, {
+        fetch(`${BACKEND_URL}/get-user-history`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'ngrok-skip-browser-warning': 'true'
             },
             body: JSON.stringify({ user_id: userId })
         })
