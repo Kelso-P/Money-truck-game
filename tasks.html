@@ -299,7 +299,7 @@
 
             <div class="task-card" id="task-watch_ad">
                 <div class="task-details">
-                    <h4>Watch Sponsored Ad 📺</h4>
+                    <h4>Watch Sponsored Ad 📺 (<span id="ad-counter">0/30</span>)</h4>
                     <p>Briefly view a promotional transmission.</p>
                     <span class="task-reward">+2 MTC</span>
                 </div>
@@ -365,6 +365,7 @@
     let balance = 0;
     let activeTimers = {};
     let ownedTrucks = []; // Store list of owned trucks
+    let adTimerInterval = null;
 
     // Mapping truck tasks to their corresponding truck key/id in backend
     const TRUCK_TASK_MAP = {
@@ -534,15 +535,13 @@
       // --- WATCH AD HANDLER (MONETAG INTEGRATION) ---
 function watchAd() {
     const card = document.getElementById('task-watch_ad');
-    const btn = card ? card.querySelector('.claim-btn') : null;
+    const btn = document.getElementById('btn-watch_ad');
 
     if (btn) {
         btn.disabled = true;
         btn.innerText = "Loading Ad...";
     }
 
-    // Check if Monetag SDK function is available
-    // Replace 'show_YOUR_ZONE_ID' with the exact function name provided by Monetag
     if (typeof show_11436498 === 'function') {
     show_11436498().then(() => {
                 // Ad completed successfully -> Claim reward
@@ -558,14 +557,77 @@ function watchAd() {
                 }
             });
     } else {
-        // Fallback for Direct Link / standard URL opening if using Monetag Direct Link
-        console.warn("Monetag SDK function not found. Falling back or simulating ad delay.");
-        
-        // Simulating completion for testing or Direct Link fallback
-        setTimeout(() => {
-            claimTask('watch_ad');
-            }, 3000);
+        showMiniAlert("Ad network unreachable. Try again in a moment.");
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = "Watch";
+            }
         }
+    }
+
+          // Intercept claimTask response for 'watch_ad' to run local cooldown timer
+    const originalClaimTask = window.claimTask;
+    window.claimTask = function(taskId) {
+        // If you already have a claimTask function, append this handling inside it:
+        fetch('/claim_task', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: telegramUserId, task_id: taskId })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showMiniAlert(`+${data.reward} MTC Claimed!`);
+                
+                // Handle Ad progress & Cooldowns
+                if (taskId === 'watch_ad') {
+                    const counter = document.getElementById('ad-counter');
+                    if (counter) counter.innerText = `${data.ads_watched}/30`;
+                    
+                    if (data.time_left) {
+                        startAdCooldown(data.time_left);
+                    }
+                }
+            } else {
+                showMiniAlert(data.message);
+                if (taskId === 'watch_ad' && data.time_left) {
+                    startAdCooldown(data.time_left);
+                }
+            }
+        });
+    };
+    
+    function startAdCooldown(seconds) {
+        const btn = document.getElementById('btn-watch_ad');
+        if (!btn) return;
+    
+        btn.disabled = true;
+        let remaining = seconds;
+    
+        if (adTimerInterval) clearInterval(adTimerInterval);
+    
+        adTimerInterval = setInterval(() => {
+            if (remaining <= 0) {
+                clearInterval(adTimerInterval);
+                btn.disabled = false;
+                btn.innerText = "Watch";
+                return;
+            }
+    
+            const hrs = Math.floor(remaining / 3600);
+            const mins = Math.floor((remaining % 3600) / 60);
+            const secs = remaining % 60;
+    
+            if (hrs > 0) {
+                btn.innerText = `${hrs}h ${mins}m`;
+            } else if (mins > 0) {
+                btn.innerText = `${mins}m ${secs}s`;
+            } else {
+                btn.innerText = `${secs}s`;
+            }
+    
+            remaining--;
+        }, 1000);
     }
 
     // --- HELPER TO CHECK TRUCK OWNERSHIP (SERVER + LOCALSTORAGE) ---
