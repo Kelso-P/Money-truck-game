@@ -361,11 +361,14 @@
     tg.ready();
     tg.expand();
 
-   const BACKEND_URL = "https://MoneyTrucks.pythonanywhere.com";
+    const BACKEND_URL = "https://MoneyTrucks.pythonanywhere.com";
     let balance = 0;
     let activeTimers = {};
-    let ownedTrucks = []; // Store list of owned trucks
+    let ownedTrucks = []; 
     let adTimerInterval = null;
+
+    // Helper to extract Telegram User ID safely
+    const getTelegramUserId = () => tg.initDataUnsafe.user?.id || 12345;
 
     // Mapping truck tasks to their corresponding truck key/id in backend
     const TRUCK_TASK_MAP = {
@@ -454,6 +457,40 @@
         activeTimers[taskId] = setInterval(updateUI, 1000);
     }
 
+    // --- AD COOLDOWN TIMER ---
+    function startAdCooldown(seconds) {
+        const btn = document.getElementById('btn-watch_ad');
+        if (!btn) return;
+
+        btn.disabled = true;
+        let remaining = seconds;
+
+        if (adTimerInterval) clearInterval(adTimerInterval);
+
+        adTimerInterval = setInterval(() => {
+            if (remaining <= 0) {
+                clearInterval(adTimerInterval);
+                btn.disabled = false;
+                btn.innerText = "Watch";
+                return;
+            }
+
+            const hrs = Math.floor(remaining / 3600);
+            const mins = Math.floor((remaining % 3600) / 60);
+            const secs = remaining % 60;
+
+            if (hrs > 0) {
+                btn.innerText = `${hrs}h ${mins}m`;
+            } else if (mins > 0) {
+                btn.innerText = `${mins}m ${secs}s`;
+            } else {
+                btn.innerText = `${secs}s`;
+            }
+
+            remaining--;
+        }, 1000);
+    }
+
     // --- FLOATING TEXT ANIMATION TRIGGERS ---
     function triggerFloatAnimation(taskId) {
         const card = document.getElementById(`task-${taskId}`);
@@ -465,7 +502,6 @@
         
         card.appendChild(animateText);
 
-        // Housekeeping cleanup
         setTimeout(() => {
             animateText.remove();
         }, 2500);
@@ -499,7 +535,7 @@
 
     // --- FETCH PROFILE CONFIGURATION ---
     function loadTaskData() {
-        const userId = tg.initDataUnsafe.user?.id || 12345;
+        const userId = getTelegramUserId();
 
         fetch(`${BACKEND_URL}/get_profile`, {
             method: 'POST',
@@ -514,7 +550,6 @@
                 balance = data.balance;
                 document.getElementById('balance-display').innerText = `${balance} MTC`;
                 
-                // Store list of owned trucks from response
                 let rawTrucks = data.trucks || data.owned_trucks || [];
                 if (typeof rawTrucks === 'string') {
                     ownedTrucks = rawTrucks.split(',').map(t => t.trim());
@@ -532,19 +567,18 @@
         .catch(err => console.error("Error loading profile configuration:", err));
     }
 
-      // --- WATCH AD HANDLER (MONETAG INTEGRATION) ---
-function watchAd() {
-    const card = document.getElementById('task-watch_ad');
-    const btn = document.getElementById('btn-watch_ad');
+    // --- WATCH AD HANDLER (MONETAG INTEGRATION) ---
+    function watchAd() {
+        const card = document.getElementById('task-watch_ad');
+        const btn = document.getElementById('btn-watch_ad');
 
-    if (btn) {
-        btn.disabled = true;
-        btn.innerText = "Loading Ad...";
-    }
+        if (btn) {
+            btn.disabled = true;
+            btn.innerText = "Loading Ad...";
+        }
 
-    if (typeof show_11436498 === 'function') {
-    show_11436498().then(() => {
-                // Ad completed successfully -> Claim reward
+        if (typeof show_11436498 === 'function') {
+            show_11436498().then(() => {
                 if (btn) btn.innerText = "Claiming...";
                 claimTask('watch_ad');
             })
@@ -556,106 +590,32 @@ function watchAd() {
                     btn.innerText = "Watch";
                 }
             });
-    } else {
-        showMiniAlert("Ad network unreachable. Try again in a moment.");
-        if (btn) {
-            btn.disabled = false;
-            btn.innerText = "Watch";
-            }
-        }
-    }
-
-          // Intercept claimTask response for 'watch_ad' to run local cooldown timer
-    window.claimTask = function(taskId) {
-    const btn = document.getElementById('btn-watch_ad');
-
-    fetch('/claim_task', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: telegramUserId, task_id: taskId })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.status === 'success') {
-            showMiniAlert(`+${data.reward} MTC Claimed!`);
-            
-            if (taskId === 'watch_ad') {
-                const counter = document.getElementById('ad-counter');
-                if (counter) counter.innerText = `${data.ads_watched}/30`;
-                if (data.time_left) startAdCooldown(data.time_left);
-            }
         } else {
-            showMiniAlert(data.message);
-            if (taskId === 'watch_ad') {
-                if (data.time_left) {
-                    startAdCooldown(data.time_left);
-                } else if (btn) {
-                    btn.disabled = false;
-                    btn.innerText = "Watch";
-                }
-            }
-        }
-    })
-    .catch(err => {
-        console.error("Network or server error:", err);
-        showMiniAlert("Server error. Please try again.");
-        if (taskId === 'watch_ad' && btn) {
-            btn.disabled = false;
-            btn.innerText = "Watch";
-            }
-        });
-    };
-    
-    function startAdCooldown(seconds) {
-        const btn = document.getElementById('btn-watch_ad');
-        if (!btn) return;
-    
-        btn.disabled = true;
-        let remaining = seconds;
-    
-        if (adTimerInterval) clearInterval(adTimerInterval);
-    
-        adTimerInterval = setInterval(() => {
-            if (remaining <= 0) {
-                clearInterval(adTimerInterval);
+            showMiniAlert("Ad network unreachable. Try again in a moment.");
+            if (btn) {
                 btn.disabled = false;
                 btn.innerText = "Watch";
-                return;
             }
-    
-            const hrs = Math.floor(remaining / 3600);
-            const mins = Math.floor((remaining % 3600) / 60);
-            const secs = remaining % 60;
-    
-            if (hrs > 0) {
-                btn.innerText = `${hrs}h ${mins}m`;
-            } else if (mins > 0) {
-                btn.innerText = `${mins}m ${secs}s`;
-            } else {
-                btn.innerText = `${secs}s`;
-            }
-    
-            remaining--;
-        }, 1000);
+        }
     }
 
-    // --- HELPER TO CHECK TRUCK OWNERSHIP (SERVER + LOCALSTORAGE) ---
+    // --- HELPER TO CHECK TRUCK OWNERSHIP ---
     function isTruckOwned(truckId) {
-        const userId = tg.initDataUnsafe.user?.id || 12345;
+        const userId = getTelegramUserId();
 
-        // Check backend list
         const inServerList = ownedTrucks.includes(truckId) || 
                              ownedTrucks.some(t => (t.id || t) === truckId);
         
         if (inServerList) return true;
 
-        // Check LocalStorage fallback
         const localCheck = localStorage.getItem(`owned_${truckId}_${userId}`);
         return localCheck === "true";
     }
 
-    // --- ACTION HANDLER WITH TRUCK OWNERSHIP CHECK ---
+    // --- UNIFIED CLAIM TASK FUNCTION ---
     function claimTask(taskId) {
+        const adBtn = document.getElementById('btn-watch_ad');
+
         // Verification step for truck acquisition tasks
         if (TRUCK_TASK_MAP[taskId]) {
             const requiredTruck = TRUCK_TASK_MAP[taskId];
@@ -671,7 +631,7 @@ function watchAd() {
             }
         }
 
-        const userId = tg.initDataUnsafe.user?.id || 12345;
+        const userId = getTelegramUserId();
 
         fetch(`${BACKEND_URL}/claim_task`, {
             method: 'POST',
@@ -686,22 +646,36 @@ function watchAd() {
                 balance = data.new_balance;
                 document.getElementById('balance-display').innerText = `${balance} MTC`;
                 
-                // Trigger floating animation
                 triggerFloatAnimation(taskId);
                 
-                // Set button state
-                if (taskId === 'daily_login' || taskId === 'buy_mtc') {
+                if (taskId === 'watch_ad') {
+                    const counter = document.getElementById('ad-counter');
+                    if (counter) counter.innerText = `${data.ads_watched}/30`;
+                    if (data.time_left) startAdCooldown(data.time_left);
+                } else if (taskId === 'daily_login' || taskId === 'buy_mtc') {
                     startCountdown(taskId, data.time_left || 86400);
                 } else {
                     syncTasksUI(data.completed_tasks || [], 0, 0);
                 }
             } else {
                 showMiniAlert(data.message || "Unable to claim task.");
+                if (taskId === 'watch_ad') {
+                    if (data.time_left) {
+                        startAdCooldown(data.time_left);
+                    } else if (adBtn) {
+                        adBtn.disabled = false;
+                        adBtn.innerText = "Watch";
+                    }
+                }
             }
         })
         .catch(err => {
             console.error("Transmission error claiming task:", err);
             showMiniAlert("Unable to connect to service registry.");
+            if (taskId === 'watch_ad' && adBtn) {
+                adBtn.disabled = false;
+                adBtn.innerText = "Watch";
+            }
         });
     }
 
