@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MoneyTrucks - Tasks</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src='//libtl.com/sdk.js' data-zone='11436498' data-sdk='show_11436498'></script>
     <style>
         /* --- BASE THEME (Matching index & store) --- */
         body {
@@ -302,7 +303,7 @@
                     <p>Briefly view a promotional transmission.</p>
                     <span class="task-reward">+2 MTC</span>
                 </div>
-                <button class="claim-btn" disabled>Soon</button>
+                <button class="claim-btn" onclick="watchAd()">Watch</button>
             </div>
 
             <div class="task-card" id="task-buy_iron">
@@ -528,6 +529,43 @@
             }
         })
         .catch(err => console.error("Error loading profile configuration:", err));
+    }
+
+      // --- WATCH AD HANDLER (MONETAG INTEGRATION) ---
+function watchAd() {
+    const card = document.getElementById('task-watch_ad');
+    const btn = card ? card.querySelector('.claim-btn') : null;
+
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = "Loading Ad...";
+    }
+
+    // Check if Monetag SDK function is available
+    // Replace 'show_YOUR_ZONE_ID' with the exact function name provided by Monetag
+    if (typeof show_11436498 === 'function') {
+    show_11436498().then(() => {
+                // Ad completed successfully -> Claim reward
+                if (btn) btn.innerText = "Claiming...";
+                claimTask('watch_ad');
+            })
+            .catch((err) => {
+                console.error("Ad playback error or closed early:", err);
+                showMiniAlert("Ad was closed early or failed to load. Please try again.");
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = "Watch";
+                }
+            });
+    } else {
+        // Fallback for Direct Link / standard URL opening if using Monetag Direct Link
+        console.warn("Monetag SDK function not found. Falling back or simulating ad delay.");
+        
+        // Simulating completion for testing or Direct Link fallback
+        setTimeout(() => {
+            claimTask('watch_ad');
+            }, 3000);
+        }
     }
 
     // --- HELPER TO CHECK TRUCK OWNERSHIP (SERVER + LOCALSTORAGE) ---
