@@ -455,7 +455,6 @@
     truckEngineSound.loop = true;
     truckEngineSound.volume = 0.5;
 
-    // Add these two sound effect instances:
     const upgradeSound = new Audio('sounds/upgrade.mp3');
     upgradeSound.volume = 0.7;
     
@@ -479,7 +478,7 @@
         if (document.hidden) {
             truckEngineSound.pause();
         } else if (audioInitialized && isDriving) {
-            truckEngineSound.play().catch(() => {});
+            truckEngineSound.play().catch(err => console.warn("Engine audio resume blocked:", err));
         }
     });
 
@@ -663,7 +662,6 @@
         }
     }
 
-    // Helper: Determines if new player hasn't upgraded all three stats yet
     function isInitialOnboardingPending() {
         return isFirstRunDone === 0 && (fuelLevel < 1 || speedsLevel < 1 || engineLevel < 1);
     }
@@ -674,7 +672,6 @@
 
         const isMaxedOut = fuelLevel >= 10 && speedsLevel >= 10 && engineLevel >= 10;
         
-        // Block driving if onboarding is pending
         const onboardingPending = isInitialOnboardingPending();
         const canDrive = !onboardingPending && !isFuelOut && !isEngineDead && (!jobWaitingApproval || isMaxedOut);
 
@@ -692,23 +689,24 @@
             }
             
             if (taskStartTime === 0) {
-                fetch(`${NGROK_URL}/start_task`, {
+                fetch(`${BACKEND_URL}/start_task`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ user_id: userId })
                 })
                 .then(res => res.json())
                 .then(data => { 
-                    if(data.status === "success") {
+                    if (data.status === "success") {
                         taskStartTime = data.task_start_time;
                     } 
-                });
+                })
+                .catch(err => console.error("Error starting task:", err));
             }
             startCoreTimers();
             if (speedHud) speedHud.innerText = `${20 + (speedsLevel * 10)} m/s`;
         } else {
             isDriving = false;
-            truckEngineSound.pause(); // Pause engine audio when truck stops
+            truckEngineSound.pause();
             
             if (videoEl) {
                 videoEl.style.display = 'none';
@@ -716,7 +714,6 @@
             }
             if (stagnantEl) stagnantEl.style.display = 'block';
             
-            // Show Onboarding Message overlay / title if new user
             if (onboardingPending) {
                 if (jobBoardTitle) {
                     jobBoardTitle.innerText = "Hello Driver! Please upgrade fuel, speed and engine to get started.";
@@ -796,7 +793,7 @@
                 })
                 .then(res => res.json())
                 .then(data => {
-                    if(data.status === "success") {
+                    if (data.status === "success") {
                         balance = data.new_balance;
                         if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
                         
@@ -823,7 +820,8 @@
                             });
                         }
                     }
-                });
+                })
+                .catch(err => console.error("Error completing task:", err));
                 return;
             }
             
@@ -941,7 +939,8 @@
                     if (type === 'engine') triggerEngineBreakdown();
                 });
             }
-        });
+        })
+        .catch(err => console.error("Error processing fix:", err));
     }
     
     function hideLoader() {
@@ -1056,21 +1055,20 @@
         })
         .then(res => res.json())
         .then(data => {
-            if(data.status === "success") {
-                upgradeSound.currentTime = 0; // Rewind to start if clicked rapidly
+            if (data.status === "success") {
+                upgradeSound.currentTime = 0;
                 upgradeSound.play().catch(err => console.warn("Upgrade audio playback blocked:", err));
                 
                 openAppModal("Upgrade Complete!", data.message, "Awesome", () => {
-                    if (statName === 'fuel') { fuelLevel++; if(fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel; }
-                    if (statName === 'speed') { speedsLevel++; if(speedLvlTxt) speedLvlTxt.innerText = speedsLevel; }
-                    if (statName === 'engine') { engineLevel++; if(engineLvlTxt) engineLvlTxt.innerText = engineLevel; }
+                    if (statName === 'fuel') { fuelLevel++; if (fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel; }
+                    if (statName === 'speed') { speedsLevel++; if (speedLvlTxt) speedLvlTxt.innerText = speedsLevel; }
+                    if (statName === 'engine') { engineLevel++; if (engineLvlTxt) engineLvlTxt.innerText = engineLevel; }
 
                     balance = data.new_balance;
                     if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
 
                     syncPriceButtonLabels(data.fuel_cost, data.speed_cost, data.engine_cost);
                     
-                    // Reset timestamps when they do their first upgrades so the timer starts fresh
                     let nowMs = Date.now();
                     if (statName === 'fuel') {
                         lastFuelRefillTime = nowMs;
@@ -1110,23 +1108,23 @@
     function showSpeedDiscountEffect() {
         const cutSeconds = getSpeedTimeCutSeconds(speedsLevel);
         if (cutSeconds <= 0) return;
-    
+        
         const cutMinutes = cutSeconds / 60;
         let label = `-${cutMinutes}m`;
         if (cutMinutes >= 60) {
             const hrs = cutMinutes / 60;
             label = `-${hrs}h`;
         }
-    
+        
         const stage = document.getElementById('game-stage');
         if (!stage) return;
-    
+        
         const floatEl = document.createElement('div');
         floatEl.className = 'speed-discount-float';
         floatEl.innerText = `⚡ ${label} Speed Bonus!`;
-    
+        
         stage.appendChild(floatEl);
-    
+        
         setTimeout(() => {
             if (floatEl && floatEl.parentNode) {
                 floatEl.parentNode.removeChild(floatEl);
