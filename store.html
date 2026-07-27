@@ -488,7 +488,7 @@
     tg.ready();
     tg.expand();
 
-    const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev";
+   const BACKEND_URL = "https://MoneyTrucks.pythonanywhere.com";
     const userId = tg.initDataUnsafe?.user?.id || 12345;
     let currentBalance = 0;
 
@@ -521,7 +521,7 @@
     }
 
     function loadBalanceDisplay() {
-        fetch(`${NGROK_URL}/get_profile`, {
+        fetch(`${BACKEND_URL}/get_profile`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ user_id: userId })
@@ -597,7 +597,7 @@
             return;
         }
 
-        fetch(`${NGROK_URL}/buy_truck`, {
+        fetch(`${BACKEND_URL}/buy_truck`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -638,7 +638,7 @@
             return;
         }
 
-        fetch(`${NGROK_URL}/buy_truck`, {
+        fetch(`${BACKEND_URL}/buy_truck`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -680,7 +680,7 @@
             return;
         }
 
-        fetch(`${NGROK_URL}/buy_truck`, {
+        fetch(`${BACKEND_URL}/buy_truck`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
