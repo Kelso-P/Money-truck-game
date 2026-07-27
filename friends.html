@@ -132,7 +132,7 @@
         tg.ready();
         tg.expand();
 
-        const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev";
+        const BACKEND_URL = "https://MoneyTrucks.pythonanywhere.com";
         const userId = tg.initDataUnsafe.user?.id || 12345;
 
         // Format Username
@@ -144,9 +144,9 @@
 
         function loadReferralData() {
             // Load user profile balance
-            fetch(`${NGROK_URL}/get_profile`, {
+            fetch(`${BACKEND_URL}/get_profile`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+                headers: { 'Content-Type': 'application/json'},
                 body: JSON.stringify({ user_id: userId })
             })
             .then(res => res.json())
@@ -157,9 +157,9 @@
             });
 
             // Load referral info
-            fetch(`${NGROK_URL}/get_referral_info`, {
+            fetch(`${BACKEND_URL}/get_referral_info`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+                headers: { 'Content-Type': 'application/json'},
                 body: JSON.stringify({ user_id: userId })
             })
             .then(res => res.json())
@@ -194,9 +194,9 @@
         }
 
         function claimReferralBonus() {
-            fetch(`${NGROK_URL}/claim_referral_rewards`, {
+            fetch(`${BACKEND_URL}/claim_referral_rewards`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id: userId })
             })
             .then(res => res.json())
