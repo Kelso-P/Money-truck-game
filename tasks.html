@@ -360,7 +360,7 @@
     tg.ready();
     tg.expand();
 
-    const NGROK_URL = "https://merlin-superindifferent-karma.ngrok-free.dev"; 
+   const BACKEND_URL = "https://MoneyTrucks.pythonanywhere.com";
     let balance = 0;
     let activeTimers = {};
     let ownedTrucks = []; // Store list of owned trucks
@@ -499,11 +499,10 @@
     function loadTaskData() {
         const userId = tg.initDataUnsafe.user?.id || 12345;
 
-        fetch(`${NGROK_URL}/get_profile`, {
+        fetch(`${BACKEND_URL}/get_profile`, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                'ngrok-skip-browser-warning': 'true'
             },
             body: JSON.stringify({ user_id: userId })
         })
@@ -565,11 +564,10 @@
 
         const userId = tg.initDataUnsafe.user?.id || 12345;
 
-        fetch(`${NGROK_URL}/claim_task`, {
+        fetch(`${BACKEND_URL}/claim_task`, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                'ngrok-skip-browser-warning': 'true'
             },
             body: JSON.stringify({ user_id: userId, task_id: taskId })
         })
