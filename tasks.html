@@ -557,6 +557,17 @@
                     ownedTrucks = rawTrucks;
                 }
 
+               // Restore the actual ads watched count on page load
+                const counter = document.getElementById('ad-counter');
+                if (counter && data.ads_watched !== undefined) {
+                    counter.innerText = `${data.ads_watched}/30`;
+                }
+
+                // Start cooldown countdown if ad timer is active
+                if (data.ad_time_left && data.ad_time_left > 0) {
+                    startAdCooldown(data.ad_time_left);
+                }
+
                 syncTasksUI(
                     data.completed_tasks || [], 
                     data.login_time_left || 0, 
