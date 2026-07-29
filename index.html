@@ -445,6 +445,11 @@
     const speedBtn = document.getElementById('speed-upgrade-btn');
     const engineBtn = document.getElementById('engine-upgrade-btn');
 
+    // Audio UI Elements
+    const audioToggleBtn = document.getElementById('audio-toggle-btn');
+    const volumeIconOn = document.getElementById('volume-icon-on');
+    const volumeIconOff = document.getElementById('volume-icon-off');
+
     // --- UPGRADE PRICING SCHEDULES ---
     const SPEED_COSTS  = [20, 50, 90, 140, 210, 310, 440, 600, 780, 1000];
     const ENGINE_COSTS = [20, 50, 80, 130, 200, 300, 420, 560, 720, 900];
@@ -459,8 +464,58 @@
     upgradeSound.volume = 0.7;
     
     const startJobSound = new Audio('sounds/startjob.mp3');
-    startJobSound.volume = 0.5;
+    startJobSound.volume = 0.7;
 
+    // Track audio preference across pages
+    let isAudioMuted = localStorage.getItem(`audio_muted_${userId}`) === "true";
+
+    function updateAudioUI() {
+        if (!volumeIconOn || !volumeIconOff) return;
+        if (isAudioMuted) {
+            volumeIconOn.style.display = 'none';
+            volumeIconOff.style.display = 'block';
+        } else {
+            volumeIconOn.style.display = 'block';
+            volumeIconOff.style.display = 'none';
+        }
+    }
+
+    function toggleGlobalAudio() {
+        isAudioMuted = !isAudioMuted;
+        localStorage.setItem(`audio_muted_${userId}`, isAudioMuted ? "true" : "false");
+        
+        if (isAudioMuted) {
+            truckEngineSound.pause();
+        } else {
+            truckEngineSound.play().catch(err => console.warn("Audio playback blocked:", err));
+        }
+        updateAudioUI();
+    }
+
+    if (audioToggleBtn) {
+        audioToggleBtn.addEventListener('click', toggleGlobalAudio);
+    }
+
+    function initGlobalAudio() {
+        updateAudioUI();
+        if (!isAudioMuted) {
+            truckEngineSound.play().catch(err => {
+                console.warn("Autoplay waiting for user gesture:", err);
+            });
+        }
+    }
+
+    // Try starting audio on first touch/click interaction anywhere on page
+    document.addEventListener('click', initGlobalAudio, { once: true });
+    document.addEventListener('touchstart', initGlobalAudio, { once: true });
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            truckEngineSound.pause();
+        } else if (!isAudioMuted) {
+            truckEngineSound.play().catch(err => console.warn("Engine audio resume blocked:", err));
+        }
+    });
 
     // --- DYNAMIC TRUCK CONFIGURATION ---
     function getTruckConfig() {
