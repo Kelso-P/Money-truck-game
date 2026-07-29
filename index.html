@@ -293,6 +293,16 @@
         <span id="username">Driver</span>
     </div>
     <div style="display: flex; align-items: center; gap: 15px;">
+        <button id="audio-toggle-btn" class="audio-btn" aria-label="Toggle Audio">
+            <!-- Unmuted Icon (Default) -->
+            <svg id="volume-icon-on" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+            </svg>
+            <!-- Muted / Slashed Icon (Hidden initially) -->
+            <svg id="volume-icon-off" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73 4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+            </svg>
+        </button>
         <span class="balance" id="balance-display" style="background: #23232e; padding: 6px 12px; border-radius: 20px; border: 1px solid #f39c12; font-weight: bold; font-size: 0.9rem; color: #fff;">0 MTC</span>
     </div>
 </div>
@@ -445,6 +455,11 @@
     const speedBtn = document.getElementById('speed-upgrade-btn');
     const engineBtn = document.getElementById('engine-upgrade-btn');
 
+    // Audio UI Elements
+    const audioToggleBtn = document.getElementById('audio-toggle-btn');
+    const volumeIconOn = document.getElementById('volume-icon-on');
+    const volumeIconOff = document.getElementById('volume-icon-off');
+
     // --- UPGRADE PRICING SCHEDULES ---
     const SPEED_COSTS  = [20, 50, 90, 140, 210, 310, 440, 600, 780, 1000];
     const ENGINE_COSTS = [20, 50, 80, 130, 200, 300, 420, 560, 720, 900];
@@ -461,23 +476,53 @@
     const startJobSound = new Audio('sounds/startjob.mp3');
     startJobSound.volume = 0.7;
 
-    let audioInitialized = false;
-    function initGlobalAudio() {
-        if (audioInitialized) return;
-        truckEngineSound.play().then(() => {
-            audioInitialized = true;
-        }).catch(err => {
-            console.warn("Autoplay waiting for user gesture:", err);
-        });
+    // Track audio preference across pages
+    let isAudioMuted = localStorage.getItem(`audio_muted_${userId}`) === "true";
+
+    function updateAudioUI() {
+        if (!volumeIconOn || !volumeIconOff) return;
+        if (isAudioMuted) {
+            volumeIconOn.style.display = 'none';
+            volumeIconOff.style.display = 'block';
+        } else {
+            volumeIconOn.style.display = 'block';
+            volumeIconOff.style.display = 'none';
+        }
     }
 
+    function toggleGlobalAudio() {
+        isAudioMuted = !isAudioMuted;
+        localStorage.setItem(`audio_muted_${userId}`, isAudioMuted ? "true" : "false");
+        
+        if (isAudioMuted) {
+            truckEngineSound.pause();
+        } else {
+            truckEngineSound.play().catch(err => console.warn("Audio playback blocked:", err));
+        }
+        updateAudioUI();
+    }
+
+    if (audioToggleBtn) {
+        audioToggleBtn.addEventListener('click', toggleGlobalAudio);
+    }
+
+    function initGlobalAudio() {
+        updateAudioUI();
+        if (!isAudioMuted) {
+            truckEngineSound.play().catch(err => {
+                console.warn("Autoplay waiting for user gesture:", err);
+            });
+        }
+    }
+
+    // Try starting audio on first touch/click interaction anywhere on page
     document.addEventListener('click', initGlobalAudio, { once: true });
     document.addEventListener('touchstart', initGlobalAudio, { once: true });
 
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
             truckEngineSound.pause();
-        } else if (audioInitialized && isDriving) {
+        } else if (!isAudioMuted) {
             truckEngineSound.play().catch(err => console.warn("Engine audio resume blocked:", err));
         }
     });
@@ -677,7 +722,6 @@
 
         if (canDrive) {
             isDriving = true;
-            initGlobalAudio();
             if (jobBoardOverlay) jobBoardOverlay.style.display = 'none';
             
             if (videoEl) {
@@ -706,7 +750,6 @@
             if (speedHud) speedHud.innerText = `${20 + (speedsLevel * 10)} m/s`;
         } else {
             isDriving = false;
-            truckEngineSound.pause();
             
             if (videoEl) {
                 videoEl.style.display = 'none';
@@ -841,7 +884,9 @@
     }
 
     function acceptNewJobContract() {
-        startJobSound.play().catch(err => console.warn("Start job audio playback blocked:", err));
+        if (!isAudioMuted) {
+            startJobSound.play().catch(err => console.warn("Start job audio playback blocked:", err));
+        }
         
         if (activeTruck === "titan_hypermax") {
             localStorage.setItem(`titan_hypermax_used_${userId}`, "true");
@@ -1056,8 +1101,10 @@
         .then(res => res.json())
         .then(data => {
             if (data.status === "success") {
-                upgradeSound.currentTime = 0;
-                upgradeSound.play().catch(err => console.warn("Upgrade audio playback blocked:", err));
+                if (!isAudioMuted) {
+                    upgradeSound.currentTime = 0;
+                    upgradeSound.play().catch(err => console.warn("Upgrade audio playback blocked:", err));
+                }
                 
                 openAppModal("Upgrade Complete!", data.message, "Awesome", () => {
                     if (statName === 'fuel') { fuelLevel++; if (fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel; }
@@ -1133,6 +1180,7 @@
     }
 
     // Initialize application
+    updateAudioUI();
     loadUserData();
 </script>
 </body>
