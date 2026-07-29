@@ -48,30 +48,29 @@
         }
         
         /* 9:16 Image set to fill 100% of screen while maintaining aspect ratio */
-        .loader-bg-image {
+       .loader-bg-image {
           width: 100%;
           height: 100%;
-          object-fit: cover; /* Fits full screen without distorting ratio */
+          object-fit: contain; /* Shows the ENTIRE graphic without cropping edges */
           object-position: center;
           display: block;
         }
-        
+                
         /* Spinner positioned in the lower half of the screen */
         .spinner {
           position: absolute;
-          top: 75%; /* Sits below the middle, under title text in your graphic */
+          top: 80%; /* Adjust this percentage if you want it closer to the bottom edge */
           left: 50%;
           transform: translate(-50%, -50%);
-          width: 44px;
-          height: 44px;
-          border: 4px solid rgba(255, 255, 255, 0.2);
-          border-top: 4px solid #00e676; /* Vibrant accent green */
+          width: 40px;
+          height: 40px;
+          border: 4px solid rgba(255, 255, 255, 0.15);
+          border-top: 4px solid #00e676;
           border-radius: 50%;
           animation: spin 1s linear infinite;
           z-index: 2;
           pointer-events: none;
         }
-        
         @keyframes spin {
           0% { transform: translate(-50%, -50%) rotate(0deg); }
           100% { transform: translate(-50%, -50%) rotate(360deg); }
