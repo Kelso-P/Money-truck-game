@@ -356,7 +356,7 @@
         <a href="tasks.html" class="nav-item active">📋<br>Tasks</a>
     </div>
 
-  <script>
+ <script>
     const tg = window.Telegram.WebApp;
     tg.ready();
     tg.expand();
@@ -367,17 +367,14 @@
     let ownedTrucks = []; 
     let adTimerInterval = null;
 
-    // Helper to extract Telegram User ID safely
     const getTelegramUserId = () => tg.initDataUnsafe.user?.id || 12345;
 
-    // Mapping truck tasks to their corresponding truck key/id in backend
     const TRUCK_TASK_MAP = {
         'buy_iron': 'iron_hauler',
         'buy_diesel': 'diesel_beast',
         'buy_titan': 'titan_hypermax'
     };
 
-    // --- COMPACT MODAL CONTROLLERS ---
     function showMiniAlert(message) {
         const modal = document.getElementById('mini-alert-modal');
         const textEl = document.getElementById('mini-alert-text');
@@ -390,7 +387,6 @@
         if (modal) modal.classList.remove('active');
     }
 
-    // --- DYNAMIC USERNAME FORMATTING ---
     function formatUsername(name) {
         if (!name) return "Driver";
         let rawName = name.startsWith('@') ? name.substring(1) : name;
@@ -406,7 +402,6 @@
         document.getElementById('username').innerText = formatUsername(displayName);
     }
 
-    // --- TAB NAVIGATION SWITCH ---
     function switchTaskTab(tab) {
         const appSection = document.getElementById('app-tasks-section');
         const socialSection = document.getElementById('social-tasks-section');
@@ -426,7 +421,7 @@
         }
     }
 
-    // --- SECURE TIMERS ENGINE ---
+    // Daily & generic 24-hour countdown timer
     function startCountdown(taskId, totalSeconds) {
         if (activeTimers[taskId]) {
             clearInterval(activeTimers[taskId]);
@@ -457,7 +452,7 @@
         activeTimers[taskId] = setInterval(updateUI, 1000);
     }
 
-    // --- AD COOLDOWN TIMER ---
+    // Specific timer for Watch Ad button
     function startAdCooldown(seconds) {
         const btn = document.getElementById('btn-watch_ad');
         if (!btn) return;
@@ -491,7 +486,6 @@
         }, 1000);
     }
 
-    // --- FLOATING TEXT ANIMATION TRIGGERS ---
     function triggerFloatAnimation(taskId) {
         const card = document.getElementById(`task-${taskId}`);
         if (!card) return;
@@ -507,7 +501,6 @@
         }, 2500);
     }
 
-    // --- SYNC SYSTEM STATE ---
     function syncTasksUI(completedTasks, loginTimeLeft, buyTimeLeft) {
         const trackingIds = ['daily_login', 'buy_mtc', 'buy_iron', 'buy_diesel', 'buy_titan'];
         
@@ -533,7 +526,6 @@
         });
     }
 
-    // --- FETCH PROFILE CONFIGURATION ---
     function loadTaskData() {
         const userId = getTelegramUserId();
 
@@ -557,13 +549,13 @@
                     ownedTrucks = rawTrucks;
                 }
 
-               // Restore the actual ads watched count on page load
+                // Restore accurate ad count
                 const counter = document.getElementById('ad-counter');
                 if (counter && data.ads_watched !== undefined) {
                     counter.innerText = `${data.ads_watched}/30`;
                 }
 
-                // Start cooldown countdown if ad timer is active
+                // Restore ad cooldown timer if still running
                 if (data.ad_time_left && data.ad_time_left > 0) {
                     startAdCooldown(data.ad_time_left);
                 }
@@ -578,9 +570,7 @@
         .catch(err => console.error("Error loading profile configuration:", err));
     }
 
-    // --- WATCH AD HANDLER (MONETAG INTEGRATION) ---
     function watchAd() {
-        const card = document.getElementById('task-watch_ad');
         const btn = document.getElementById('btn-watch_ad');
 
         if (btn) {
@@ -610,7 +600,6 @@
         }
     }
 
-    // --- HELPER TO CHECK TRUCK OWNERSHIP ---
     function isTruckOwned(truckId) {
         const userId = getTelegramUserId();
 
@@ -623,11 +612,9 @@
         return localCheck === "true";
     }
 
-    // --- UNIFIED CLAIM TASK FUNCTION ---
     function claimTask(taskId) {
         const adBtn = document.getElementById('btn-watch_ad');
 
-        // Verification step for truck acquisition tasks
         if (TRUCK_TASK_MAP[taskId]) {
             const requiredTruck = TRUCK_TASK_MAP[taskId];
 
@@ -690,7 +677,6 @@
         });
     }
 
-    // Start execution loop
     loadTaskData();
 </script>
 </body>
