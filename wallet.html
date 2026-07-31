@@ -619,8 +619,8 @@
         const button = document.getElementById('custom-checkout-btn');
         button.innerText = "Generating checkout link...";
         button.disabled = true;
-
-        fetch(`${BACKEND_URL}/create-paypal-order`, {
+    
+        fetch(`${BACKEND_URL}/create-crypto-invoice`, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
@@ -632,11 +632,13 @@
         })
         .then(res => res.json())
         .then(data => {
-            button.innerText = "Pay with PayPal";
+            button.innerText = "Pay with CryptoBot";
             button.disabled = false;
             
             if (data.status === "success" && data.checkout_url) {
-                if (tg.openLink) {
+                if (tg.openTelegramLink) {
+                    tg.openTelegramLink(data.checkout_url); // Opens natively inside Telegram!
+                } else if (tg.openLink) {
                     tg.openLink(data.checkout_url);
                 } else {
                     window.location.href = data.checkout_url;
@@ -646,7 +648,7 @@
             }
         })
         .catch(err => {
-            button.innerText = "Pay with PayPal";
+            button.innerText = "Pay with CryptoBot";
             button.disabled = false;
             console.error(err);
             showMiniAlert("Network communication error.");
