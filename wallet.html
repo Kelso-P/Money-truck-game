@@ -307,8 +307,9 @@
             You will receive: <strong id="mtc-preview">100 MTC</strong>
         </div>
 
+        <!-- 📥 TOP UP SECTION (UPDATE BUTTON TEXT) -->
         <button id="custom-checkout-btn" class="form-btn" onclick="startDirectCheckout()" style="background: #f39c12; color: #fff; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
-            Pay with PayPal
+            Pay with CryptoBot
         </button>
     </div>
 
@@ -342,12 +343,15 @@
         <div class="section-title">📤 Request Withdrawal</div>
         
         <div class="form-group">
-            <label class="form-label">PayPal Email Address</label>
-            <div class="input-wrapper" style="display: block;">
-                <input id="withdraw-email" type="email" placeholder="your-email@example.com" class="form-input" style="padding-left: 12px;">
+            <label class="form-label">Payout Method</label>
+            <div style="background: #111; border: 1px solid #333; border-radius: 8px; padding: 12px; color: #2ecc71; font-weight: bold; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
+                🤖 Direct to Telegram CryptoBot Wallet
             </div>
+            <span style="font-size: 0.75rem; color: #888; margin-top: 4px; display: block;">
+                Payouts will be sent directly to your Telegram @CryptoBot balance.
+            </span>
         </div>
-
+    
         <div class="form-group">
             <label class="form-label">Amount to Withdraw (Minimum 500 MTD)</label>
             <div class="input-wrapper">
@@ -355,18 +359,18 @@
                 <input id="withdraw-amount" type="number" step="10" value="500" class="form-input" style="padding-left: 50px;" oninput="calculateUSDWithdrawal()">
             </div>
         </div>
-
+    
         <div class="conversion-preview" style="background: rgba(46, 204, 113, 0.1); border-left: 3px solid #2ecc71;">
             Conversion Value: <strong>100 MTD = $1.00 USD</strong><br>
             Withdrawal Fee: <strong>7%</strong><br>
-            You will receive roughly: <strong id="usd-withdraw-preview">$4.65 USD</strong>
+            You will receive roughly: <strong id="usd-withdraw-preview">$4.65 USDT</strong>
         </div>
-
+    
         <button id="custom-withdraw-btn" class="form-btn" onclick="submitWithdrawal()" style="background: #2ecc71; color: #fff; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
             Confirm Withdrawal Request
         </button>
     </div>
-
+    
     <!-- 📋 TRANSACTION HISTORY TRIGGER BUTTON -->
     <button onclick="openHistoryModal()" style="background: #222; color: #fff; border: 1px solid #444; width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px;">
         📜 View Transaction History
@@ -655,55 +659,44 @@
         });
     }
 
-    function submitWithdrawal() {
-        const email = document.getElementById('withdraw-email').value.trim();
-        const amountMTD = parseInt(document.getElementById('withdraw-amount').value);
-        const button = document.getElementById('custom-withdraw-btn');
+    // UPDATE submitWithdrawal() FUNCTION
+function submitWithdrawal() {
+    const amountMtd = parseInt(document.getElementById('withdraw-amount').value, 10);
 
-        if (!email || !email.includes('@')) {
-            showMiniAlert("Please provide a valid PayPal email address.");
-            return;
-        }
-        if (isNaN(amountMTD) || amountMTD < 500) {
-            showMiniAlert("Minimum withdrawal amount is 500 MTD ($5.00 USD).");
-            return;
-        }
-        if (amountMTD > currentBalanceMTD) {
-            showMiniAlert("Insufficient funds. Your current balance is " + currentBalanceMTD + " MTD.");
-            return;
-        }
+    if (isNaN(amountMtd) || amountMtd < 500) {
+        showMiniAlert("Minimum withdrawal threshold is 500 MTD.");
+        return;
+    }
 
-        button.innerText = "Processing Request...";
-        button.disabled = true;
+    const withdrawBtn = document.getElementById('custom-withdraw-btn');
+    withdrawBtn.disabled = true;
+    withdrawBtn.innerText = "Processing...";
 
-        fetch(`${BACKEND_URL}/request-withdrawal`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                user_id: userId,
-                paypal_email: email,
-                amount_mtd: amountMTD
-            })
+    fetch(`${BACKEND_URL}/request-withdrawal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            user_id: userId,
+            amount_mtd: amountMtd
         })
-        .then(res => res.json())
-        .then(data => {
-            button.innerText = "Confirm Withdrawal Request";
-            button.disabled = false;
+    })
+    .then(res => res.json())
+    .then(data => {
+        withdrawBtn.disabled = false;
+        withdrawBtn.innerText = "Confirm Withdrawal Request";
 
-            if (data.status === "success") {
-                showMiniAlert("Success! Your request to withdraw " + amountMTD + " MTD has been logged.");
-                fetchBalance();
-            } else {
-                showMiniAlert("Withdrawal failed: " + data.message);
-            }
-        })
-        .catch(err => {
-            button.innerText = "Confirm Withdrawal Request";
-            button.disabled = false;
-            console.error(err);
-            showMiniAlert("Network communication error.");
+        if (data.status === "success") {
+            showMiniAlert(data.message);
+            if (typeof fetchUserData === 'function') fetchUserData(); // Refresh balances
+        } else {
+            showMiniAlert("Error: " + data.message);
+        }
+    })
+    .catch(err => {
+        withdrawBtn.disabled = false;
+        withdrawBtn.innerText = "Confirm Withdrawal Request";
+        console.error(err);
+        showMiniAlert("Network error processing request.");
         });
     }
 
