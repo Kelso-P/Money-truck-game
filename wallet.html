@@ -794,91 +794,72 @@
     }
 
     function renderHistoryContent(withdrawals, deposits) {
-        const pendingTarget = document.getElementById('pending-withdrawals-target');
-        const completedTarget = document.getElementById('completed-withdrawals-target');
-        const depositsTarget = document.getElementById('deposits-target');
+    const pendingTarget = document.getElementById('pending-withdrawals-target');
+    const completedTarget = document.getElementById('completed-withdrawals-target');
+    const depositsTarget = document.getElementById('deposits-target');
 
-        const safeWithdrawals = Array.isArray(withdrawals) ? withdrawals : [];
-        const safeDeposits = Array.isArray(deposits) ? deposits : [];
+    const safeWithdrawals = Array.isArray(withdrawals) ? withdrawals : [];
+    const safeDeposits = Array.isArray(deposits) ? deposits : [];
 
-        let pendingHTML = "";
-        let completedHTML = "";
-        let depositsHTML = "";
+    let pendingHTML = "";
+    let completedHTML = "";
+    let depositsHTML = "";
 
-        const pendingItems = safeWithdrawals.filter(w => w && w.status === 'PENDING');
-        const completedItems = safeWithdrawals.filter(w => w && w.status !== 'PENDING');
+    const pendingItems = safeWithdrawals.filter(w => w && w.status === 'PENDING');
+    const completedItems = safeWithdrawals.filter(w => w && w.status !== 'PENDING');
 
-        if (pendingItems.length === 0) {
-            pendingHTML = '<div class="empty-history">No pending requests logged.</div>';
-        } else {
-            pendingItems.forEach(item => {
-                const itemAmt = (item.amount_mtd !== undefined && item.amount_mtd !== null) ? item.amount_mtd : (item.amount_mtc || 0);
-                const wallet = formatWalletShort(item.paypal_email);
-                const date = item.timestamp || 'Recent';
+    if (pendingItems.length === 0) {
+        pendingHTML = '<div class="empty-history">No pending requests logged.</div>';
+    } else {
+        pendingItems.forEach(item => {
+            const itemAmt = (item.amount_mtd !== undefined && item.amount_mtd !== null) ? item.amount_mtd : (item.amount_mtc || 0);
+            const tonPayout = parseFloat(item.amount_usd || 0).toFixed(3);
+            const wallet = formatWalletShort(item.paypal_email);
+            const date = item.timestamp || 'Recent';
 
-                pendingHTML += '<div class="history-item pending">' +
-                    '<div class="history-row"><strong>' + itemAmt + ' MTD</strong><span style="color:#f39c12;">Pending</span></div>' +
-                    '<div class="history-row"><span class="history-email">' + wallet + '</span><span class="history-date">' + date + '</span></div>' +
-                '</div>';
-            });
-        }
-
-        if (completedItems.length === 0) {
-            completedHTML = '<div class="empty-history">No past processed payouts found.</div>';
-        } else {
-            completedItems.forEach(item => {
-                const itemAmt = (item.amount_mtd !== undefined && item.amount_mtd !== null) ? item.amount_mtd : (item.amount_mtc || 0);
-                const wallet = formatWalletShort(item.paypal_email);
-                const date = item.timestamp || 'Recent';
-
-                completedHTML += '<div class="history-item completed">' +
-                    '<div class="history-row"><strong>' + itemAmt + ' MTD</strong><span style="color:#2ecc71;">Paid</span></div>' +
-                    '<div class="history-row"><span class="history-email">' + wallet + '</span><span class="history-date">' + date + '</span></div>' +
-                '</div>';
-            });
-        }
-        
-        if (safeDeposits.length === 0) {
-            depositsHTML = '<div class="empty-history">No account deposits located.</div>';
-        } else {
-            safeDeposits.forEach(item => {
-                const amountTon = parseFloat(item.amount_usd || 0).toFixed(2);
-                const txHash = formatWalletShort(item.paypal_order_id);
-                const date = item.timestamp || 'Recent';
-        
-                depositsHTML += '<div class="history-item deposit">' +
-                    '<div class="history-row"><strong>+' + amountTon + ' TON</strong><span style="color:#0098EA;">Success</span></div>' +
-                    '<div class="history-row"><span class="history-email">TX: ' + txHash + '</span><span class="history-date">' + date + '</span></div>' +
-                '</div>';
-            });
-        }
-        
-        if (pendingTarget) pendingTarget.innerHTML = pendingHTML;
-        if (completedTarget) completedTarget.innerHTML = completedHTML;
-        if (depositsTarget) depositsTarget.innerHTML = depositsHTML;
+            pendingHTML += '<div class="history-item pending">' +
+                '<div class="history-row"><strong>' + tonPayout + ' TON <span style="color:#aaa; font-size:0.75rem; font-weight:normal;">(' + itemAmt + ' MTD)</span></strong><span style="color:#f39c12;">Pending</span></div>' +
+                '<div class="history-row"><span class="history-email">To: ' + wallet + '</span><span class="history-date">' + date + '</span></div>' +
+            '</div>';
+        });
     }
-        
-    window.addEventListener('DOMContentLoaded', () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const amountParam = urlParams.get('amount');
-        
-        if (amountParam) {
-            const amountInput = document.getElementById('ton-amount');
-            if (amountInput) {
-                amountInput.value = parseFloat(amountParam).toFixed(2);
-                calculateMTCFromTON();
-                amountInput.dispatchEvent(new Event('input'));
-            }
-        
-            const depositBtn = document.getElementById('custom-checkout-btn');
-            if (depositBtn) {
-                depositBtn.classList.add('paypal-glow');
-                depositBtn.addEventListener('click', () => {
-                    depositBtn.classList.remove('paypal-glow');
-                });
-            }
-        }
-    });
+
+    if (completedItems.length === 0) {
+        completedHTML = '<div class="empty-history">No past processed payouts found.</div>';
+    } else {
+        completedItems.forEach(item => {
+            const itemAmt = (item.amount_mtd !== undefined && item.amount_mtd !== null) ? item.amount_mtd : (item.amount_mtc || 0);
+            const tonPayout = parseFloat(item.amount_usd || 0).toFixed(3);
+            const wallet = formatWalletShort(item.paypal_email);
+            const date = item.timestamp || 'Recent';
+
+            completedHTML += '<div class="history-item completed">' +
+                '<div class="history-row"><strong>' + tonPayout + ' TON <span style="color:#aaa; font-size:0.75rem; font-weight:normal;">(' + itemAmt + ' MTD)</span></strong><span style="color:#2ecc71;">Paid</span></div>' +
+                '<div class="history-row"><span class="history-email">To: ' + wallet + '</span><span class="history-date">' + date + '</span></div>' +
+            '</div>';
+        });
+    }
+    
+    if (safeDeposits.length === 0) {
+        depositsHTML = '<div class="empty-history">No account deposits located.</div>';
+    } else {
+        safeDeposits.forEach(item => {
+            const amountTon = parseFloat(item.amount_usd || 0).toFixed(3);
+            const mtcCredited = item.mtc_credited || Math.round(parseFloat(item.amount_usd || 0) * MTC_PER_TON);
+            const txHash = formatWalletShort(item.paypal_order_id);
+            const date = item.timestamp || 'Recent';
+    
+            depositsHTML += '<div class="history-item deposit">' +
+                '<div class="history-row"><strong>+' + amountTon + ' TON <span style="color:#aaa; font-size:0.75rem; font-weight:normal;">(+' + mtcCredited + ' MTC)</span></strong><span style="color:#0098EA;">Success</span></div>' +
+                '<div class="history-row"><span class="history-email">TX: ' + txHash + '</span><span class="history-date">' + date + '</span></div>' +
+            '</div>';
+        });
+    }
+    
+    if (pendingTarget) pendingTarget.innerHTML = pendingHTML;
+    if (completedTarget) completedTarget.innerHTML = completedHTML;
+    if (depositsTarget) depositsTarget.innerHTML = depositsHTML;
+}
         
     // Initial setup
     calculateMTCFromTON();
