@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Driver Wallet</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     
     <style>
         :root {
@@ -292,26 +293,29 @@
     
     <!-- 📥 TOP UP SECTION -->
     <div class="section-card">
-        <div class="section-title">📥 Top Up Account</div>
-        
-        <div class="form-group">
-            <label class="form-label">Amount in USD (Minimum $0.10)</label>
-            <div class="input-wrapper">
-                <span class="input-symbol">$</span>
-                <input id="usd-amount" type="number" step="0.10" value="1.00" class="form-input" oninput="calculateMTC()">
-            </div>
-        </div>
-
-        <div class="conversion-preview">
-            Exchange Rate: <strong>$1.00 = 100 MTC</strong><br>
-            You will receive: <strong id="mtc-preview">100 MTC</strong>
-        </div>
-
-        <!-- 📥 TOP UP SECTION (UPDATE BUTTON TEXT) -->
-        <button id="custom-checkout-btn" class="form-btn" onclick="startDirectCheckout()" style="background: #f39c12; color: #fff; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
-            Pay with CryptoBot
-        </button>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <div class="section-title" style="margin: 0;">📥 Top Up with TON</div>
+        <!-- TON Connect Button Renders Here -->
+        <div id="ton-connect-btn"></div>
     </div>
+    
+    <div class="form-group">
+        <label class="form-label">Amount in TON (Minimum 0.1 TON)</label>
+        <div class="input-wrapper">
+            <span class="input-symbol" style="left: 10px; font-size: 0.8rem; color: #0098EA;">TON</span>
+            <input id="ton-amount" type="number" step="0.1" value="1.0" class="form-input" style="padding-left: 48px;" oninput="calculateMTCFromTON()">
+        </div>
+    </div>
+
+    <div class="conversion-preview" style="border-left-color: #0098EA; background: rgba(0, 152, 234, 0.1);">
+        Exchange Rate: <strong>1 TON = 500 MTC</strong><br>
+        You will receive: <strong id="mtc-preview">500 MTC</strong>
+    </div>
+
+    <button id="custom-checkout-btn" class="form-btn" onclick="sendTonDeposit()" style="background: #0098EA; color: #fff; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+        💎 Deposit TON
+    </button>
+</div>
 
     <!-- 💱 WITHDRAWAL WALLET (CONVERTER) SECTION -->
     <div class="section-card">
@@ -340,36 +344,33 @@
 
     <!-- 📤 WITHDRAW SECTION -->
     <div class="section-card">
-        <div class="section-title">📤 Request Withdrawal</div>
-        
-        <div class="form-group">
-            <label class="form-label">Payout Method</label>
-            <div style="background: #111; border: 1px solid #333; border-radius: 8px; padding: 12px; color: #2ecc71; font-weight: bold; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
-                🤖 Direct to Telegram CryptoBot Wallet
-            </div>
-            <span style="font-size: 0.75rem; color: #888; margin-top: 4px; display: block;">
-                Payouts will be sent directly to your Telegram @CryptoBot balance.
-            </span>
-        </div>
+    <div class="section-title">📤 Request TON Withdrawal</div>
     
-        <div class="form-group">
-            <label class="form-label">Amount to Withdraw (Minimum 500 MTD)</label>
-            <div class="input-wrapper">
-                <span class="input-symbol" style="left: 10px; font-size: 0.8rem; color: #2ecc71;">MTD</span>
-                <input id="withdraw-amount" type="number" step="10" value="500" class="form-input" style="padding-left: 50px;" oninput="calculateUSDWithdrawal()">
-            </div>
+    <div class="form-group">
+        <label class="form-label">Your TON Wallet Address</label>
+        <div class="input-wrapper" style="display: block;">
+            <input id="withdraw-ton-address" type="text" placeholder="UQ... or EQ... (Auto-fills if connected)" class="form-input" style="padding-left: 12px; font-size: 0.85rem;">
         </div>
-    
-        <div class="conversion-preview" style="background: rgba(46, 204, 113, 0.1); border-left: 3px solid #2ecc71;">
-            Conversion Value: <strong>100 MTD = $1.00 USD</strong><br>
-            Withdrawal Fee: <strong>7%</strong><br>
-            You will receive roughly: <strong id="usd-withdraw-preview">$4.65 USDT</strong>
-        </div>
-    
-        <button id="custom-withdraw-btn" class="form-btn" onclick="submitWithdrawal()" style="background: #2ecc71; color: #fff; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
-            Confirm Withdrawal Request
-        </button>
     </div>
+
+    <div class="form-group">
+        <label class="form-label">Amount to Withdraw (Minimum 500 MTD)</label>
+        <div class="input-wrapper">
+            <span class="input-symbol" style="left: 10px; font-size: 0.8rem; color: #2ecc71;">MTD</span>
+            <input id="withdraw-amount" type="number" step="10" value="500" class="form-input" style="padding-left: 50px;" oninput="calculateTONWithdrawal()">
+        </div>
+    </div>
+
+    <div class="conversion-preview" style="background: rgba(46, 204, 113, 0.1); border-left: 3px solid #2ecc71;">
+        Conversion Value: <strong>500 MTD = 1.00 TON</strong><br>
+        Withdrawal Fee: <strong>7%</strong><br>
+        You will receive: <strong id="ton-withdraw-preview">0.93 TON</strong>
+    </div>
+
+    <button id="custom-withdraw-btn" class="form-btn" onclick="submitTonWithdrawal()" style="background: #2ecc71; color: #fff; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+        Confirm TON Withdrawal
+    </button>
+</div>
     
     <!-- 📋 TRANSACTION HISTORY TRIGGER BUTTON -->
     <button onclick="openHistoryModal()" style="background: #222; color: #fff; border: 1px solid #444; width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px;">
@@ -448,9 +449,30 @@
 
     const BACKEND_URL = "https://MoneyTrucks.pythonanywhere.com";
     const userId = tg.initDataUnsafe?.user?.id || 12345;
-    
+
+    // 🌟 TON CONNECT CONFIGURATION
+    const TREASURY_WALLET_ADDRESS = "0QA9i7fkR4WI3xRIukT64a-eLBHw8nXM3PRKmOJup-b0Zvzk";
+    const MTC_PER_TON = 500; // 1 TON = 500 MTC (and 500 MTD = 1 TON)
+
     let currentBalanceMTC = 0;
     let currentBalanceMTD = 0;
+
+    // Initialize TON Connect UI
+    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+        manifestUrl: 'https://github.com/Kelso-P/Money-truck-game/blob/main/tonconnect-manifest.json',
+        buttonRootId: 'ton-connect-btn'
+    });
+
+    // Auto-fill withdrawal address when wallet connects
+    tonConnectUI.onStatusChange(wallet => {
+        if (wallet && wallet.account) {
+            const addrInput = document.getElementById('withdraw-ton-address');
+            if (addrInput && !addrInput.value) {
+                // true = testnet user-friendly address (0Q... or kQ...); change to false for Mainnet
+                addrInput.value = TON_CONNECT_UI.toUserFriendlyAddress(wallet.account.address, true);
+            }
+        }
+    });
 
     // --- COMPACT MODAL CONTROLLERS ---
     function showMiniAlert(message) {
@@ -482,16 +504,16 @@
         }
     }
 
-    function calculateMTC() {
-        const usdInput = document.getElementById('usd-amount').value;
+    function calculateMTCFromTON() {
+        const tonInput = parseFloat(document.getElementById('ton-amount').value);
         const mtcPreview = document.getElementById('mtc-preview');
-        if (!usdInput || isNaN(usdInput) || parseFloat(usdInput) <= 0) {
+        if (isNaN(tonInput) || tonInput <= 0) {
             mtcPreview.innerText = "0 MTC";
             return 0;
         }
-        const mtcEquivalent = Math.round(parseFloat(usdInput) * 100);
+        const mtcEquivalent = Math.round(tonInput * MTC_PER_TON);
         mtcPreview.innerText = mtcEquivalent + " MTC";
-        return parseFloat(usdInput);
+        return tonInput;
     }
 
     function calculateConversion() {
@@ -503,27 +525,26 @@
             return 0;
         }
         
-        // 1000 MTC = 100 MTD (or 10 MTC = 1 MTD)
+        // 1000 MTC = 100 MTD (10 MTC = 1 MTD)
         const mtdCalculated = Math.floor(mtcInput / 10);
         mtdPreview.innerText = mtdCalculated + " MTD";
         return mtdCalculated;
     }
 
-    function calculateUSDWithdrawal() {
+    function calculateTONWithdrawal() {
         const mtdInput = parseInt(document.getElementById('withdraw-amount').value);
-        const usdPreview = document.getElementById('usd-withdraw-preview');
+        const tonPreview = document.getElementById('ton-withdraw-preview');
         
         if (isNaN(mtdInput) || mtdInput <= 0) {
-            usdPreview.innerText = "$0.00 USD";
+            tonPreview.innerText = "0.00 TON";
             return 0;
         }
         
-        // Rate: 100 MTD = $1.00 USD
-        // Fee: 7% -> Payout = MTD - (7% * MTD) = MTD * 0.93
+        // Rate: 500 MTD = 1.00 TON, minus 7% fee
         const netMTD = mtdInput * 0.93;
-        const usdNetPayout = (netMTD / 100).toFixed(2);
+        const tonNetPayout = (netMTD / MTC_PER_TON).toFixed(3);
         
-        usdPreview.innerText = "$" + usdNetPayout + " USD";
+        tonPreview.innerText = tonNetPayout + " TON";
         return mtdInput;
     }
 
@@ -539,7 +560,7 @@
         .then(data => {
             if (data.status === "success") {
                 currentBalanceMTC = data.balance || 0;
-                currentBalanceMTD = data.mtd_balance || 0; // Backend property for MTD
+                currentBalanceMTD = data.mtd_balance || 0;
                 
                 const balanceEl = document.getElementById('balance-display');
                 const mtdBalanceEl = document.getElementById('mtd-balance-display');
@@ -613,90 +634,117 @@
         });
     }
 
-    function startDirectCheckout() {
-        const amount = calculateMTC();
-        if (amount < 0.10) {
-            showMiniAlert("Minimum deposit is $0.10");
+    async function sendTonDeposit() {
+        const tonAmount = calculateMTCFromTON();
+        if (tonAmount < 0.1) {
+            showMiniAlert("Minimum deposit is 0.1 TON.");
             return;
         }
-        
-        const button = document.getElementById('custom-checkout-btn');
-        button.innerText = "Generating checkout link...";
-        button.disabled = true;
-    
-        fetch(`${BACKEND_URL}/create-crypto-invoice`, {
+
+        if (!tonConnectUI.connected) {
+            showMiniAlert("Please connect your TON wallet first using the button at the top right.");
+            tonConnectUI.openModal();
+            return;
+        }
+
+        const btn = document.getElementById('custom-checkout-btn');
+        btn.innerText = "Confirm in Wallet...";
+        btn.disabled = true;
+
+        // 1 TON = 1,000,000,000 nanoTON
+        const nanoTonAmount = Math.round(tonAmount * 1e9).toString();
+
+        const transaction = {
+            validUntil: Math.floor(Date.now() / 1000) + 300, // Valid for 5 mins
+            messages: [
+                {
+                    address: TREASURY_WALLET_ADDRESS,
+                    amount: nanoTonAmount
+                }
+            ]
+        };
+
+        try {
+            const result = await tonConnectUI.sendTransaction(transaction);
+            
+            btn.innerText = "Verifying on Blockchain...";
+            
+            const verifyRes = await fetch(`${BACKEND_URL}/verify-ton-deposit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: userId,
+                    sender_address: tonConnectUI.account.address,
+                    expected_ton: tonAmount,
+                    boc: result.boc
+                })
+            });
+            
+            const data = await verifyRes.json();
+            btn.innerText = "💎 Deposit TON";
+            btn.disabled = false;
+
+            if (data.status === "success") {
+                showMiniAlert(`✔ Deposit Verified! +${data.mtc_credited} MTC added.`);
+                fetchBalance();
+            } else {
+                showMiniAlert("Verification pending: " + data.message);
+            }
+        } catch (error) {
+            btn.innerText = "💎 Deposit TON";
+            btn.disabled = false;
+            console.error("TON Transaction Error:", error);
+            showMiniAlert("Transaction cancelled or failed.");
+        }
+    }
+
+    function submitTonWithdrawal() {
+        const walletAddress = document.getElementById('withdraw-ton-address').value.trim();
+        const amountMTD = parseInt(document.getElementById('withdraw-amount').value);
+        const btn = document.getElementById('custom-withdraw-btn');
+
+        if (!walletAddress || walletAddress.length < 40) {
+            showMiniAlert("Please enter or connect a valid TON wallet address.");
+            return;
+        }
+        if (isNaN(amountMTD) || amountMTD < 500) {
+            showMiniAlert("Minimum withdrawal amount is 500 MTD.");
+            return;
+        }
+        if (amountMTD > currentBalanceMTD) {
+            showMiniAlert("Insufficient MTD balance. You have " + currentBalanceMTD + " MTD.");
+            return;
+        }
+
+        btn.innerText = "Processing Request...";
+        btn.disabled = true;
+
+        fetch(`${BACKEND_URL}/request-withdrawal`, {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ 
-                amount_usd: amount,
-                user_id: userId
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: userId,
+                wallet_address: walletAddress,
+                amount_mtd: amountMTD
             })
         })
         .then(res => res.json())
         .then(data => {
-            button.innerText = "Pay with CryptoBot";
-            button.disabled = false;
-            
-            if (data.status === "success" && data.checkout_url) {
-                if (tg.openTelegramLink) {
-                    tg.openTelegramLink(data.checkout_url); // Opens natively inside Telegram!
-                } else if (tg.openLink) {
-                    tg.openLink(data.checkout_url);
-                } else {
-                    window.location.href = data.checkout_url;
-                }
+            btn.innerText = "Confirm TON Withdrawal";
+            btn.disabled = false;
+
+            if (data.status === "success") {
+                showMiniAlert(data.message);
+                fetchBalance();
             } else {
-                showMiniAlert("Error setting up payment link: " + data.message);
+                showMiniAlert("Error: " + data.message);
             }
         })
         .catch(err => {
-            button.innerText = "Pay with CryptoBot";
-            button.disabled = false;
+            btn.innerText = "Confirm TON Withdrawal";
+            btn.disabled = false;
             console.error(err);
-            showMiniAlert("Network communication error.");
-        });
-    }
-
-    // UPDATE submitWithdrawal() FUNCTION
-function submitWithdrawal() {
-    const amountMtd = parseInt(document.getElementById('withdraw-amount').value, 10);
-
-    if (isNaN(amountMtd) || amountMtd < 500) {
-        showMiniAlert("Minimum withdrawal threshold is 500 MTD.");
-        return;
-    }
-
-    const withdrawBtn = document.getElementById('custom-withdraw-btn');
-    withdrawBtn.disabled = true;
-    withdrawBtn.innerText = "Processing...";
-
-    fetch(`${BACKEND_URL}/request-withdrawal`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            user_id: userId,
-            amount_mtd: amountMtd
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
-        withdrawBtn.disabled = false;
-        withdrawBtn.innerText = "Confirm Withdrawal Request";
-
-        if (data.status === "success") {
-            showMiniAlert(data.message);
-            if (typeof fetchUserData === 'function') fetchUserData(); // Refresh balances
-        } else {
-            showMiniAlert("Error: " + data.message);
-        }
-    })
-    .catch(err => {
-        withdrawBtn.disabled = false;
-        withdrawBtn.innerText = "Confirm Withdrawal Request";
-        console.error(err);
-        showMiniAlert("Network error processing request.");
+            showMiniAlert("Network error processing request.");
         });
     }
 
@@ -740,6 +788,11 @@ function submitWithdrawal() {
         document.getElementById('historyModal').classList.remove('active');
     }
 
+    function formatWalletShort(addr) {
+        if (!addr || addr.length < 12) return addr || 'TON Wallet';
+        return `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
+    }
+
     function renderHistoryContent(withdrawals, deposits) {
         const pendingTarget = document.getElementById('pending-withdrawals-target');
         const completedTarget = document.getElementById('completed-withdrawals-target');
@@ -760,12 +813,12 @@ function submitWithdrawal() {
         } else {
             pendingItems.forEach(item => {
                 const itemAmt = (item.amount_mtd !== undefined && item.amount_mtd !== null) ? item.amount_mtd : (item.amount_mtc || 0);
-                const email = item.paypal_email || 'PayPal Account';
+                const wallet = formatWalletShort(item.paypal_email);
                 const date = item.timestamp || 'Recent';
 
                 pendingHTML += '<div class="history-item pending">' +
                     '<div class="history-row"><strong>' + itemAmt + ' MTD</strong><span style="color:#f39c12;">Pending</span></div>' +
-                    '<div class="history-row"><span class="history-email">' + email + '</span><span class="history-date">' + date + '</span></div>' +
+                    '<div class="history-row"><span class="history-email">' + wallet + '</span><span class="history-date">' + date + '</span></div>' +
                 '</div>';
             });
         }
@@ -775,12 +828,12 @@ function submitWithdrawal() {
         } else {
             completedItems.forEach(item => {
                 const itemAmt = (item.amount_mtd !== undefined && item.amount_mtd !== null) ? item.amount_mtd : (item.amount_mtc || 0);
-                const email = item.paypal_email || 'PayPal Account';
+                const wallet = formatWalletShort(item.paypal_email);
                 const date = item.timestamp || 'Recent';
 
                 completedHTML += '<div class="history-item completed">' +
                     '<div class="history-row"><strong>' + itemAmt + ' MTD</strong><span style="color:#2ecc71;">Paid</span></div>' +
-                    '<div class="history-row"><span class="history-email">' + email + '</span><span class="history-date">' + date + '</span></div>' +
+                    '<div class="history-row"><span class="history-email">' + wallet + '</span><span class="history-date">' + date + '</span></div>' +
                 '</div>';
             });
         }
@@ -789,13 +842,13 @@ function submitWithdrawal() {
             depositsHTML = '<div class="empty-history">No account deposits located.</div>';
         } else {
             safeDeposits.forEach(item => {
-                const amountUsd = parseFloat(item.amount_usd || 0).toFixed(2);
-                const email = item.payer_email || 'PayPal Account';
+                const amountTon = parseFloat(item.amount_usd || 0).toFixed(2);
+                const txHash = formatWalletShort(item.paypal_order_id);
                 const date = item.timestamp || 'Recent';
         
                 depositsHTML += '<div class="history-item deposit">' +
-                    '<div class="history-row"><strong>+$' + amountUsd + ' USD</strong><span style="color:#0070ba;">Success</span></div>' +
-                    '<div class="history-row"><span class="history-email">' + email + '</span><span class="history-date">' + date + '</span></div>' +
+                    '<div class="history-row"><strong>+' + amountTon + ' TON</strong><span style="color:#0098EA;">Success</span></div>' +
+                    '<div class="history-row"><span class="history-email">TX: ' + txHash + '</span><span class="history-date">' + date + '</span></div>' +
                 '</div>';
             });
         }
@@ -810,28 +863,27 @@ function submitWithdrawal() {
         const amountParam = urlParams.get('amount');
         
         if (amountParam) {
-            const amountInput = document.getElementById('usd-amount');
+            const amountInput = document.getElementById('ton-amount');
             if (amountInput) {
                 amountInput.value = parseFloat(amountParam).toFixed(2);
-                if (typeof calculateMTC === 'function') {
-                    calculateMTC();
-                }
+                calculateMTCFromTON();
                 amountInput.dispatchEvent(new Event('input'));
             }
         
-            const paypalBtn = document.getElementById('custom-checkout-btn');
-            if (paypalBtn) {
-                paypalBtn.classList.add('paypal-glow');
-                paypalBtn.addEventListener('click', () => {
-                    paypalBtn.classList.remove('paypal-glow');
+            const depositBtn = document.getElementById('custom-checkout-btn');
+            if (depositBtn) {
+                depositBtn.classList.add('paypal-glow');
+                depositBtn.addEventListener('click', () => {
+                    depositBtn.classList.remove('paypal-glow');
                 });
             }
         }
     });
         
     // Initial setup
+    calculateMTCFromTON();
     calculateConversion();
-    calculateUSDWithdrawal();
+    calculateTONWithdrawal();
     initUserHeader();
     fetchBalance();
 </script>
