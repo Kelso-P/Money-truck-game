@@ -694,7 +694,7 @@
             btn.innerText = "💎 Deposit TON";
             btn.disabled = false;
             console.error("TON Transaction Error:", error);
-            showMiniAlert("Transaction cancelled or failed.");
+           showMiniAlert("TX failed: " + (error?.message || error));
         }
     }
 
