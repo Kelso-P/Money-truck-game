@@ -93,7 +93,7 @@
 
     <div class="invite-card">
         <h2>Invite Drivers 🤝</h2>
-        <p>Earn <strong>+50 MTC</strong> for every friend you invite once they complete and claim their first job delivery!</p>
+        <p>Earn <strong>+50 MTC</strong> for every friend you invite—no first job required!</p>
         
         <div class="link-box">
             <input type="text" id="ref-link" class="link-input" readonly value="Generating link...">
@@ -108,7 +108,7 @@
         </div>
         <div class="stat-card">
             <h3 id="unclaimed-count">0</h3>
-            <p>Jobs Completed</p>
+            <p>Ready to Claim</p>
         </div>
     </div>
 
@@ -134,6 +134,7 @@
 
         const BACKEND_URL = "https://MoneyTrucks.pythonanywhere.com";
         const userId = tg.initDataUnsafe.user?.id || 12345;
+        const REFERRAL_REWARD_MTC = 50;
 
         // Format Username
         if (tg.initDataUnsafe?.user) {
@@ -146,12 +147,12 @@
             // Load user profile balance
             fetch(`${BACKEND_URL}/get_profile`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id: userId })
             })
             .then(res => res.json())
             .then(data => {
-                if(data.status === 'success') {
+                if (data.status === 'success') {
                     document.getElementById('balance-display').innerText = `${data.balance} MTC`;
                 }
             });
@@ -159,23 +160,25 @@
             // Load referral info
             fetch(`${BACKEND_URL}/get_referral_info`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id: userId })
             })
             .then(res => res.json())
             .then(data => {
                 if (data.status === "success") {
                     document.getElementById('ref-link').value = data.referral_link;
-                    document.getElementById('total-referrals').innerText = data.total_referrals;
-                    document.getElementById('unclaimed-count').innerText = data.unclaimed_count;
-                    document.getElementById('unclaimed-amount').innerText = `+${data.unclaimed_rewards} MTC Available`;
+                    document.getElementById('total-referrals').innerText = data.total_referrals ?? 0;
+
+                    const unclaimedCount = data.unclaimed_count ?? 0;
+                    const unclaimedRewards = (data.unclaimed_rewards !== undefined && data.unclaimed_rewards !== null)
+                        ? data.unclaimed_rewards
+                        : (unclaimedCount * REFERRAL_REWARD_MTC);
+
+                    document.getElementById('unclaimed-count').innerText = unclaimedCount;
+                    document.getElementById('unclaimed-amount').innerText = `+${unclaimedRewards} MTC Available`;
 
                     const claimBtn = document.getElementById('claim-ref-btn');
-                    if (data.unclaimed_rewards > 0) {
-                        claimBtn.disabled = false;
-                    } else {
-                        claimBtn.disabled = true;
-                    }
+                    claimBtn.disabled = !(unclaimedRewards > 0);
                 }
             })
             .catch(err => console.error("Error loading referral data:", err));
@@ -186,7 +189,6 @@
             navigator.clipboard.writeText(linkInput.value).then(() => {
                 tg.showAlert("Referral link copied to clipboard!");
             }).catch(() => {
-                // Fallback selection
                 linkInput.select();
                 document.execCommand('copy');
                 tg.showAlert("Referral link copied!");
@@ -203,7 +205,9 @@
             .then(data => {
                 if (data.status === "success") {
                     tg.showAlert(data.message);
-                    document.getElementById('balance-display').innerText = `${data.new_balance} MTC`;
+                    if (data.new_balance !== undefined) {
+                        document.getElementById('balance-display').innerText = `${data.new_balance} MTC`;
+                    }
                     loadReferralData(); // Refresh metrics
                 } else {
                     tg.showAlert(data.message);
