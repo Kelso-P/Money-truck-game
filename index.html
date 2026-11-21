@@ -311,11 +311,11 @@
 </div>
 
 <div id="game-stage" style="position: relative; overflow: hidden; border-radius: 12px; margin: 0 10px;">
-   <video id="road-video" autoplay loop muted playsinline preload="auto" style="display: none; width: 100%; height: 100%; object-fit: cover;">
+    <video id="road-video" autoplay loop muted playsinline preload="auto" style="display: none; width: 100%; height: 100%; object-fit: cover;">
         <source id="video-source" src="videos/pickuptruck-newmodel.mp4" type="video/mp4">
     </video>
 
-    <img id="stagnant-truck" src="images/pickuptruck_newstagnant.png" alt="Truck Engine Off" style="display: block;">
+    <img id="stagnant-truck" src="images/pickuptruck_newstagnant.png" alt="Truck Engine Off" style="display: block; width: 100%; height: 100%; object-fit: cover;">
 
     <div id="job-board-overlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 500; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; box-sizing: border-box;">
         <h2 id="job-board-title" style="color: #fff; font-size: 1.2rem; margin-bottom: 15px;">There's another job, let's hit the road!</h2>
@@ -1196,90 +1196,114 @@
     }
 
     const SPLASH_IMAGES = [
-        "images/logo.png",
-        "images/pickuptruck_newstagnant.png",
-        "images/ironhauler_store_1.png",
-        "images/ironhauler_showroom.png",
-        "images/dieselbeast_store.png",
-        "images/dieselbeast_showroom.png",
-        "images/titanhypermax_store.png",
-        "images/titanhypermax_showroom.png",
-        "images/coins_tier1.png",
-        "images/coins_tier2.png",
-        "images/coins_tier3.png",
-        "images/coins_tier4.png",
-        "images/coins_tier5.png",
-        "images/coins_tier6.png"
-    ];
-    
-    const SPLASH_VIDEOS = [
-        "videos/pickuptruck-newmodel.mp4"
-    ];
-    
-    let splashDismissed = false;
-    
-    function hideSplashScreen() {
-        if (splashDismissed) return;
-        splashDismissed = true;
-        const loader = document.getElementById("app-loader");
-        if (loader) {
-            loader.classList.add("hidden");
-        }
+    "images/logo.png",
+    "images/pickuptruck_newstagnant.png",
+    "images/ironhauler_store_1.png",
+    "images/ironhauler_showroom.png",
+    "images/dieselbeast_store.png",
+    "images/dieselbeast_showroom.png",
+    "images/titanhypermax_store.png",
+    "images/titanhypermax_showroom.png",
+    "images/coins_tier1.png",
+    "images/coins_tier2.png",
+    "images/coins_tier3.png",
+    "images/coins_tier4.png",
+    "images/coins_tier5.png",
+    "images/coins_tier6.png"
+];
+
+const SPLASH_VIDEOS = [
+    "videos/pickuptruck-newmodel.mp4"
+];
+
+const SESSION_WARMED_KEY = "mtc_media_warmed_v1";
+let splashDismissed = false;
+
+function hideSplashScreen() {
+    if (splashDismissed) return;
+    splashDismissed = true;
+    sessionStorage.setItem(SESSION_WARMED_KEY, "true");
+
+    const loader = document.getElementById("app-loader");
+    if (loader) {
+        loader.classList.add("hidden");
     }
-    
-    function preloadImage(src) {
-        return new Promise(resolve => {
-            const img = new Image();
-            img.onload = () => resolve(src);
-            img.onerror = () => resolve(src);
-            img.src = src;
-        });
+}
+
+function revealVideoWhenReady() {
+    if (!videoEl) return;
+
+    const showVideo = () => {
+        if (stagnantEl) stagnantEl.style.display = "none";
+        videoEl.style.display = "block";
+        videoEl.play().catch(() => {});
+    };
+
+    if (videoEl.readyState >= 2) {
+        showVideo();
+    } else {
+        videoEl.addEventListener("loadeddata", showVideo, { once: true });
+        videoEl.addEventListener("canplay", showVideo, { once: true });
     }
-    
-    function preloadVideo(src) {
-        return new Promise(resolve => {
-            const vid = document.createElement("video");
-            vid.preload = "auto";
-            vid.muted = true;
-            vid.playsInline = true;
-    
-            const done = () => {
-                vid.removeEventListener("canplaythrough", done);
-                vid.removeEventListener("loadeddata", done);
-                vid.removeEventListener("error", done);
-                resolve(src);
-            };
-    
-            vid.addEventListener("canplaythrough", done, { once: true });
-            vid.addEventListener("loadeddata", done, { once: true });
-            vid.addEventListener("error", done, { once: true });
-            vid.src = src;
-            vid.load();
-        });
-    }
-    
-    function warmMediaAndDismissSplash() {
-        const statusEl = document.getElementById("loader-status");
-        if (statusEl) statusEl.innerText = "Loading garage & media...";
-    
-        const mediaPromises = [
-            ...SPLASH_IMAGES.map(preloadImage),
-            ...SPLASH_VIDEOS.map(preloadVideo)
-        ];
-    
-        // Never block longer than 6 seconds if a user is on a slow connection
-        const maxWaitTimer = setTimeout(() => {
-            hideSplashScreen();
-        }, 6000);
-    
-        Promise.all(mediaPromises).then(() => {
-            clearTimeout(maxWaitTimer);
-            // Brief 350ms settle so decoded frames are ready
-            setTimeout(hideSplashScreen, 350);
-        });
+}
+
+function preloadImage(src) {
+    return new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => resolve(src);
+        img.onerror = () => resolve(src);
+        img.src = src;
+    });
+}
+
+function preloadVideo(src) {
+    return new Promise(resolve => {
+        const vid = document.createElement("video");
+        vid.preload = "auto";
+        vid.muted = true;
+        vid.playsInline = true;
+
+        const done = () => {
+            vid.removeEventListener("loadeddata", done);
+            vid.removeEventListener("canplay", done);
+            vid.removeEventListener("error", done);
+            resolve(src);
+        };
+
+        vid.addEventListener("loadeddata", done, { once: true });
+        vid.addEventListener("canplay", done, { once: true });
+        vid.addEventListener("error", done, { once: true });
+        vid.src = src;
+        vid.load();
+    });
+}
+
+function warmMediaAndDismissSplash() {
+    // If already warmed in this session (e.g., returning from tasks.html), dismiss immediately
+    if (sessionStorage.getItem(SESSION_WARMED_KEY) === "true") {
+        hideSplashScreen();
+        return;
     }
 
-    warmMediaAndDismissSplash();
+    const statusEl = document.getElementById("loader-status");
+    if (statusEl) statusEl.innerText = "Loading garage & media...";
+
+    const mediaPromises = [
+        ...SPLASH_IMAGES.map(preloadImage),
+        ...SPLASH_VIDEOS.map(preloadVideo)
+    ];
+
+    const maxWaitTimer = setTimeout(() => {
+        hideSplashScreen();
+    }, 3500);
+
+    Promise.all(mediaPromises).then(() => {
+        clearTimeout(maxWaitTimer);
+        setTimeout(hideSplashScreen, 150);
+    });
+}
+
+warmMediaAndDismissSplash();
     
     // Initialize application
     updateAudioUI();
