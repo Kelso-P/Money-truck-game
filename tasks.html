@@ -369,13 +369,7 @@
 
     const getTelegramUserId = () => tg.initDataUnsafe.user?.id || 12345;
 
-    const TRUCK_TASK_MAP = {
-        'buy_iron': 'iron_hauler',
-        'buy_diesel': 'diesel_beast',
-        'buy_titan': 'titan_hypermax'
-    };
-
-     fetch(`${BACKEND_URL}/maintenance-status`, {
+    fetch(`${BACKEND_URL}/maintenance-status`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: userId })
@@ -387,6 +381,12 @@
         }
     })
     .catch(() => {});
+
+    const TRUCK_TASK_MAP = {
+        'buy_iron': 'iron_hauler',
+        'buy_diesel': 'diesel_beast',
+        'buy_titan': 'titan_hypermax'
+    };
 
     function showMiniAlert(message) {
         const modal = document.getElementById('mini-alert-modal');
