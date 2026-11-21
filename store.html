@@ -488,8 +488,9 @@
     tg.ready();
     tg.expand();
 
-   const BACKEND_URL = "https://MoneyTrucks.pythonanywhere.com";
+    const BACKEND_URL = "https://MoneyTrucks.pythonanywhere.com";
     const userId = tg.initDataUnsafe?.user?.id || 12345;
+    const MTC_PER_TON = 500; // 1 TON = 500 MTC
     let currentBalance = 0;
 
     // --- COMPACT MODAL CONTROLLERS ---
@@ -541,19 +542,16 @@
 
     // --- TRUCK OWNERSHIP PERSISTENCE ---
     function checkTruckOwnership() {
-        // Check Iron Hauler
         const ownsIronHauler = localStorage.getItem(`owned_iron_hauler_${userId}`);
         if (ownsIronHauler === "true") {
             applyIronHaulerOwnedState();
         }
 
-        // Check Diesel Beast
         const ownsDieselBeast = localStorage.getItem(`owned_diesel_beast_${userId}`);
         if (ownsDieselBeast === "true") {
             applyDieselBeastOwnedState();
         }
 
-        // Check Titan Hypermax
         const ownsTitanHypermax = localStorage.getItem(`owned_titan_hypermax_${userId}`);
         if (ownsTitanHypermax === "true") {
             applyTitanHypermaxOwnedState();
@@ -615,11 +613,8 @@
                 localStorage.setItem(`owned_iron_hauler_${userId}`, "true");
                 applyIronHaulerOwnedState();
 
-                // Set Iron Hauler showroom details dynamic image & text
                 document.getElementById('showroom-img').src = "images/ironhauler_showroom.png";
                 document.getElementById('showroom-text').innerText = "Congratulations driver! The iron hauler is now yours!";
-
-                // Open Big Showroom Modal
                 document.getElementById('showroom-modal').classList.add('active');
             } else {
                 showMiniAlert(data.message || "Purchase failed.");
@@ -656,11 +651,8 @@
                 localStorage.setItem(`owned_diesel_beast_${userId}`, "true");
                 applyDieselBeastOwnedState();
 
-                // Set Diesel Beast showroom details dynamic image & text
                 document.getElementById('showroom-img').src = "images/dieselbeast_showroom.png";
                 document.getElementById('showroom-text').innerText = "Congratulations driver! The diesel beast is now yours!";
-
-                // Open Big Showroom Modal
                 document.getElementById('showroom-modal').classList.add('active');
             } else {
                 showMiniAlert(data.message || "Purchase failed.");
@@ -698,11 +690,8 @@
                 localStorage.setItem(`owned_titan_hypermax_${userId}`, "true");
                 applyTitanHypermaxOwnedState();
 
-                // Set Titan Hypermax showroom details dynamic image & text
                 document.getElementById('showroom-img').src = "images/titanhypermax_showroom.png";
                 document.getElementById('showroom-text').innerText = "Congratulations driver! The Titan Hypermax is now yours!";
-
-                // Open Big Showroom Modal
                 document.getElementById('showroom-modal').classList.add('active');
             } else {
                 showMiniAlert(data.message || "Purchase failed.");
@@ -716,11 +705,7 @@
 
     function closeShowroomModal() {
         document.getElementById('showroom-modal').classList.remove('active');
-        // Cleanly close without chaining secondary modal alerts
     }
-
-    function buyMTC(dollarAmount) {
-        const MTC_PER_TON = 500; // Keep this aligned with your TON deposit rate in wallet.html
 
     function buyMTC(mtcAmount) {
         const parsedMtc = parseFloat(mtcAmount);
