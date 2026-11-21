@@ -70,11 +70,53 @@
         .stat-card h3 { font-size: 1.5rem; color: #fff; margin-bottom: 4px; }
         .stat-card p { font-size: 0.75rem; color: #8899a6; text-transform: uppercase; letter-spacing: 0.5px; }
 
-        .claim-card { background: linear-gradient(135deg, #181c24 0%, #1e2633 100%); border: 1px solid ##2ecc71; border-radius: 16px; padding: 20px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 80px; }
+        .claim-card { background: linear-gradient(135deg, #181c24 0%, #1e2633 100%); border: 1px solid #2ecc71; border-radius: 16px; padding: 20px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 80px; }
         .claim-info h4 { font-size: 1rem; color: #fff; margin-bottom: 4px; }
         .claim-info p { font-size: 0.8rem; color: #2ecc71; font-weight: bold; }
         .action-btn { background: #2ecc71; color: #000; border: none; padding: 10px 20px; border-radius: 10px; font-weight: bold; cursor: pointer; }
         .action-btn:disabled { background: #2a313d; color: #666; cursor: not-allowed; }
+
+        /* Custom Alert Modal */
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.78);
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            z-index: 1000;
+        }
+        .modal-backdrop.active {
+            display: flex;
+        }
+        .modal-box {
+            background: #181c24;
+            border: 1px solid #2ecc71;
+            border-radius: 16px;
+            padding: 22px;
+            width: 100%;
+            max-width: 340px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        .modal-box p {
+            color: #ffffff;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 18px;
+        }
+        .modal-close-btn {
+            background: #2ecc71;
+            color: #000;
+            border: none;
+            padding: 9px 24px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            cursor: pointer;
+            width: 100%;
+        }
 
         .footer-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #12151c; border-top: 1px solid #222733; display: flex; justify-content: space-around; padding: 12px 0; }
         .nav-item { color: #666; text-decoration: none; text-align: center; font-size: 0.75rem; }
@@ -119,6 +161,13 @@
         <button id="claim-ref-btn" class="action-btn" onclick="claimReferralBonus()" disabled>Claim</button>
     </div>
 
+    <div class="modal-backdrop" id="mini-alert-modal">
+        <div class="modal-box">
+            <p id="mini-alert-text"></p>
+            <button class="modal-close-btn" onclick="closeMiniAlert()">OK</button>
+        </div>
+    </div>
+
     <div class="footer-nav">
         <a href="index.html" class="nav-item">🏠<br>Home</a>
         <a href="store.html" class="nav-item">🛒<br>Store</a>
@@ -136,17 +185,29 @@
         const REFERRAL_REWARD_MTC = 50;
 
         fetch(`${BACKEND_URL}/maintenance-status`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.status === "success" && data.maintenance === true) {
-            window.location.replace("maintenance.html");
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id: userId })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "success" && data.maintenance === true) {
+                window.location.replace("maintenance.html");
+            }
+        })
+        .catch(() => {});
+
+        function showMiniAlert(message) {
+            const modal = document.getElementById('mini-alert-modal');
+            const textEl = document.getElementById('mini-alert-text');
+            if (textEl) textEl.innerText = message;
+            if (modal) modal.classList.add('active');
         }
-    })
-    .catch(() => {});
+
+        function closeMiniAlert() {
+            const modal = document.getElementById('mini-alert-modal');
+            if (modal) modal.classList.remove('active');
+        }
 
         // Format Username
         if (tg.initDataUnsafe?.user) {
@@ -199,15 +260,18 @@
         function copyReferralLink() {
             const linkInput = document.getElementById('ref-link');
             navigator.clipboard.writeText(linkInput.value).then(() => {
-                tg.showAlert("Referral link copied to clipboard!");
+                showMiniAlert("Referral link copied to clipboard!");
             }).catch(() => {
                 linkInput.select();
                 document.execCommand('copy');
-                tg.showAlert("Referral link copied!");
+                showMiniAlert("Referral link copied!");
             });
         }
 
         function claimReferralBonus() {
+            const claimBtn = document.getElementById('claim-ref-btn');
+            if (claimBtn) claimBtn.disabled = true;
+
             fetch(`${BACKEND_URL}/claim_referral_rewards`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -216,18 +280,20 @@
             .then(res => res.json())
             .then(data => {
                 if (data.status === "success") {
-                    tg.showAlert(data.message);
+                    showMiniAlert(data.message);
                     if (data.new_balance !== undefined) {
                         document.getElementById('balance-display').innerText = `${data.new_balance} MTC`;
                     }
                     loadReferralData(); // Refresh metrics
                 } else {
-                    tg.showAlert(data.message);
+                    showMiniAlert(data.message || "Unable to claim referral bonus.");
+                    loadReferralData();
                 }
             })
             .catch(err => {
                 console.error("Error claiming referral reward:", err);
-                tg.showAlert("Unable to connect to reward server.");
+                showMiniAlert("Unable to connect to reward server.");
+                loadReferralData();
             });
         }
 
