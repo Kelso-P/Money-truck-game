@@ -720,7 +720,19 @@
     }
 
     function buyMTC(dollarAmount) {
-        window.location.href = `wallet.html?amount=${dollarAmount.toFixed(2)}`;
+        const MTC_PER_TON = 500; // Keep this aligned with your TON deposit rate in wallet.html
+
+    function buyMTC(mtcAmount) {
+        const parsedMtc = parseFloat(mtcAmount);
+        if (isNaN(parsedMtc) || parsedMtc <= 0) {
+            window.location.href = "wallet.html";
+            return;
+        }
+
+        const tonAmount = (parsedMtc / MTC_PER_TON).toFixed(3);
+        sessionStorage.setItem('prefill_ton_amount', tonAmount);
+        window.location.href = `wallet.html?ton=${encodeURIComponent(tonAmount)}`;
+    }
     }
 
     // Initialize page state
