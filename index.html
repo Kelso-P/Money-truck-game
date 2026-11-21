@@ -779,8 +779,18 @@
             if (jobBoardOverlay) jobBoardOverlay.style.display = 'none';
             
             if (videoEl) {
-                if (stagnantEl) stagnantEl.style.display = 'none';
                 videoEl.style.display = 'block';
+                const revealFrame = () => {
+                    if (stagnantEl) stagnantEl.style.display = 'none';
+                };
+            
+                if (videoEl.readyState >= 3) {
+                    revealFrame();
+                } else {
+                    videoEl.addEventListener('playing', revealFrame, { once: true });
+                    videoEl.addEventListener('canplay', revealFrame, { once: true });
+                }
+            
                 if (videoEl.paused) {
                     videoEl.play().catch(e => console.log("Autoplay pending:", e));
                 }
@@ -1224,7 +1234,7 @@
         floatEl.className = 'speed-discount-float';
         floatEl.innerText = `⚡ ${label} Speed Bonus!`;
         
-        stage.appendChild(floatEl);
+       stage.appendChild(floatEl);
         
         setTimeout(() => {
             if (floatEl && floatEl.parentNode) {
@@ -1234,119 +1244,127 @@
     }
 
     const SPLASH_IMAGES = [
-    "images/logo.png",
-    "images/pickuptruck_newstagnant.png",
-    "images/ironhauler_store_1.png",
-    "images/ironhauler_showroom.png",
-    "images/dieselbeast_store.png",
-    "images/dieselbeast_showroom.png",
-    "images/titanhypermax_store.png",
-    "images/titanhypermax_showroom.png",
-    "images/coins_tier1.png",
-    "images/coins_tier2.png",
-    "images/coins_tier3.png",
-    "images/coins_tier4.png",
-    "images/coins_tier5.png",
-    "images/coins_tier6.png"
-];
-
-const SPLASH_VIDEOS = [
-    "videos/pickuptruck-newmodel.mp4"
-];
-
-const SESSION_WARMED_KEY = "mtc_media_warmed_v1";
-let splashDismissed = false;
-
-function hideSplashScreen() {
-    if (splashDismissed) return;
-    splashDismissed = true;
-    sessionStorage.setItem(SESSION_WARMED_KEY, "true");
-
-    const loader = document.getElementById("app-loader");
-    if (loader) {
-        loader.classList.add("hidden");
-    }
-}
-
-function revealVideoWhenReady() {
-    if (!videoEl) return;
-
-    const showVideo = () => {
-        if (stagnantEl) stagnantEl.style.display = "none";
-        videoEl.style.display = "block";
-        videoEl.play().catch(() => {});
-    };
-
-    if (videoEl.readyState >= 2) {
-        showVideo();
-    } else {
-        videoEl.addEventListener("loadeddata", showVideo, { once: true });
-        videoEl.addEventListener("canplay", showVideo, { once: true });
-    }
-}
-
-function preloadImage(src) {
-    return new Promise(resolve => {
-        const img = new Image();
-        img.onload = () => resolve(src);
-        img.onerror = () => resolve(src);
-        img.src = src;
-    });
-}
-
-function preloadVideo(src) {
-    return new Promise(resolve => {
-        const vid = document.createElement("video");
-        vid.preload = "auto";
-        vid.muted = true;
-        vid.playsInline = true;
-
-        const done = () => {
-            vid.removeEventListener("loadeddata", done);
-            vid.removeEventListener("canplay", done);
-            vid.removeEventListener("error", done);
-            resolve(src);
-        };
-
-        vid.addEventListener("loadeddata", done, { once: true });
-        vid.addEventListener("canplay", done, { once: true });
-        vid.addEventListener("error", done, { once: true });
-        vid.src = src;
-        vid.load();
-    });
-}
-
-function warmMediaAndDismissSplash() {
-    // If already warmed in this session (e.g., returning from tasks.html), dismiss immediately
-    if (sessionStorage.getItem(SESSION_WARMED_KEY) === "true") {
-        hideSplashScreen();
-        return;
-    }
-
-    const statusEl = document.getElementById("loader-status");
-    if (statusEl) statusEl.innerText = "Loading garage & media...";
-
-    const mediaPromises = [
-        ...SPLASH_IMAGES.map(preloadImage),
-        ...SPLASH_VIDEOS.map(preloadVideo)
+        "images/logo.png",
+        "images/pickuptruck_newstagnant.png",
+        "images/ironhauler_newstagnant.png",
+        "images/dieselbeast_newstagnant.png",
+        "images/titanhypermax_newstagnant.png",
+        "images/ironhauler_store_1.png",
+        "images/ironhauler_showroom.png",
+        "images/dieselbeast_store.png",
+        "images/dieselbeast_showroom.png",
+        "images/titanhypermax_store.png",
+        "images/titanhypermax_showroom.png",
+        "images/coins_tier1.png",
+        "images/coins_tier2.png",
+        "images/coins_tier3.png",
+        "images/coins_tier4.png",
+        "images/coins_tier5.png",
+        "images/coins_tier6.png"
     ];
 
-    const maxWaitTimer = setTimeout(() => {
-        hideSplashScreen();
-    }, 3500);
+    const SPLASH_VIDEOS = [
+        "videos/pickuptruck-newmodel.mp4",
+        "videos/ironhauler-newmodel.mp4",
+        "videos/dieselbeast-newmodel.mp4",
+        "videos/titanhypermax-newmodel.mp4"
+    ];
 
-    Promise.all(mediaPromises).then(() => {
-        clearTimeout(maxWaitTimer);
-        setTimeout(hideSplashScreen, 150);
-    });
-}
+    const SESSION_WARMED_KEY = "mtc_media_warmed_v1";
+    let splashDismissed = false;
 
-warmMediaAndDismissSplash();
-    
+    function hideSplashScreen() {
+        if (splashDismissed) return;
+        splashDismissed = true;
+        sessionStorage.setItem(SESSION_WARMED_KEY, "true");
+
+        const loader = document.getElementById("app-loader");
+        if (loader) {
+            loader.classList.add("hidden");
+        }
+    }
+
+    function revealVideoWhenReady() {
+        if (!videoEl) return;
+
+        const showVideo = () => {
+            videoEl.style.display = "block";
+            videoEl.play().then(() => {
+                if (stagnantEl) stagnantEl.style.display = "none";
+            }).catch(() => {
+                // Keep stagnant truck visible if playback hasn't started yet
+            });
+        };
+
+        if (videoEl.readyState >= 3) {
+            showVideo();
+        } else {
+            videoEl.addEventListener("playing", showVideo, { once: true });
+            videoEl.addEventListener("canplay", showVideo, { once: true });
+            videoEl.load();
+        }
+    }
+
+    function preloadImage(src) {
+        return new Promise(resolve => {
+            const img = new Image();
+            img.onload = () => resolve(src);
+            img.onerror = () => resolve(src);
+            img.src = src;
+        });
+    }
+
+    function preloadVideo(src) {
+        return new Promise(resolve => {
+            const vid = document.createElement("video");
+            vid.preload = "auto";
+            vid.muted = true;
+            vid.playsInline = true;
+
+            const done = () => {
+                vid.removeEventListener("loadeddata", done);
+                vid.removeEventListener("canplay", done);
+                vid.removeEventListener("error", done);
+                resolve(src);
+            };
+
+            vid.addEventListener("loadeddata", done, { once: true });
+            vid.addEventListener("canplay", done, { once: true });
+            vid.addEventListener("error", done, { once: true });
+            vid.src = src;
+            vid.load();
+        });
+    }
+
+    function warmMediaAndDismissSplash() {
+        // If already warmed in this session (e.g., returning from tasks.html), dismiss immediately
+        if (sessionStorage.getItem(SESSION_WARMED_KEY) === "true") {
+            hideSplashScreen();
+            return;
+        }
+
+        const statusEl = document.getElementById("loader-status");
+        if (statusEl) statusEl.innerText = "Loading garage & media...";
+
+        const mediaPromises = [
+            ...SPLASH_IMAGES.map(preloadImage),
+            ...SPLASH_VIDEOS.map(preloadVideo)
+        ];
+
+        const maxWaitTimer = setTimeout(() => {
+            hideSplashScreen();
+        }, 3500);
+
+        Promise.all(mediaPromises).then(() => {
+            clearTimeout(maxWaitTimer);
+            setTimeout(hideSplashScreen, 150);
+        });
+    }
+
     // Initialize application
     updateAudioUI();
     loadUserData();
-
+    warmMediaAndDismissSplash(); 
 </script>
 </body>
 </html>
