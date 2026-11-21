@@ -694,7 +694,7 @@
             btn.innerText = "💎 Deposit TON";
             btn.disabled = false;
             console.error("TON Transaction Error:", error);
-           showMiniAlert("TX failed: " + (error?.message || error));
+            showMiniAlert("TX failed: " + (error?.message || error));
         }
     }
 
@@ -871,8 +871,26 @@
         if (completedTarget) completedTarget.innerHTML = completedHTML;
         if (depositsTarget) depositsTarget.innerHTML = depositsHTML;
     }
+
+    function applyPrefilledTonAmount() {
+        const params = new URLSearchParams(window.location.search);
+        const tonFromUrl = params.get('ton');
+        const tonFromStorage = sessionStorage.getItem('prefill_ton_amount');
+        const rawTon = tonFromUrl || tonFromStorage;
+
+        const tonInput = document.getElementById('ton-amount');
+        if (tonInput && rawTon) {
+            const numericTon = parseFloat(rawTon);
+            if (!isNaN(numericTon) && numericTon > 0) {
+                tonInput.value = numericTon.toString();
+                tonInput.dispatchEvent(new Event('input', { bubbles: true }));
+                sessionStorage.removeItem('prefill_ton_amount');
+            }
+        }
+    }
         
     // Initial setup
+    applyPrefilledTonAmount();
     calculateMTCFromTON();
     calculateConversion();
     calculateTONWithdrawal();
