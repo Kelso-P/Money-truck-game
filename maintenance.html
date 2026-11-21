@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Money Trucks - Maintenance</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #121212;
+            color: #E0E0E0;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 24px;
+            box-sizing: border-box;
+        }
+        .box {
+            max-width: 420px;
+            width: 100%;
+            background: #1E1E1E;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 36px 24px;
+        }
+        p {
+            font-size: 16px;
+            line-height: 1.5;
+            margin: 0 0 24px 0;
+            color: #FFFFFF;
+        }
+        button {
+            background: #0098EA;
+            color: #FFFFFF;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .status-note {
+            margin-top: 14px;
+            font-size: 13px;
+            color: #AAAAAA;
+            min-height: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <p id="maintenance-msg">System under maintenance. Check back in an hour.</p>
+        <button id="check-btn" onclick="checkIfBackOnline()">Check Status</button>
+        <div class="status-note" id="status-note"></div>
+    </div>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.ready();
+            tg.expand();
+        }
+
+        const BACKEND_URL = "https://MoneyTrucks.pythonanywhere.com";
+        const userId = tg?.initDataUnsafe?.user?.id || 12345;
+
+        function checkIfBackOnline(showFeedback = false) {
+            const btn = document.getElementById("check-btn");
+            const note = document.getElementById("status-note");
+
+            if (showFeedback && btn) {
+                btn.disabled = true;
+                btn.innerText = "Checking...";
+            }
+
+            fetch(`${BACKEND_URL}/maintenance-status`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user_id: userId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "success" && data.maintenance === false) {
+                    window.location.replace("index.html");
+                } else if (showFeedback && note) {
+                    note.innerText = "Still under maintenance. Please try again later.";
+                }
+            })
+            .catch(() => {
+                if (showFeedback && note) {
+                    note.innerText = "Still under maintenance. Please try again later.";
+                }
+            })
+            .finally(() => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = "Check Status";
+                }
+            });
+        }
+
+        // Check once on load in case maintenance just ended
+        checkIfBackOnline(false);
+    </script>
+</body>
+</html>
