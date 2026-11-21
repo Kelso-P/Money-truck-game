@@ -378,6 +378,19 @@
     const BACKEND_URL = "https://MoneyTrucks.pythonanywhere.com";
     const userId = tg.initDataUnsafe.user?.id || 12345;
 
+    fetch(`${BACKEND_URL}/maintenance-status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === "success" && data.maintenance === true) {
+            window.location.replace("maintenance.html");
+        }
+    })
+    .catch(() => {});
+
     // --- TRUCK SELECTION HIERARCHY ---
     let activeTruck = "pickup";
     if (localStorage.getItem(`owned_titan_hypermax_${userId}`) === "true") {
