@@ -76,9 +76,12 @@
             const btn = document.getElementById("check-btn");
             const note = document.getElementById("status-note");
 
-            if (showFeedback && btn) {
-                btn.disabled = true;
-                btn.innerText = "Checking...";
+            if (showFeedback) {
+                if (note) note.innerText = "";
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerText = "Checking...";
+                }
             }
 
             fetch(`${BACKEND_URL}/maintenance-status`, {
@@ -91,12 +94,12 @@
                 if (data.status === "success" && data.maintenance === false) {
                     window.location.replace("index.html");
                 } else if (showFeedback && note) {
-                    note.innerText = "Still under maintenance. Please try again later.";
+                    note.innerText = "Maintenance is still underway";
                 }
             })
             .catch(() => {
                 if (showFeedback && note) {
-                    note.innerText = "Still under maintenance. Please try again later.";
+                    note.innerText = "Maintenance is still underway";
                 }
             })
             .finally(() => {
