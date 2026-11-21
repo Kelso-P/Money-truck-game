@@ -20,17 +20,17 @@
             overflow: hidden;
         }
 
-     /* --- Splash / Loader Screen Styling --- */
+             /* --- Splash / Loader Screen Styling --- */
         #app-loader {
           position: fixed;
           top: 0;
           left: 0;
           width: 100vw;
           height: 100vh;
-          background-color: #0d0d11; /* Dark background to match image margins */
+          background-color: #0d0d11;
           z-index: 9999;
           opacity: 1;
-          transition: opacity 0.5s ease, visibility 0.5s ease;
+          transition: opacity 0.45s ease, visibility 0.45s ease;
           overflow: hidden;
           display: flex;
           justify-content: center;
@@ -43,36 +43,48 @@
           pointer-events: none;
         }
         
-        /* Flex container to stack full logo and loader neatly */
         .loader-content {
           position: relative;
           width: 100%;
-          height: 100%;
+          max-width: 420px;
+          padding: 24px;
           box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          gap: 18px;
+          text-align: center;
         }
         
-       .loader-logo {
-          width: 100vw;
-          height: 100vh;
-          object-fit: cover; /* Stretches to fill everything; crops edges if ratios don't match */
+        .loader-logo {
+          width: 190px;
+          height: 190px;
+          object-fit: contain;
+          border-radius: 20px;
           display: block;
         }
         
-        /* Clean spinner sitting right under the main logo */
         .spinner {
-        width: 44px;
-          height: 44px;
+          width: 42px;
+          height: 42px;
           border: 4px solid rgba(255, 255, 255, 0.15);
-          border-top: 4px solid #00e676; /* Accent green */
+          border-top: 4px solid #00e676;
           border-radius: 50%;
-          animation: spin 1s linear infinite;
-          margin-bottom: 80px;
+          animation: spin 0.9s linear infinite;
+        }
+        
+        .loader-status {
+          font-size: 0.85rem;
+          color: #bbbbbb;
+          letter-spacing: 0.3px;
         }
         
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
+       
         .header {
             display: flex;
             justify-content: space-between;
@@ -270,11 +282,12 @@
 </head>
 <body>
 
-   <!-- SPLASH / LOADING SCREEN -->
+<!-- SPLASH / LOADING SCREEN -->
 <div id="app-loader">
   <div class="loader-content">
     <img src="images/logo.png" alt="Money Trucks Logo" class="loader-logo">
     <div class="spinner"></div>
+    <div id="loader-status" class="loader-status">Preparing trucks &amp; road...</div>
   </div>
 </div>
 
@@ -302,7 +315,7 @@
         <source id="video-source" src="videos/pickuptruck-newmodel.mp4" type="video/mp4">
     </video>
 
-    <img id="stagnant-truck" src="images/pickuptruck_newstagnant" alt="Truck Engine Off" style="display: block;">
+    <img id="stagnant-truck" src="images/pickuptruck_newstagnant.png" alt="Truck Engine Off" style="display: block;">
 
     <div id="job-board-overlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 500; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; box-sizing: border-box;">
         <h2 id="job-board-title" style="color: #fff; font-size: 1.2rem; margin-bottom: 15px;">There's another job, let's hit the road!</h2>
@@ -1182,9 +1195,96 @@
         }, 2000);
     }
 
+    const SPLASH_IMAGES = [
+        "images/logo.png",
+        "images/pickuptruck_newstagnant.png",
+        "images/ironhauler_store_1.png",
+        "images/ironhauler_showroom.png",
+        "images/dieselbeast_store.png",
+        "images/dieselbeast_showroom.png",
+        "images/titanhypermax_store.png",
+        "images/titanhypermax_showroom.png",
+        "images/coins_tier1.png",
+        "images/coins_tier2.png",
+        "images/coins_tier3.png",
+        "images/coins_tier4.png",
+        "images/coins_tier5.png",
+        "images/coins_tier6.png"
+    ];
+    
+    const SPLASH_VIDEOS = [
+        "videos/pickuptruck-newmodel.mp4"
+    ];
+    
+    let splashDismissed = false;
+    
+    function hideSplashScreen() {
+        if (splashDismissed) return;
+        splashDismissed = true;
+        const loader = document.getElementById("app-loader");
+        if (loader) {
+            loader.classList.add("hidden");
+        }
+    }
+    
+    function preloadImage(src) {
+        return new Promise(resolve => {
+            const img = new Image();
+            img.onload = () => resolve(src);
+            img.onerror = () => resolve(src);
+            img.src = src;
+        });
+    }
+    
+    function preloadVideo(src) {
+        return new Promise(resolve => {
+            const vid = document.createElement("video");
+            vid.preload = "auto";
+            vid.muted = true;
+            vid.playsInline = true;
+    
+            const done = () => {
+                vid.removeEventListener("canplaythrough", done);
+                vid.removeEventListener("loadeddata", done);
+                vid.removeEventListener("error", done);
+                resolve(src);
+            };
+    
+            vid.addEventListener("canplaythrough", done, { once: true });
+            vid.addEventListener("loadeddata", done, { once: true });
+            vid.addEventListener("error", done, { once: true });
+            vid.src = src;
+            vid.load();
+        });
+    }
+    
+    function warmMediaAndDismissSplash() {
+        const statusEl = document.getElementById("loader-status");
+        if (statusEl) statusEl.innerText = "Loading garage & media...";
+    
+        const mediaPromises = [
+            ...SPLASH_IMAGES.map(preloadImage),
+            ...SPLASH_VIDEOS.map(preloadVideo)
+        ];
+    
+        // Never block longer than 6 seconds if a user is on a slow connection
+        const maxWaitTimer = setTimeout(() => {
+            hideSplashScreen();
+        }, 6000);
+    
+        Promise.all(mediaPromises).then(() => {
+            clearTimeout(maxWaitTimer);
+            // Brief 350ms settle so decoded frames are ready
+            setTimeout(hideSplashScreen, 350);
+        });
+    }
+
+    warmMediaAndDismissSplash();
+    
     // Initialize application
     updateAudioUI();
     loadUserData();
+
 </script>
 </body>
 </html>
