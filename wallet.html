@@ -450,6 +450,19 @@
     const BACKEND_URL = "https://MoneyTrucks.pythonanywhere.com";
     const userId = tg.initDataUnsafe?.user?.id || 12345;
 
+    fetch(`${BACKEND_URL}/maintenance-status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === "success" && data.maintenance === true) {
+            window.location.replace("maintenance.html");
+        }
+    })
+    .catch(() => {});
+
     // 🌟 TON CONNECT CONFIGURATION
     const TREASURY_WALLET_ADDRESS = "0QA9i7fkR4Wl3xRlukT64a-eLBHw8nXM3PRKmOJup-b0Zvzk".trim();
     const MTC_PER_TON = 500; // 1 TON = 500 MTC (and 500 MTD = 1 TON)
