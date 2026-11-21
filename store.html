@@ -493,6 +493,19 @@
     const MTC_PER_TON = 500; // 1 TON = 500 MTC
     let currentBalance = 0;
 
+    fetch(`${BACKEND_URL}/maintenance-status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === "success" && data.maintenance === true) {
+            window.location.replace("maintenance.html");
+        }
+    })
+    .catch(() => {});
+
     // --- COMPACT MODAL CONTROLLERS ---
     function showMiniAlert(message) {
         const modal = document.getElementById('mini-alert-modal');
