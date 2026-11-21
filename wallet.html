@@ -464,7 +464,7 @@
     .catch(() => {});
 
     // 🌟 TON CONNECT CONFIGURATION
-    const TREASURY_WALLET_ADDRESS = "0QA9i7fkR4Wl3xRlukT64a-eLBHw8nXM3PRKmOJup-b0Zvzk".trim();
+    const TREASURY_WALLET_ADDRESS = "UQACdG8gt7VsfrNg6g3Ggw6tWsU19cwDAtfsLVFgR4cL0Kp2".trim();
     const MTC_PER_TON = 500; // 1 TON = 500 MTC (and 500 MTD = 1 TON)
 
     let currentBalanceMTC = 0;
@@ -482,7 +482,7 @@
             const addrInput = document.getElementById('withdraw-ton-address');
             if (addrInput && !addrInput.value) {
                 // true = testnet user-friendly address (0Q... or kQ...); change to false for Mainnet
-                addrInput.value = TON_CONNECT_UI.toUserFriendlyAddress(wallet.account.address, true);
+                addrInput.value = TON_CONNECT_UI.toUserFriendlyAddress(wallet.account.address, false);
             }
         }
     });
@@ -649,8 +649,8 @@
 
     async function sendTonDeposit() {
         const tonAmount = calculateMTCFromTON();
-        if (tonAmount < 0.1) {
-            showMiniAlert("Minimum deposit is 0.1 TON.");
+        if (tonAmount < 0.01) {
+            showMiniAlert("Minimum deposit is 0.01 TON.");
             return;
         }
 
