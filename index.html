@@ -798,6 +798,12 @@
             }
             
             if (taskStartTime === 0) {
+                const nowMs = Date.now();
+                lastFuelRefillTime = nowMs;
+                lastEngineFixTime = nowMs;
+                localStorage.setItem(`last_fuel_refill_${userId}`, nowMs.toString());
+                localStorage.setItem(`last_engine_fix_${userId}`, nowMs.toString());
+            
                 fetch(`${BACKEND_URL}/start_task`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1082,8 +1088,8 @@
                 fuelLevel = data.fuel_lvl || 0;
                 speedsLevel = data.speed_lvl || 0;
                 engineLevel = data.engine_lvl || 0;
-                taskStartTime = data.task_start_time;
-                isFirstRunDone = data.is_first_run_done;
+                taskStartTime = data.task_start_time || 0;
+                isFirstRunDone = data.is_first_run_done || 0;
 
                 if (balanceTextElement) balanceTextElement.innerText = `${balance} MTC`;
                 if (fuelLvlTxt) fuelLvlTxt.innerText = fuelLevel;
@@ -1093,6 +1099,26 @@
                 syncPriceButtonLabels(data.fuel_cost, data.speed_cost, data.engine_cost);
 
                 totalTaskDuration = calculateTaskDuration();
+
+                if (isInitialOnboardingPending()) {
+                    // Brand-new / un-upgraded driver: keep fuel full and suppress premature outage modals
+                    const nowMs = Date.now();
+                    isFuelOut = false;
+                    isEngineDead = false;
+                    fuelPercentage = 100;
+                    currentTaskTimeLeft = totalTaskDuration;
+                    lastFuelRefillTime = nowMs;
+                    lastEngineFixTime = nowMs;
+                    localStorage.setItem(`is_fuel_out_${userId}`, "false");
+                    localStorage.setItem(`is_engine_dead_${userId}`, "false");
+                    localStorage.setItem(`last_fuel_refill_${userId}`, nowMs.toString());
+                    localStorage.setItem(`last_engine_fix_${userId}`, nowMs.toString());
+                    if (fuelFill) fuelFill.style.width = "100%";
+
+                    checkAndApplyTruckUpgrade();
+                    updateGameLoopView();
+                    return;
+                }
 
                 if (taskStartTime > 0) {
                     let nowInSeconds = Math.floor(Date.now() / 1000);
@@ -1105,6 +1131,11 @@
                     }
                 } else {
                     currentTaskTimeLeft = totalTaskDuration;
+                    const nowMs = Date.now();
+                    lastFuelRefillTime = nowMs;
+                    lastEngineFixTime = nowMs;
+                    localStorage.setItem(`last_fuel_refill_${userId}`, nowMs.toString());
+                    localStorage.setItem(`last_engine_fix_${userId}`, nowMs.toString());
                 }
 
                 let nowMs = Date.now();
@@ -1119,7 +1150,7 @@
 
                 if (fuelFill) fuelFill.style.width = `${fuelPercentage.toFixed(1)}%`;
 
-                if (fuelPercentage <= 0) {
+                if (taskStartTime > 0 && fuelPercentage <= 0) {
                     isFuelOut = true;
                     localStorage.setItem(`is_fuel_out_${userId}`, "true");
                 }
