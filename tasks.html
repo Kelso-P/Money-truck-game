@@ -335,9 +335,26 @@
 
         </div>
 
-        <div id="social-tasks-section" class="task-section" style="display: none; text-align: center; padding-top: 40px; color: #888;">
-            <p style="font-size: 1.1rem; margin-bottom: 10px;">🌐 Social Tasks</p>
-            <p style="font-size: 0.85rem;">Global campaign contracts are coming soon!</p>
+        <div id="social-tasks-section" class="task-section" style="display: none;">
+
+            <div class="task-card" id="task-youtube_sub">
+                <div class="task-details">
+                    <h4>Subscribe on YouTube ▶️</h4>
+                    <p>Subscribe to our official channel and return to claim.</p>
+                    <span class="task-reward">+50 MTC</span>
+                </div>
+                <button class="claim-btn" onclick="handleSocialTask('youtube_sub', 'https://youtube.com/@moneytrucks-n2u?si=gGT8qIbPBvIwm6b-', 'external')">Open &amp; Claim</button>
+            </div>
+        
+            <div class="task-card" id="task-join_support">
+                <div class="task-details">
+                    <h4>Join Support Chat 💬</h4>
+                    <p>Join @MoneyTrucks_Support on Telegram and claim.</p>
+                    <span class="task-reward">+30 MTC</span>
+                </div>
+                <button class="claim-btn" onclick="handleSocialTask('join_support', 'https://t.me/+vvj2Jl-0S-ljOTk0', 'telegram')">Join &amp; Claim</button>
+            </div>
+        
         </div>
 
     </div>
@@ -387,6 +404,9 @@
         'buy_diesel': 'diesel_beast',
         'buy_titan': 'titan_hypermax'
     };
+
+    const SOCIAL_TASK_IDS = ['youtube_sub', 'join_support'];
+    const openedSocialLinks = {};
 
     function showMiniAlert(message) {
         const modal = document.getElementById('mini-alert-modal');
@@ -515,7 +535,7 @@
     }
 
     function syncTasksUI(completedTasks, loginTimeLeft, buyTimeLeft) {
-        const trackingIds = ['daily_login', 'buy_mtc', 'buy_iron', 'buy_diesel', 'buy_titan'];
+        const trackingIds = ['daily_login', 'buy_mtc', 'buy_iron', 'buy_diesel', 'buy_titan', 'youtube_sub', 'join_support'];
         
         trackingIds.forEach(id => {
             const card = document.getElementById(`task-${id}`);
@@ -623,6 +643,32 @@
 
         const localCheck = localStorage.getItem(`owned_${truckId}_${userId}`);
         return localCheck === "true";
+    }
+
+    function openTaskLink(url, linkType) {
+        if (linkType === 'telegram' && tg?.openTelegramLink) {
+            tg.openTelegramLink(url);
+        } else if (tg?.openLink) {
+            tg.openLink(url);
+        } else {
+            window.open(url, '_blank', 'noopener,noreferrer');
+        }
+    }
+    
+    function handleSocialTask(taskId, url, linkType) {
+        const card = document.getElementById(`task-${taskId}`);
+        const btn = card ? card.querySelector('.claim-btn') : null;
+    
+        if (!openedSocialLinks[taskId]) {
+            openedSocialLinks[taskId] = true;
+            openTaskLink(url, linkType);
+            if (btn) {
+                btn.innerText = "Verify & Claim";
+            }
+            return;
+        }
+    
+        claimTask(taskId);
     }
 
     function claimTask(taskId) {
