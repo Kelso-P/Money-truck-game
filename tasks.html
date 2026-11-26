@@ -343,7 +343,7 @@
                     <p>Subscribe to our official channel and return to claim.</p>
                     <span class="task-reward">+50 MTC</span>
                 </div>
-                <button class="claim-btn" onclick="handleSocialTask('youtube_sub', 'https://youtube.com/@moneytrucks-n2u?si=gGT8qIbPBvIwm6b-', 'external')">Open &amp; Claim</button>
+                <button class="claim-btn" onclick="handleSocialTask('youtube_sub', 'https://youtube.com/@moneytrucks-n2u?si=gGT8qIbPBvIwm6b-', 'external')">Subscribe</button>
             </div>
         
             <div class="task-card" id="task-join_support">
@@ -407,6 +407,7 @@
 
     const SOCIAL_TASK_IDS = ['youtube_sub', 'join_support'];
     const openedSocialLinks = {};
+    const socialLinkOpenedAt = {};
 
     function showMiniAlert(message) {
         const modal = document.getElementById('mini-alert-modal');
@@ -646,25 +647,62 @@
     }
 
     function openTaskLink(url, linkType) {
-        if (linkType === 'telegram' && tg?.openTelegramLink) {
-            tg.openTelegramLink(url);
-        } else if (tg?.openLink) {
-            tg.openLink(url);
-        } else {
-            window.open(url, '_blank', 'noopener,noreferrer');
+        const cleanUrl = (url || "").trim();
+        if (!cleanUrl.startsWith("https://")) {
+            showMiniAlert("Invalid link URL.");
+            return false;
         }
+    
+        if (linkType === 'telegram' && tg?.openTelegramLink) {
+            tg.openTelegramLink(cleanUrl);
+            return true;
+        }
+        if (tg?.openLink) {
+            tg.openLink(cleanUrl, { try_instant_view: false });
+            return true;
+        }
+    
+        const win = window.open(cleanUrl, '_blank', 'noopener,noreferrer');
+        return Boolean(win);
     }
     
     function handleSocialTask(taskId, url, linkType) {
         const card = document.getElementById(`task-${taskId}`);
         const btn = card ? card.querySelector('.claim-btn') : null;
+        const minWaitMs = 8000; // Require at least 8 seconds after opening link
     
-        if (!openedSocialLinks[taskId]) {
-            openedSocialLinks[taskId] = true;
-            openTaskLink(url, linkType);
-            if (btn) {
-                btn.innerText = "Verify & Claim";
+        const lastOpened = socialLinkOpenedAt[taskId] || 0;
+        const elapsed = Date.now() - lastOpened;
+    
+        // First tap (or if link hasn't been opened in this session): open link & start short timer
+        if (!lastOpened) {
+            const opened = openTaskLink(url, linkType);
+            if (!opened) {
+                showMiniAlert("Could not open the link. Please copy the channel link and open it in your browser.");
+                return;
             }
+    
+            socialLinkOpenedAt[taskId] = Date.now();
+            if (btn) {
+                btn.disabled = true;
+                btn.innerText = "Checking (8s)...";
+                let left = 8;
+                const countdown = setInterval(() => {
+                    left--;
+                    if (left > 0) {
+                        btn.innerText = `Checking (${left}s)...`;
+                    } else {
+                        clearInterval(countdown);
+                        btn.disabled = false;
+                        btn.innerText = "Claim Reward";
+                    }
+                }, 1000);
+            }
+            return;
+        }
+    
+        if (elapsed < minWaitMs) {
+            showMiniAlert("Please visit the channel and subscribe before claiming.");
             return;
         }
     
