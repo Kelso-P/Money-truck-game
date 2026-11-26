@@ -349,10 +349,10 @@
             <div class="task-card" id="task-join_support">
                 <div class="task-details">
                     <h4>Join Support Chat 💬</h4>
-                    <p>Join @MoneyTrucks_Support on Telegram and claim.</p>
+                    <p>Join @MoneyTrucks_Support on Telegram and return to claim.</p>
                     <span class="task-reward">+30 MTC</span>
                 </div>
-                <button class="claim-btn" onclick="handleSocialTask('join_support', 'https://t.me/+vvj2Jl-0S-ljOTk0', 'telegram')">Join &amp; Claim</button>
+                <button class="claim-btn" onclick="handleJoinSupport()">Join Chat</button>
             </div>
         
         </div>
@@ -408,6 +408,7 @@
     const SOCIAL_TASK_IDS = ['youtube_sub', 'join_support'];
     const openedSocialLinks = {};
     const socialLinkOpenedAt = {};
+    let supportLinkOpened = false;
 
     function showMiniAlert(message) {
         const modal = document.getElementById('mini-alert-modal');
@@ -707,6 +708,30 @@
         }
     
         claimTask(taskId);
+    }
+
+     function handleJoinSupport() {
+        const card = document.getElementById('task-join_support');
+        const btn = card ? card.querySelector('.claim-btn') : null;
+    
+        if (!supportLinkOpened) {
+            supportLinkOpened = true;
+            if (tg && typeof tg.openTelegramLink === 'function') {
+                tg.openTelegramLink('https://t.me/MoneyTrucks_Support');
+            } else {
+                window.open('https://t.me/MoneyTrucks_Support', '_blank', 'noopener,noreferrer');
+            }
+            if (btn) {
+                btn.innerText = "Verify & Claim";
+            }
+            return;
+        }
+    
+        if (btn) {
+            btn.disabled = true;
+            btn.innerText = "Verifying...";
+        }
+        claimTask('join_support');
     }
 
     function claimTask(taskId) {
